@@ -3,8 +3,7 @@ name: EMR News Scraper
 # 언제 실행할지 (트리거)
 on:
   schedule:
-    # 매일 새벽 1시(UTC 기준, 한국시간 오전 10시)
-    - cron: '0 1 * * *'
+    - cron: '0 0 * * *'  # 매일 오전 9시 (한국시간)
   
   # 수동 실행 버튼
   workflow_dispatch:
@@ -35,7 +34,7 @@ jobs:
       - name: Run scraper
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: python news_scraper.py
+        run: python naver_news_scraper.py
       
       # 5단계: 결과 저장 (Git에 커밋)
       - name: Commit and push if changed
