@@ -33,8 +33,12 @@ jobs:
       # 4단계: 스크래핑 실행
       - name: Run scraper
         env:
+          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: python naver_news_scraper.py
+          EMAIL_ADDRESS: ${{ secrets.EMAIL_ADDRESS }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+        run: python main.py
       
       # 5단계: 결과 저장 (Git에 커밋)
       - name: Commit and push if changed
