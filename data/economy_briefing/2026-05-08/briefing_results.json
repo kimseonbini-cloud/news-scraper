@@ -2,327 +2,327 @@
   "briefing_name": "경제 뉴스 브리핑",
   "subject_prefix": "경제·부동산·증권 뉴스 브리핑",
   "config_path": "configs/economy_briefing.json",
-  "created_at": "2026-05-08T16:56:52.794598",
+  "created_at": "2026-05-08T17:58:54.535127",
   "sections": [
     {
       "section_name": "경제 뉴스 브리핑",
       "summaries": [
         {
-          "title": "유가 뛰어도 '반도체'가 상쇄…경상수지 흑자 373.3억달러 '역대 최대'",
-          "summary": "한국은행은 2026년 3월 국제수지 설명회에서 경상수지가 373.3억 달러로 역대 최대 흑자를 기록했다고 발표했다. 유가 상승에도 반도체 수출이 이를 상쇄하며, 앞으로도 흑자 흐름이 지속될 것으로 예상된다.",
-          "url": "http://www.newstomato.com/ReadNews.aspx?no=1300336&inflow=N",
+          "title": "코스피 뒤쫓아가는 증권사…'부랴부랴' NH 9000·씨티 8500 제시",
+          "summary": "씨티그룹은 반도체 중심의 한국 수출 호조를 바탕으로 한국 경제와 증시 전망을 상향 조정하며, 2026년 GDP 성장률을 2.2%에서 2.9%로 높였다.",
+          "url": "https://n.news.naver.com/mnews/article/421/0008934189?sid=101",
           "keyword": "한국경제",
-          "published_at": "Fri, 08 May 2026 16:44:00 +0900",
+          "published_at": "Fri, 08 May 2026 17:52:00 +0900",
+          "importance_score": 4,
+          "category": "경제전망",
+          "tokens_used": 322
+        },
+        {
+          "title": "3월 경상수지 373억3천만 달러 흑자, 반도체 수출 호조에 '역대 최대' 규...",
+          "summary": "3월 경상수지가 373억3천만 달러 흑자를 기록하며 역대 최대치를 달성했다. 한국은행은 이란 사태와 호르무즈 해협 봉쇄의 영향이 4월에 나타날 수 있지만, 전체적인 흑자 흐름에는 큰 영향을 미치지 않을 것이라고 밝혔다.",
+          "url": "https://www.businesspost.co.kr/BP?command=article_view&num=437424",
+          "keyword": "한국경제",
+          "published_at": "Fri, 08 May 2026 17:52:00 +0900",
           "importance_score": 5,
           "category": "경상수지",
-          "tokens_used": 327
+          "tokens_used": 335
         },
         {
-          "title": "해외 IB, 올해 韓 성장률 잇달아 상향 전망…물가도 오른다",
-          "summary": "해외 주요 투자은행들이 올해 한국 경제성장률 전망치를 상향 조정했다. 이는 1분기 성장률이 예상치를 초과하고 반도체 수출 호조에 기인하며, 물가 상승도 예상된다.",
-          "url": "https://n.news.naver.com/mnews/article/081/0003642169?sid=101",
+          "title": "\"투자 보류\" 기업 파킹통장에 111조 뭉칫돈",
+          "summary": "기업자유예금 잔액이 지난해 말 기준 247조6090억원으로 사상 최대치를 기록했으며, 이는 투자 보류로 인한 현금 유동성 확보를 반영한다. MMDA 잔액도 급증한 것으로 나타났다.",
+          "url": "https://n.news.naver.com/mnews/article/009/0005677248?sid=101",
           "keyword": "한국경제",
-          "published_at": "Fri, 08 May 2026 16:12:00 +0900",
+          "published_at": "Fri, 08 May 2026 17:46:00 +0900",
+          "importance_score": 4,
+          "category": "기업투자",
+          "tokens_used": 304
+        },
+        {
+          "title": "삼성전자 노사, 사후조정 돌입…총파업 전 재협상(종합)",
+          "summary": "삼성전자 노사가 총파업 전 재협상에 들어갔으며, 정부는 반도체가 한국 경제에서 중요한 역할을 하고 있다는 점에서 이번 사안을 민감하게 보고 있다.",
+          "url": "https://n.news.naver.com/mnews/article/031/0001027413?sid=101",
+          "keyword": "한국경제",
+          "published_at": "Fri, 08 May 2026 17:44:00 +0900",
+          "importance_score": 5,
+          "category": "노사문제",
+          "tokens_used": 285
+        },
+        {
+          "title": "글로벌 IB, 한국 경제성장률 2.4%로 올렸지만…물가도 함께 뛴다",
+          "summary": "해외 주요 투자은행들이 한국의 경제성장률 전망을 2.4%로 상향 조정했지만, 물가 상승 압력도 함께 증가하고 있는 상황이다.",
+          "url": "https://news.ifm.kr/news/articleView.html?idxno=470562",
+          "keyword": "한국경제",
+          "published_at": "Fri, 08 May 2026 17:06:00 +0900",
           "importance_score": 4,
           "category": "경제성장",
-          "tokens_used": 303
+          "tokens_used": 281
         },
         {
-          "title": "환율 1470원 재돌파에 꼬여버린 금리 셈법 … 한은 ‘매파 동결’ 무게",
-          "summary": "환율이 1470원을 재돌파하면서 한국은행의 금리 인하 여력이 제한되고 있으며, 이에 따라 한은이 28일 금융통화위원회에서 기준금리를 동결할 가능성이 높아지고 있다.",
-          "url": "https://biz.newdaily.co.kr/site/data/html/2026/05/08/2026050800221.html",
-          "keyword": "금리",
-          "published_at": "Fri, 08 May 2026 16:52:00 +0900",
+          "title": "코스피 7000 안착에 짐 싸는 예금… 제2금융권 ‘수신 방어’ 비상에 금...",
+          "summary": "제2금융권의 수신이 지속적으로 감소하고 있으며, 상호저축은행의 수신은 지난해 11월 100조 2800억원에서 현재 97조로 줄어들었다. 이에 따라 금융권은 수신 방어에 비상 상황에 처해 있다.",
+          "url": "https://n.news.naver.com/mnews/article/243/0000097565?sid=101",
+          "keyword": "한국경제",
+          "published_at": "Fri, 08 May 2026 17:08:00 +0900",
           "importance_score": 4,
-          "category": "금리",
-          "tokens_used": 308
+          "category": "금융시장",
+          "tokens_used": 331
         },
         {
-          "title": "하루 만에 깨진 종전기대···원·달러 환율, 1470원대 상승 마감",
-          "summary": "원·달러 환율이 하루 만에 1470원대로 상승 마감했으며, 이날 코스피 지수는 1.82% 하락한 7353.94로 개장했다. 국제유가는 상승세를 보였고, 미국 국채 금리와 달러인덱스도 반등했다.",
-          "url": "https://www.seoulfn.com/news/articleView.html?idxno=628337",
-          "keyword": "금리",
-          "published_at": "Fri, 08 May 2026 16:30:00 +0900",
-          "importance_score": 4,
-          "category": "환율",
-          "tokens_used": 342
-        },
-        {
-          "title": "코스피, 최고치 또 경신 7498 마감했는데...환율도 17.7원 뛰어",
-          "summary": "코스피가 7498로 최고치를 경신했지만, 서울 외환시장에서 원화 환율이 달러 대비 17.7원 급등하며 주간 거래를 마감했다. 환율 안정화 기대감이 무너진 상황이다.",
-          "url": "https://www.financialpost.co.kr/news/articleView.html?idxno=258234",
+          "title": "롯데웰푸드, 1분기 영업익 358억 118%↑…\"글로벌 사업 호조\"",
+          "summary": "롯데웰푸드는 1분기 영업이익이 358억 원으로 118% 증가했다고 발표했으나, 중동 전쟁 리스크와 원자재 가격 상승 등으로 어려움이 지속될 것으로 전망하고 있다. 이를 대비해 KBO와 협업 마케팅을 진행할 계획이다.",
+          "url": "https://www.newsworks.co.kr/news/articleView.html?idxno=840230",
           "keyword": "환율",
-          "published_at": "Fri, 08 May 2026 16:48:00 +0900",
-          "importance_score": 4,
-          "category": "환율",
-          "tokens_used": 305
+          "published_at": "Fri, 08 May 2026 17:54:00 +0900",
+          "importance_score": 3,
+          "category": "환율변동",
+          "tokens_used": 321
         },
         {
-          "title": "중동발 고물가·고환율 파고…우리금융硏 \"5월 금통위 '매파적 동결' 전...",
-          "summary": "중동 전쟁으로 인한 물가와 환율 불안 속에 한국은행은 5월 금융통화위원회에서 8회 연속 기준금리를 동결하되, 매파적 성향을 보일 것이라는 전망이 제기됐다.",
-          "url": "https://www.getnews.co.kr/news/articleView.html?idxno=869678",
-          "keyword": "기준금리",
-          "published_at": "Fri, 08 May 2026 15:36:00 +0900",
-          "importance_score": 4,
-          "category": "기준금리",
-          "tokens_used": 312
+          "title": "'롤러코스터' 코스피, 7,500선 턱밑 마감... 또 사상 최고치 경신",
+          "summary": "코스피가 7,500선에 가까운 수준으로 마감하며 사상 최고치를 경신했다. 이날 원-달러 환율은 17.7원 상승한 1,471.7원을 기록했으며, 개인과 기관이 각각 3조9745억원, 1조5482억원을 순매수했다.",
+          "url": "https://www.getnews.co.kr/news/articleView.html?idxno=869701",
+          "keyword": "환율",
+          "published_at": "Fri, 08 May 2026 17:48:00 +0900",
+          "importance_score": 3,
+          "category": "환율변동",
+          "tokens_used": 340
         },
         {
-          "title": "고환율發 물가 압박…우리금융연구소, 연내 금리 '매파적' 동결 전망",
-          "summary": "우리금융연구소는 고환율로 인한 수입물가 상승이 소비자물가에 영향을 미치고 있어, 한국은행의 금리가 연내 동결될 것으로 전망하고 있다. 반도체 수출 호조에도 불구하고 내수 회복은 더딘 상황이다.",
-          "url": "https://www.megaeconomy.co.kr/news/newsview.php?ncode=1065590822684883",
-          "keyword": "소비자물가",
-          "published_at": "Fri, 08 May 2026 14:32:00 +0900",
+          "title": "외인 주식 매도에 환율 17.7원 오른 1,471.7원",
+          "summary": "8일 서울 외환시장에서 원/달러 환율이 외국인 투자자들의 국내 주식 대규모 매도와 지정학적 긴장으로 인해 17.7원 상승한 1,471.7원을 기록했다.",
+          "url": "https://www.fntoday.co.kr/news/articleView.html?idxno=384053",
+          "keyword": "환율",
+          "published_at": "Fri, 08 May 2026 17:32:00 +0900",
+          "importance_score": 3,
+          "category": "환율변동",
+          "tokens_used": 309
+        },
+        {
+          "title": "박찬대 \"100일간 이음카드 캐시백 확대, 긴급민생 정책 가동\"",
+          "summary": "박찬대 후보는 100일간 이음카드 캐시백을 확대하고 긴급민생 정책을 가동하겠다고 발표하며, 소상공인의 이자와 물가 걱정을 덜어주겠다고 강조했다.",
+          "url": "https://n.news.naver.com/mnews/article/018/0006276375?sid=162",
+          "keyword": "물가",
+          "published_at": "Fri, 08 May 2026 17:55:00 +0900",
           "importance_score": 3,
           "category": "물가",
-          "tokens_used": 325
-        },
-        {
-          "title": "‘셀 인 메이’ 경계 속 차주 증시...실적 장세 속 과열·기대 공존",
-          "summary": "오는 12일 발표되는 4월 근원 소비자물가지수(Core CPI)가 시장 기대치를 초과할 경우 금리 인하 기대가 줄어들어 글로벌 증시에 부담을 줄 수 있으며, 국내에서는 삼성전자 노조의 파업 가능성이 주요 이슈로 떠오르고 있다.",
-          "url": "https://n.news.naver.com/mnews/article/243/0000097559?sid=101",
-          "keyword": "소비자물가",
-          "published_at": "Fri, 08 May 2026 15:49:00 +0900",
-          "importance_score": 3,
-          "category": "소비자물가",
           "tokens_used": 315
-        },
-        {
-          "title": "해외IB들, '반도체 초호황' 맞은 한국 올해 성장률 전망치 올려",
-          "summary": "해외 투자은행들이 중동전쟁으로 인한 국제유가 상승을 반영해 올해 한국의 소비자물가 상승률(CPI) 전망치를 2.4%에서 2.5%로, 내년 전망치는 2.0%에서 2.1%로 상향 조정했다.",
-          "url": "https://www.delighti.co.kr/news/articleView.html?idxno=116140",
-          "keyword": "소비자물가",
-          "published_at": "Fri, 08 May 2026 13:32:00 +0900",
-          "importance_score": 3,
-          "category": "소비자물가",
-          "tokens_used": 330
-        },
-        {
-          "title": "3월 경상수지 흑자 373억 달러 역대 최대치 기록",
-          "summary": "3월 한국의 경상수지가 373억 달러로 역대 최대치를 기록했으며, 이는 반도체와 컴퓨터 주변기기 등 IT 품목의 수출 호조에 기인한 것으로 분석된다.",
-          "url": "https://news.cpbc.co.kr/article/1172741?division=NAVER",
-          "keyword": "한국경제",
-          "published_at": "Fri, 08 May 2026 16:08:00 +0900",
-          "importance_score": 2,
-          "category": "경상수지",
-          "tokens_used": 293
         }
       ],
-      "raw_count": 146,
+      "raw_count": 151,
       "selected_count": 10
     },
     {
       "section_name": "부동산 뉴스 브리핑",
       "summaries": [
         {
-          "title": "'강남 상징' 은마아파트, 이달 정기총회 개최…최고 49층 재건축 속도",
-          "summary": "서울 강남의 은마아파트가 재건축 사업을 위한 정기총회를 21일 개최하며 사업시행 인가 절차를 진행한다. 이는 은마아파트의 재건축 속도를 높이기 위한 조치이다.",
-          "url": "https://n.news.naver.com/mnews/article/417/0001142342?sid=101",
+          "title": "양도세 유예 종료 앞두고 서울 집값 다시 '들썩'",
+          "summary": "양도소득세 중과 유예 종료가 가까워지면서 서울 아파트값이 다시 상승하고 있으며, 이번 주에는 강남구를 제외한 모든 자치구에서 아파트값이 일제히 올랐다.",
+          "url": "https://www.seoulfn.com/news/articleView.html?idxno=628245",
           "keyword": "서울 아파트",
-          "published_at": "Fri, 08 May 2026 16:35:00 +0900",
+          "published_at": "Fri, 08 May 2026 17:25:00 +0900",
           "importance_score": 5,
-          "category": "재건축",
-          "tokens_used": 316
+          "category": "부동산 정책",
+          "tokens_used": 285
         },
         {
           "title": "다주택자 양도세 중과 유예 종료, 10일부터 '세금폭탄'",
-          "summary": "다주택자 양도세 중과 유예가 종료되면서 10일부터 세금 부담이 증가한다. 지난해 1월 이후 서울 아파트 거래량은 증가했으나, 4월에는 감소세로 돌아섰다.",
+          "summary": "다주택자 양도세 중과 유예가 종료되며, 10일부터 세금 부담이 증가한다. 한국부동산원에 따르면 5월 첫째 주 서울 아파트 매매가격은 전주 대비 0.15% 상승했다.",
           "url": "https://www.thereport.co.kr/news/articleView.html?idxno=87641",
-          "keyword": "서울 아파트",
+          "keyword": "아파트 매매",
           "published_at": "Fri, 08 May 2026 16:34:00 +0900",
           "importance_score": 5,
           "category": "부동산 정책",
-          "tokens_used": 306
+          "tokens_used": 321
         },
         {
-          "title": "이재명 정부, 이번엔 아파트 임대사업자 겨냥? \"혜택 과도하단 지적…여...",
-          "summary": "이재명 정부는 매입임대아파트 사업자에게 영구적으로 제공되던 양도세 중과배제 혜택이 과도하다고 지적하며, 서울과 수도권의 주택 공급 확대와 투기 수요 차단을 강조하고 있다.",
-          "url": "https://n.news.naver.com/mnews/article/002/0002440718?sid=101",
-          "keyword": "서울 아파트",
-          "published_at": "Fri, 08 May 2026 16:29:00 +0900",
+          "title": "[주간부동산시황] 다주택자 양도세 중과…서울 아파트값 0.27%↑",
+          "summary": "5월 1주 보합세였던 서울 아파트 매매가격이 0.27% 상승했으며, 전셋값도 오름세를 보였다. 다주택자 양도세 중과 이후 시장이 숨고르기를 할 것이라는 전망이 제기되고 있다.",
+          "url": "https://n.news.naver.com/mnews/article/119/0003088500?sid=101",
+          "keyword": "아파트 매매",
+          "published_at": "Fri, 08 May 2026 17:09:00 +0900",
           "importance_score": 4,
           "category": "부동산 정책",
-          "tokens_used": 318
-        },
-        {
-          "title": "구윤철 \"조정대상지역내 매입임대 양도세 중과배제 혜택 축소 검토\"",
-          "summary": "구윤철 부총리는 조정대상지역 내 매입임대아파트 사업자에게 제공되는 양도소득세 중과배제 혜택 축소를 검토하고 있다고 밝혔다.",
-          "url": "https://www.delighti.co.kr/news/articleView.html?idxno=116156",
-          "keyword": "서울 아파트",
-          "published_at": "Fri, 08 May 2026 16:18:00 +0900",
-          "importance_score": 4,
-          "category": "부동산 정책",
-          "tokens_used": 302
-        },
-        {
-          "title": "다주택자 양도세 유예 종료 D-1…서울 집값 다시 ‘요동’",
-          "summary": "다주택자 양도세 유예 종료를 하루 앞둔 가운데, 서울 아파트 매매가격지수가 0.15% 상승하며 송파구와 서초구에서 상승세가 이어지고 있다.",
-          "url": "https://www.ekn.kr/web/view.php?key=20260508022243133",
-          "keyword": "아파트 매매",
-          "published_at": "Fri, 08 May 2026 14:58:00 +0900",
-          "importance_score": 3,
-          "category": "주택시장 흐름",
-          "tokens_used": 303
-        },
-        {
-          "title": "5월 둘째 주 서울 집값 0.27% 상승…급매물 소진 이후 반등",
-          "summary": "5월 둘째 주 서울 아파트 매매가격이 0.27% 상승하며, 전국적으로는 0.22% 상승했다. 경기·인천은 0.23%, 5대광역시는 0.14%, 기타 지방은 0.07% 상승률을 보였다.",
-          "url": "https://n.news.naver.com/mnews/article/421/0008933575?sid=101",
-          "keyword": "아파트 매매",
-          "published_at": "Fri, 08 May 2026 14:02:00 +0900",
-          "importance_score": 3,
-          "category": "주택시장 흐름",
-          "tokens_used": 332
-        },
-        {
-          "title": "서울 아파트 경매 다시 달아오르나 … 낙찰가율 100% 넘기며 반등 조짐",
-          "summary": "서울 아파트 경매시장이 반등 조짐을 보이며, 중저가 대단지 아파트에 응찰자가 몰려 낙찰가율이 100%를 넘었다. 대출 규제와 매매시장 관망세 속에서도 가격 메리트가 작용하고 있다.",
-          "url": "https://biz.newdaily.co.kr/site/data/html/2026/05/08/2026050800152.html",
-          "keyword": "아파트 매매",
-          "published_at": "Fri, 08 May 2026 13:56:00 +0900",
-          "importance_score": 3,
-          "category": "주택시장 흐름",
-          "tokens_used": 318
-        },
-        {
-          "title": "[현장] 다주택자 양도세 중과 D-2…부동산 시장 ‘폭풍전야’",
-          "summary": "다주택자 양도세 중과 시행이 이틀 앞으로 다가오면서 부동산 시장에 혼선이 발생하고 있다. 정부는 다주택자가 조정대상지역 주택을 무주택자에게 매도할 경우 실거주 의무를 유예한다고 밝혔다.",
-          "url": "https://n.news.naver.com/mnews/article/119/0003088492?sid=101",
-          "keyword": "전세",
-          "published_at": "Fri, 08 May 2026 16:52:00 +0900",
-          "importance_score": 3,
-          "category": "전세",
-          "tokens_used": 318
-        },
-        {
-          "title": "서영교 의원 \"이행강제금의 덫 풀었다\"…특정건축물정리특별법 국회 통...",
-          "summary": "서영교 의원은 위반건축물로 피해를 입은 서민과 전세사기 피해자를 구제하기 위한 특정건축물정리특별법이 국회를 통과했다고 밝혔다. 이 법에는 전세사기 피해자 보호를 위한 특례도 포함되어 있다.",
-          "url": "https://www.newspim.com/news/view/20260508001252",
-          "keyword": "전세",
-          "published_at": "Fri, 08 May 2026 16:49:00 +0900",
-          "importance_score": 3,
-          "category": "전세",
           "tokens_used": 324
         },
         {
-          "title": "오세훈 측 “정원오 후보, 세금폭탄 앞에서도 여전히 침묵”",
-          "summary": "오세훈 측은 정원오 후보가 세금폭탄 문제에 대해 침묵하고 있다고 비판하며, 서울 지역 공동주택 공시가격이 평균 18.67% 상승한 점을 언급했다. 특히 성동구의 상승률은 29.04%에 달한다고 강조했다.",
-          "url": "https://n.news.naver.com/mnews/article/081/0003642160?sid=100",
-          "keyword": "전세",
-          "published_at": "Fri, 08 May 2026 15:49:00 +0900",
+          "title": "개포동 아파트 찾은 정원오 “강남 특위 만들어 재건축 속도 낼 것”",
+          "summary": "정원오 후보는 서울 강남구 개포우성7차아파트를 방문해 재건축 사업 관계자들과 대화하며 강남 특위를 만들어 재건축 속도를 높이겠다고 밝혔다.",
+          "url": "https://n.news.naver.com/mnews/article/366/0001162897?sid=162",
+          "keyword": "서울 아파트",
+          "published_at": "Fri, 08 May 2026 17:29:00 +0900",
+          "importance_score": 4,
+          "category": "재건축",
+          "tokens_used": 297
+        },
+        {
+          "title": "서울 아파트 낙찰가율 3개월 만에 반등",
+          "summary": "서울 아파트의 낙찰가율이 지난달 48.7%로 5개월 만에 최고치를 기록하며 반등했다. 15억원 이하 아파트 경매 참여자가 증가한 것이 주요 원인으로 분석된다.",
+          "url": "https://n.news.naver.com/mnews/article/015/0005284706?sid=101",
+          "keyword": "서울 아파트",
+          "published_at": "Fri, 08 May 2026 17:53:00 +0900",
+          "importance_score": 3,
+          "category": "주택시장 흐름",
+          "tokens_used": 295
+        },
+        {
+          "title": "\"급매 더 나온다, 5~10% 싼 집 노려라\"",
+          "summary": "서울 아파트 전세 가격이 5월 첫째 주에 전주 대비 0.23% 상승하며 2015년 11월 이후 가장 높은 상승률을 기록했다. 전문가들은 실수요자에게 10억원 안팎의 아파트를 추천하고 있다.",
+          "url": "https://n.news.naver.com/mnews/article/009/0005677261?sid=101",
+          "keyword": "서울 아파트",
+          "published_at": "Fri, 08 May 2026 17:47:00 +0900",
           "importance_score": 3,
           "category": "전세",
-          "tokens_used": 324
+          "tokens_used": 313
+        },
+        {
+          "title": "\"임대사업자 양도세 혜택 과도\"… 축소 시사",
+          "summary": "정부가 서울·수도권 주택 공급 확대를 위해 조정대상지역 매입임대 아파트 사업자의 양도소득세 중과 배제 혜택을 축소할 가능성을 시사했다. 구윤철 부총리는 조세 형평성 차원에서 다양한 방안을 검토 중이라고 밝혔다.",
+          "url": "https://n.news.naver.com/mnews/article/009/0005677247?sid=101",
+          "keyword": "서울 아파트",
+          "published_at": "Fri, 08 May 2026 17:46:00 +0900",
+          "importance_score": 3,
+          "category": "부동산 정책",
+          "tokens_used": 322
+        },
+        {
+          "title": "서울 전세난에 뜨는 '옆세권'…구리 집 산 3명 중 1명 '서울사람'",
+          "summary": "서울 아파트 전세 매물이 지난해 대비 33.4% 감소하며 실수요자들이 경기지역으로 이동하고 있다. 구리에서 집을 구매한 사람 중 3명 중 1명이 서울 거주자로 나타났다.",
+          "url": "https://n.news.naver.com/mnews/article/003/0013934132?sid=101",
+          "keyword": "서울 아파트",
+          "published_at": "Fri, 08 May 2026 17:21:00 +0900",
+          "importance_score": 3,
+          "category": "전세",
+          "tokens_used": 308
+        },
+        {
+          "title": "중동 전쟁이 영국 집값 식혔다...설마 한국도?",
+          "summary": "중동 전쟁과 대외 리스크가 한국 부동산 시장에 영향을 미치고 있으며, 공급 부족과 전세 가격 상승, 대출 규제 등 국내 요인이 가격 결정에 중요한 역할을 하고 있다.",
+          "url": "https://www.etoday.co.kr/news/view/2582870",
+          "keyword": "전세",
+          "published_at": "Fri, 08 May 2026 17:44:00 +0900",
+          "importance_score": 2,
+          "category": "전세",
+          "tokens_used": 289
+        },
+        {
+          "title": "양도세 중과 부활…3주택자 '마래푸' 팔면 5.6억→12.5억",
+          "summary": "서울 아파트 매물이 한 달 전보다 10.2% 감소했으며, 3주택자가 '마래푸'를 팔 경우 양도세 중과로 세금이 5.6억에서 12.5억으로 증가할 수 있다.",
+          "url": "https://n.news.naver.com/mnews/article/015/0005284705?sid=101",
+          "keyword": "서울 아파트",
+          "published_at": "Fri, 08 May 2026 17:53:00 +0900",
+          "importance_score": 2,
+          "category": "부동산 정책",
+          "tokens_used": 319
         }
       ],
-      "raw_count": 103,
+      "raw_count": 90,
       "selected_count": 10
     },
     {
       "section_name": "증권 뉴스 브리핑",
       "summaries": [
         {
-          "title": "[속보] 골드만삭스 \"한국 증시 최선호 시장…코스피 목표 9000\"",
-          "summary": "골드만삭스는 한국 주식 시장을 아시아의 최선호 시장으로 평가하며 코스피 목표치를 9000으로 제시했다.",
-          "url": "https://n.news.naver.com/mnews/article/002/0002440730?sid=101",
-          "keyword": "코스피",
-          "published_at": "Fri, 08 May 2026 16:55:00 +0900",
-          "importance_score": 5,
-          "category": "증시전망",
-          "tokens_used": 284
-        },
-        {
-          "title": "“코스피 9000 갑니다”…골드만삭스 “여전히 매력적” 목표치 ↑",
-          "summary": "골드만삭스가 코스피의 목표치를 9000으로 상향 조정하며, 현재 코스피가 연일 사상 최고치를 기록하고 있다고 보도했다.",
-          "url": "https://n.news.naver.com/mnews/article/009/0005677191?sid=101",
-          "keyword": "코스피",
-          "published_at": "Fri, 08 May 2026 16:55:00 +0900",
-          "importance_score": 5,
-          "category": "증시전망",
-          "tokens_used": 290
-        },
-        {
-          "title": "\"韓증시, 여전히 상승 여력 충분\"",
-          "summary": "골드만삭스 애널리스트들은 향후 12개월 코스피 목표치를 8000에서 9000으로 상향 조정했으며, 코스피는 7000선을 돌파한 후 현재 7400선에서 거래되고 있다.",
-          "url": "https://www.businessplus.kr/news/articleView.html?idxno=111564",
-          "keyword": "코스피",
-          "published_at": "Fri, 08 May 2026 16:50:00 +0900",
-          "importance_score": 5,
-          "category": "증시전망",
-          "tokens_used": 298
-        },
-        {
-          "title": "\"가장 확신\" 골드만삭스 \"코스피 9,000으로 상향\"",
-          "summary": "골드만삭스는 한국 주식 시장을 아시아에서 가장 선호하는 시장으로 평가하며, 코스피 목표치를 9,000으로 상향 조정했습니다.",
-          "url": "https://n.news.naver.com/mnews/article/374/0000509011?sid=101",
-          "keyword": "코스피",
-          "published_at": "Fri, 08 May 2026 16:47:00 +0900",
-          "importance_score": 5,
-          "category": "증시전망",
-          "tokens_used": 287
-        },
-        {
-          "title": "[속보] 골드만삭스 \"코스피 9,000으로 상향…아시아서 최선호\"",
-          "summary": "골드만삭스가 한국 주식 시장을 아시아에서 가장 선호하는 시장으로 평가하며 코스피 목표치를 9,000포인트로 상향 조정했다.",
-          "url": "https://n.news.naver.com/mnews/article/215/0001251507?sid=101",
-          "keyword": "코스피",
-          "published_at": "Fri, 08 May 2026 16:45:00 +0900",
+          "title": "골드만삭스, 코스피 목표치 9000으로 상향⋯“상승 랠리 아직 안 끝났다...",
+          "summary": "골드만삭스는 한국 증시의 매력을 강조하며 코스피 목표치를 9000으로 상향 조정했다. 이들은 올해의 상승 랠리가 아직 끝나지 않았다고 평가했다.",
+          "url": "https://www.etoday.co.kr/news/view/2582869",
+          "keyword": "한국증시",
+          "published_at": "Fri, 08 May 2026 17:40:00 +0900",
           "importance_score": 5,
           "category": "증시전망",
           "tokens_used": 297
         },
         {
-          "title": "골드만삭스 \"상승랠리 끝나지 않았다…코스피 9,000으로 상향\"",
-          "summary": "골드만삭스는 한국 증시가 여전히 매력적이며, 올해 세계에서 가장 놀라운 상승 랠리 중 하나를 기록했지만 상승세는 계속될 것이라고 평가했다. 코스피 목표치는 9,000으로 상향 조정됐다.",
-          "url": "https://n.news.naver.com/mnews/article/001/0016066440?sid=101",
+          "title": "골드만삭스 “상승랠리 끝나지 않았다…코스피 9000으로 상향”",
+          "summary": "골드만삭스는 한국 증시를 아시아에서 가장 유망한 시장으로 평가하며, 올해 코스피가 추가 상승 여력이 있다고 전망했다. 특히 반도체 업황과 인공지능(AI) 확산에 긍정적인 시각을 보였다.",
+          "url": "https://n.news.naver.com/mnews/article/081/0003642212?sid=101",
           "keyword": "한국증시",
-          "published_at": "Fri, 08 May 2026 16:38:00 +0900",
+          "published_at": "Fri, 08 May 2026 17:38:00 +0900",
           "importance_score": 5,
           "category": "증시전망",
-          "tokens_used": 306
+          "tokens_used": 308
         },
         {
-          "title": "골드만삭스 코스피 전망 9천 포인트로 상향, \"메모리반도체 호황 아직 ...",
-          "summary": "골드만삭스는 한국 증시가 '코리아 디스카운트'로 인해 저평가되고 있지만, 정부의 노력으로 기업들이 성장할 것으로 보아 코스피 전망을 9천 포인트로 상향 조정했다.",
-          "url": "https://www.businesspost.co.kr/BP?command=article_view&num=437385",
-          "keyword": "한국증시",
-          "published_at": "Fri, 08 May 2026 15:58:00 +0900",
-          "importance_score": 4,
-          "category": "증시전망",
-          "tokens_used": 304
+          "title": "코스피, 외인 ‘5조’ 매물 딛고 사상 최고치 경신…7500선 ‘턱밑’",
+          "summary": "코스피가 외국인의 5조 원 매도에도 불구하고 개인과 기관의 매수세로 상승 전환하며 사상 최고치를 경신하고 7500선에 근접해 장을 마쳤다.",
+          "url": "https://n.news.naver.com/mnews/article/029/0003025661?sid=101",
+          "keyword": "코스피",
+          "published_at": "Fri, 08 May 2026 17:52:00 +0900",
+          "importance_score": 5,
+          "category": "증시동향",
+          "tokens_used": 308
         },
         {
-          "title": "파죽지세 코스피...7500선 넘어 '1만피' 현실화 가능성은?",
-          "summary": "한국 증시가 구조적 체질 개선에 진입했다는 평가 속에, 코스피가 8일 7498.00으로 상승하며 7500선을 넘어 '1만피' 가능성이 제기되고 있다.",
-          "url": "https://www.greened.kr/news/articleView.html?idxno=340396",
-          "keyword": "한국증시",
-          "published_at": "Fri, 08 May 2026 15:17:00 +0900",
+          "title": "대신증권, 1분기 순이익 1455억원…흑자 전환",
+          "summary": "대신증권은 1분기 순이익이 1455억원으로 흑자 전환했다. 이는 코스피 상승과 AI·반도체 투자 열기, 일회성 비용 감소에 따른 결과다.",
+          "url": "http://www.srtimes.kr/news/articleView.html?idxno=202882",
+          "keyword": "코스피",
+          "published_at": "Fri, 08 May 2026 17:50:00 +0900",
           "importance_score": 4,
-          "category": "증시전망",
-          "tokens_used": 309
+          "category": "증권실적",
+          "tokens_used": 297
         },
         {
-          "title": "코스피 7000 축포 뒤 '빚투 35조'…하나·신한운용 ETF 광고 논란, 미래에...",
-          "summary": "코스피가 사상 처음으로 7000선을 돌파하며 한국 증시는 세계 7위 시장으로 올라섰고, 외국인 자금이 반도체 주식에 집중되고 있다.",
-          "url": "https://www.greened.kr/news/articleView.html?idxno=340391",
-          "keyword": "한국증시",
-          "published_at": "Fri, 08 May 2026 14:18:00 +0900",
+          "title": "코스피 뒤쫓아가는 증권사…'부랴부랴' NH 9000·씨티 8500 제시",
+          "summary": "증권사들이 코스피 목표치를 잇달아 상향 조정하고 있다. 대신증권은 코스피 연간 전망치를 7500에서 8800으로 조정하며, 반도체 이익 개선이 산업 전반으로 확산되고 있음을 반영했다.",
+          "url": "https://n.news.naver.com/mnews/article/421/0008934189?sid=101",
+          "keyword": "코스피",
+          "published_at": "Fri, 08 May 2026 17:52:00 +0900",
           "importance_score": 4,
           "category": "증시전망",
+          "tokens_used": 325
+        },
+        {
+          "title": "코스피, 외국인 매도세 뚫고 또 ‘사상 최고치’…환율은 1470원대로 급...",
+          "summary": "코스피 지수가 외국인 매도에도 불구하고 상승세를 이어가며 사상 최고치를 경신했다. 이날 지수는 7500선 근처에서 거래를 마감했다.",
+          "url": "https://n.news.naver.com/mnews/article/028/0002804303?sid=101",
+          "keyword": "코스피",
+          "published_at": "Fri, 08 May 2026 17:42:00 +0900",
+          "importance_score": 4,
+          "category": "증시동향",
+          "tokens_used": 299
+        },
+        {
+          "title": "외국인 5조원 넘게 던졌는데…개미가 받아낸 코스피, 또 최고치 경신",
+          "summary": "코스피가 외국인의 대규모 매도에도 불구하고 개인과 기관 자금의 유입으로 사상 최고치를 경신했다. 장중 7300선 초반까지 하락했으나, 장 후반에 상승 전환에 성공했다.",
+          "url": "https://www.hidomin.com/news/articleView.html?idxno=704499",
+          "keyword": "코스피",
+          "published_at": "Fri, 08 May 2026 17:46:00 +0900",
+          "importance_score": 4,
+          "category": "증시동향",
+          "tokens_used": 314
+        },
+        {
+          "title": "'삼전닉스' 대신 바이오 담은 金과장 \"남들 버는데 나만 못벌어\"",
+          "summary": "코스피지수가 장중 7500을 기록하자 골드만삭스는 목표치를 9000으로 상향 조정했지만, 개인투자자들은 여전히 주식계좌에 대한 불만을 토로하고 있다.",
+          "url": "https://n.news.naver.com/mnews/article/015/0005284691?sid=101",
+          "keyword": "코스피",
+          "published_at": "Fri, 08 May 2026 17:45:00 +0900",
+          "importance_score": 4,
+          "category": "증시전망",
+          "tokens_used": 308
+        },
+        {
+          "title": "자녀는 美 지수 ETF, 부모는 조선·방산주 담았다",
+          "summary": "개미 투자자들이 세대별로 다른 투자 전략을 보이고 있으며, 자녀들은 미국 지수 ETF에, 부모들은 조선 및 방산주에 집중 투자하고 있다. 올해 두 종목은 각각 123.94%와 158.99% 상승하며 코스피 상승에 기여했다.",
+          "url": "https://n.news.naver.com/mnews/article/011/0004618869?sid=101",
+          "keyword": "코스피",
+          "published_at": "Fri, 08 May 2026 17:57:00 +0900",
+          "importance_score": 3,
+          "category": "투자전략",
           "tokens_used": 311
         },
         {
-          "title": "외국인 5.5조 팔아도 반등한 코스피, 7498로 또 최고치",
-          "summary": "코스피가 외국인 5.5조 원 매도에도 불구하고 7498로 최고치를 기록했다. 미국 증시의 하락과 이란과의 긴장 재부각이 투자 심리에 부담을 주었지만, 코스피는 반등했다.",
-          "url": "https://www.newsfreezone.co.kr/news/articleView.html?idxno=688731",
-          "keyword": "미국증시",
-          "published_at": "Fri, 08 May 2026 15:56:00 +0900",
-          "importance_score": 4,
-          "category": "증시전망",
-          "tokens_used": 317
+          "title": "\"주가누르기방지법, 7월 세제개편안 포함\"",
+          "summary": "이 대통령은 민주당 코스피5000특별위원회를 초청해 주가누르기방지법의 신속한 추진을 주문했으며, 이를 7월 세제개편안에 포함할 계획이다.",
+          "url": "https://n.news.naver.com/mnews/article/009/0005677303?sid=100",
+          "keyword": "코스피",
+          "published_at": "Fri, 08 May 2026 17:56:00 +0900",
+          "importance_score": 3,
+          "category": "정책·규제",
+          "tokens_used": 283
         }
       ],
-      "raw_count": 136,
+      "raw_count": 141,
       "selected_count": 10
     }
   ]
