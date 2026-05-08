@@ -1,82 +1,82 @@
 [
   {
-    "title": "EMR 인증제도 확 바뀐다…중복심사 없애고 사후관리 강화",
-    "summary": "정부가 전자의무기록(EMR) 시스템 인증제도를 개편하여 중복 심사를 없애고 사후 관리를 강화한다. 인증은 제품과 사용으로 이원화되며, EMR은 환자 정보를 전자문서로 기록한다.",
-    "url": "https://n.news.naver.com/mnews/article/018/0006274835?sid=102",
+    "title": "전자의무기록 중복 인증 절차, 일원화로 효율성 제고",
+    "summary": "전자의무기록(EMR) 인증 절차가 일원화되어 효율성이 향상된다. 보건복지부는 EMR 시스템 인증제도 운영에 관한 고시 개정안을 확정, 시행한다.",
+    "url": "https://www.monews.co.kr/news/articleView.html?idxno=411040",
     "keyword": "EMR",
-    "published_at": "Thu, 07 May 2026 12:02:00 +0900",
-    "tokens_used": 219
+    "published_at": "Thu, 07 May 2026 15:00:00 +0900",
+    "tokens_used": 211
   },
   {
-    "title": "전자의무기록 시스템 전면 개편… 병의원 행정부담 낮춘다",
-    "summary": "정부가 전자의무기록(EMR) 시스템을 전면 개편하여 병의원의 행정부담을 낮추고, 중복 심사 절차와 과도한 행정 업무를 개선할 계획이다.",
-    "url": "https://www.medicaltimes.com/Main/News/NewsView.html?ID=1168592&ref=naverpc",
+    "title": "복지부, 전자의무기록 제도 손질…‘제품·사용’ 인증 일원화",
+    "summary": "복지부는 전자의무기록(EMR) 시스템 인증제도를 통합해 의료기관의 행정 부담을 줄이기로 했다. 7일 개정안을 확정·시행한다고 발표했다.",
+    "url": "https://n.news.naver.com/mnews/article/366/0001162515?sid=105",
     "keyword": "EMR",
-    "published_at": "Thu, 07 May 2026 12:06:00 +0900",
-    "tokens_used": 207
+    "published_at": "Thu, 07 May 2026 15:10:00 +0900",
+    "tokens_used": 214
   },
   {
-    "title": "보건복지부, AI 기반 '스마트홈' 구축 주관기관으로 NHN 컨소시엄 선정",
-    "summary": "보건복지부는 NHN 컨소시엄을 AI 기반 '스마트홈' 구축 주관기관으로 선정했다. 이 사업은 지역보건의료정보시스템과 연계해 공공 돌봄 인프라와 결합, AI 스마트홈 모델의 전국 확산 기반을 마련할 예정이다.",
-    "url": "https://gamefocus.co.kr/detail.php?number=175693",
+    "title": "국회, 제435회 임시국회 본회의서 117건 안건 처리…AI·안전·민생 법안...",
+    "summary": "국회는 제435회 임시국회 본회의에서 117건의 안건을 처리했다. 주요 내용은 질병관리청이 항생제 사용 관리 표준지침을 마련하고, 의료기관의 항생제 사용 및 내성 관리 지원 시스템을 구축하는 것이다.",
+    "url": "http://monthly.chosun.com/client/mdaily/daily_view.asp?idx=24313&Newsnumb=20260524313",
     "keyword": "의료정보시스템",
-    "published_at": "Thu, 07 May 2026 12:22:00 +0900",
-    "tokens_used": 228
+    "published_at": "Fri, 08 May 2026 09:00:00 +0900",
+    "tokens_used": 227
   },
   {
-    "title": "[지자체 이슈] 인천시, 320개소 중대시민재해 대상시설물'압박 점검' 중...",
-    "summary": "인천시는 어버이날을 맞아 65세 이상 부모를 둔 시민들에게 지정의료기관 방문을 권장하며, 중대시민재해 대상시설물 320개소에 대한 점검을 실시하고 방역 상황을 실시간으로 공유하고 있다.",
-    "url": "http://www.queen.co.kr/news/articleView.html?idxno=456481",
+    "title": "국가 차원 항생제 관리 강화…학교 등 결핵 검진 비용 지원",
+    "summary": "질병청장이 항생제 사용 관리 표준지침을 마련하고, 정보시스템 구축 및 의료기관 관리·평가를 통해 항생제 사용을 강화한다. 또한, 학교 등에서 결핵 검진 비용을 지원한다.",
+    "url": "https://n.news.naver.com/mnews/article/003/0013932568?sid=102",
     "keyword": "의료정보시스템",
-    "published_at": "Thu, 07 May 2026 13:36:00 +0900",
-    "tokens_used": 232
+    "published_at": "Fri, 08 May 2026 09:18:00 +0900",
+    "tokens_used": 204
   },
   {
-    "title": "일산백병원, AI 환자 모니터링 시스템 '씽크' 도입",
-    "summary": "일산백병원이 AI 기반 실시간 환자 모니터링 시스템 '씽크'를 도입하여 입원환자의 안전을 강화하고 병동 환경을 개선한다고 밝혔다.",
-    "url": "https://www.100ssd.co.kr/news/articleView.html?idxno=209015",
-    "keyword": "병원정보시스템",
-    "published_at": "Thu, 07 May 2026 10:14:00 +0900",
-    "tokens_used": 199
+    "title": "[단독] 정부, '지역필수공공의료실' 신설 속도… 초대 실장에 손영래 단...",
+    "summary": "정부가 '지역필수공공의료실' 신설을 추진 중이며, 초대 실장으로 손영래가 임명될 예정이다. 보건복지부는 조만간 신설 절차를 마무리할 계획이다.",
+    "url": "https://it.chosun.com/news/articleView.html?idxno=2023092161708",
+    "keyword": "의료IT",
+    "published_at": "Fri, 08 May 2026 08:06:00 +0900",
+    "tokens_used": 230
   },
   {
-    "title": "연세의대, 정부 지원받아 '자폐 선별 AI 플랫폼' 개발 돌입",
-    "summary": "연세의대가 정부 지원으로 '자폐 선별 AI 플랫폼' 개발에 착수했다. 천근아 교수와 박유랑 교수, 컴퓨터 기업 휴레이포지티브가 협력하여 연구를 진행한다.",
-    "url": "https://www.medicaltimes.com/Main/News/NewsView.html?ID=1168601&ref=naverpc",
-    "keyword": "병원정보시스템",
-    "published_at": "Thu, 07 May 2026 11:40:00 +0900",
-    "tokens_used": 206
+    "title": "[굿모닝! 글로벌 뉴욕증시] 미·이란 충돌 재부각에 약세…반도체주 차...",
+    "summary": "미·이란 충돌 재부각으로 뉴욕증시가 약세를 보였고, 반도체주가 하락했다. ARM홀딩스는 예상치를 웃도는 실적에도 AI 칩 공급 우려로 10.11% 급락했으며, AMD와 인텔도 각각 3.07%, 3.00% 하락했다. 반면 소프트웨어, 보험, 의료장비 업종은 상승세를 기록했다.",
+    "url": "https://www.newsquest.co.kr/news/articleView.html?idxno=265918",
+    "keyword": "의료IT",
+    "published_at": "Fri, 08 May 2026 08:12:00 +0900",
+    "tokens_used": 282
   },
   {
-    "title": "[이슈] 코스피 7000선 첫 돌파…반도체·인공지능 랠리에 시가총액 급팽...",
-    "summary": "코스피가 7000선을 처음으로 돌파하며 반도체와 인공지능 관련 주식이 급등했다. 정부의 기업가치 제고 정책도 투자심리를 자극했고, 삼성전자는 시가총액 1555조원을 기록하며 아시아에서 두 번째로 큰 기업이 되었다.",
-    "url": "https://www.polinews.co.kr/news/articleView.html?idxno=730409",
+    "title": "한국 '세계 2위'인데 이런 일이…\"그냥은 못 주겠다\" 꽁꽁",
+    "summary": "한국은 유엔 회원국 중 전자정부 평가에서 에스토니아에 이어 2위에 올랐으나, 금융위원회가 데이터 접근을 제한하고 있어 신규 통계 개발에 어려움을 겪고 있다.",
+    "url": "https://n.news.naver.com/mnews/article/015/0005284412?sid=101",
     "keyword": "전자의무기록",
-    "published_at": "Thu, 07 May 2026 16:15:00 +0900",
+    "published_at": "Fri, 08 May 2026 07:01:00 +0900",
+    "tokens_used": 198
+  },
+  {
+    "title": "“9천피 간다” 장밋빛 전망 쏟아내는 증권가… 금융당국 “증권사 실적...",
+    "summary": "증권가에서는 코스피 9천 포인트 전망이 나오고 있으며, 삼성전자와 SK하이닉스는 각각 2.07%, 3.31% 상승했다. 반면, 한화투자증권과 미래에셋증권은 각각 9.39%, 5.73% 하락했다.",
+    "url": "https://n.news.naver.com/mnews/article/022/0004126642?sid=101",
+    "keyword": "전자의무기록",
+    "published_at": "Fri, 08 May 2026 07:02:00 +0900",
+    "tokens_used": 257
+  },
+  {
+    "title": "[넥스트 K뷰티⑥] 해외 휩쓴 에이피알, 1분기 최대 실적···PDRN 앞세워...",
+    "summary": "에이피알은 PDRN을 차기 성장 동력으로 삼아 글로벌 바이오·헬스케어 및 메디컬 에스테틱 시장으로 사업을 확장하며 1분기 최대 실적을 기록했다.",
+    "url": "https://www.sisajournal-e.com/news/articleView.html?idxno=420963",
+    "keyword": "헬스케어",
+    "published_at": "Fri, 08 May 2026 10:04:00 +0900",
     "tokens_used": 235
   },
   {
-    "title": "[Y인사이트] '뉴 스페이스' 시대, 우주용 반도체 7종 국산화 시동",
-    "summary": "한국전자통신연구원(ETRI)이 '뉴 스페이스' 시대를 맞아 우주용 반도체 7종의 국산화 프로젝트를 시작했다. 산학연 컨소시엄이 참여하며, M램 기술이 방사선 저항성을 갖춘 정보 기록 방식으로 주목받고 있다.",
-    "url": "https://www.thelec.kr/news/articleView.html?idxno=56167",
-    "keyword": "전자의무기록",
-    "published_at": "Thu, 07 May 2026 16:32:00 +0900",
-    "tokens_used": 239
-  },
-  {
-    "title": "[ICT 종합] 네이버클라우드 및 AMD 소식 외",
-    "summary": "네이버클라우드와 AMD 관련 뉴스에서 SK쉴더스, 마크노바, 한강시스템, 카카오헬스케어, 헬스맥스 등 참여 기관들이 보안 인프라 구축 및 돌봄 앱 개발, 건강 관리 분야에서 협력하고 있다.",
-    "url": "https://www.gamevu.co.kr/news/articleView.html?idxno=57731",
+    "title": "대전대, '바이오헬스 COSS 페스티벌'…홍보·체험존 운영",
+    "summary": "대전대는 '바이오헬스 COSS 페스티벌'을 개최, 비누 및 샴푸바 만들기 체험과 선배와의 대화를 진행했다. 안요찬 교수는 하반기에 2차 페스티벌을 통해 헬스케어 인재 양성에 집중할 계획이라고 밝혔다.",
+    "url": "https://n.news.naver.com/mnews/article/003/0013932773?sid=102",
     "keyword": "헬스케어",
-    "published_at": "Thu, 07 May 2026 18:02:00 +0900",
-    "tokens_used": 221
-  },
-  {
-    "title": "\"지방간, 간만의 문제 아니었다\"…분당서울대병원 연구팀, 지방간질환과...",
-    "summary": "분당서울대병원 연구팀은 지방간질환이 간의 문제를 넘어 소장 염증과 장내미생물 불균형과 관련이 있음을 밝혀냈다.",
-    "url": "http://www.thefirstmedia.net/news/articleView.html?idxno=199152",
-    "keyword": "헬스케어",
-    "published_at": "Thu, 07 May 2026 18:04:00 +0900",
-    "tokens_used": 216
+    "published_at": "Fri, 08 May 2026 10:06:00 +0900",
+    "tokens_used": 244
   }
 ]
