@@ -179,9 +179,16 @@ def build_section_insights(section_title, summaries):
     """
     if not summaries:
         return """
-                <div class="section-insights">
-                    <div class="insight-line">1. 이 섹션에서 요약할 뉴스가 없습니다.</div>
-                </div>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                   style="border-collapse:collapse; margin:0 0 14px 0;">
+                <tr>
+                    <td style="padding:0 0 10px 0; border-bottom:1px solid #dddddd;">
+                        <div style="font-size:13px; line-height:1.6;">
+                            1. 이 섹션에서 요약할 뉴스가 없습니다.
+                        </div>
+                    </td>
+                </tr>
+            </table>
         """
 
     news_text_list = []
@@ -243,66 +250,67 @@ def build_section_insights(section_title, summaries):
         if not lines:
             raise ValueError("핵심 3줄 응답이 비어 있습니다.")
 
-        html_lines = ""
-        for line in lines:
-            html_lines += f"""
-                    <div class="insight-line">{safe_text(line)}</div>
-            """
-
-        return f"""
-                <div class="section-insights">
-                    {html_lines}
-                </div>
-        """
-
     except Exception as e:
         logger.error(f"❌ [{section_title}] 핵심 3줄 생성 실패: {e}")
 
-        fallback_lines = []
-
+        lines = []
         for i, news in enumerate(summaries[:3], 1):
             summary = str(news.get("summary", "")).strip()
             if summary:
-                fallback_lines.append(f"{i}. {summary}")
+                lines.append(f"{i}. {summary}")
 
-        if not fallback_lines:
-            fallback_lines = ["1. 이 섹션의 핵심 요약을 생성하지 못했습니다."]
+        if not lines:
+            lines = ["1. 이 섹션의 핵심 요약을 생성하지 못했습니다."]
 
-        html_lines = ""
-        for line in fallback_lines[:3]:
-            html_lines += f"""
-                    <div class="insight-line">{safe_text(line)}</div>
-            """
+    html_lines = ""
 
-        return f"""
-                <div class="section-insights">
-                    {html_lines}
-                </div>
+    for line in lines[:3]:
+        html_lines += f"""
+            <div style="font-size:13px; line-height:1.65; margin:0 0 3px 0; word-break:keep-all;">
+                {safe_text(line)}
+            </div>
         """
 
+    return f"""
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+               style="border-collapse:collapse; margin:0 0 15px 0;">
+            <tr>
+                <td style="padding:0 0 11px 0; border-bottom:1px solid #dddddd;">
+                    {html_lines}
+                </td>
+            </tr>
+        </table>
+    """
 
-def get_section_class(index):
+def get_section_color(index):
     """
-    섹션별 색상 클래스 순환
+    섹션별 포인트 색상 반환
+    네이버메일 호환을 위해 class가 아니라 inline style에서 사용한다.
     """
-    classes = [
-        "section-blue",
-        "section-red",
-        "section-green",
-        "section-purple",
-        "section-orange"
+    colors = [
+        "#2563eb",  # blue
+        "#dc2626",  # red
+        "#16a34a",  # green
+        "#7c3aed",  # purple
+        "#ea580c"   # orange
     ]
 
-    return classes[index % len(classes)]
+    return colors[index % len(colors)]
 
-
-def build_news_section(section_title, summaries, default_keyword, section_class):
+def build_news_section(section_title, summaries, default_keyword, section_color):
     """
     뉴스 섹션 HTML 생성
+    네이버메일 호환을 위해 inline style 중심으로 작성한다.
+    일반 글자색은 지정하지 않고, 메일 앱의 라이트/다크모드 기본값을 따른다.
     """
     html_body = f"""
-            <div class="news-section {section_class}">
-                <div class="section-title">{safe_text(section_title)}</div>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+               style="border-collapse:collapse; margin:0 0 22px 0;">
+            <tr>
+                <td style="border-left:4px solid {section_color}; padding:0 0 0 12px;">
+                    <div style="font-size:17px; font-weight:900; line-height:1.35; color:{section_color}; margin:0 0 10px 0;">
+                        {safe_text(section_title)}
+                    </div>
     """
 
     html_body += build_section_insights(
@@ -312,10 +320,12 @@ def build_news_section(section_title, summaries, default_keyword, section_class)
 
     if not summaries:
         html_body += """
-                <div class="empty-section">
-                    표시할 뉴스가 없습니다.
-                </div>
-            </div>
+                    <div style="font-size:13px; line-height:1.5; margin:0 0 12px 0;">
+                        표시할 뉴스가 없습니다.
+                    </div>
+                </td>
+            </tr>
+        </table>
         """
         return html_body
 
@@ -332,33 +342,42 @@ def build_news_section(section_title, summaries, default_keyword, section_class)
         stars = "★" * importance_score + "☆" * (5 - importance_score)
 
         html_body += f"""
-                <!-- {safe_text(section_title)} 뉴스 {i} -->
-                <div class="news-item">
-                    <div class="news-header">
-                        <h2 class="news-title">
-                            <a href="{url}" target="_blank">{i}. {title}</a>
-                        </h2>
-                    </div>
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                           style="border-collapse:collapse; margin:0 0 16px 0; border-bottom:1px solid #dddddd;">
+                        <tr>
+                            <td style="padding:0 0 13px 0;">
+                                <div style="margin:0 0 5px 0;">
+                                    <a href="{url}" target="_blank"
+                                       style="font-size:15px; font-weight:800; line-height:1.42; text-decoration:none;">
+                                        {i}. {title}
+                                    </a>
+                                </div>
 
-                    <div class="news-meta">
-                        <span class="category-badge">{category}</span>
-                        <span class="importance-badge">중요도 {importance_score}</span>
-                        <span class="importance-stars">{stars}</span>
-                        <span class="publish-date">{published_date}</span>
-                    </div>
+                                <div style="font-size:11px; line-height:1.5; margin:0 0 7px 0;">
+                                    <span style="font-weight:800;">{category}</span>
+                                    <span>　</span>
+                                    <span style="font-weight:800; color:#ea580c;">중요도 {importance_score}</span>
+                                    <span>　</span>
+                                    <span style="color:#f59e0b; letter-spacing:-1px;">{stars}</span>
+                                    <span>　</span>
+                                    <span>{published_date}</span>
+                                </div>
 
-                    <div class="news-summary">
-                        {summary_html}
-                    </div>
-                </div>
+                                <div style="font-size:13px; line-height:1.65; margin:0; padding:0; word-break:keep-all;">
+                                    {summary_html}
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
         """
 
     html_body += """
-            </div>
+                </td>
+            </tr>
+        </table>
     """
 
     return html_body
-
 
 def normalize_section_results(section_results=None, summaries=None):
     """
@@ -391,19 +410,7 @@ def create_html_email(
 ):
     """
     HTML 이메일 생성
-
-    신규 방식:
-        create_html_email(
-            briefing_name="경제 뉴스 브리핑",
-            subject_prefix="경제·부동산·증권 뉴스 브리핑",
-            section_results=[
-                {"section_name": "경제 뉴스 브리핑", "summaries": [...]},
-                {"section_name": "부동산 뉴스 브리핑", "summaries": [...]}
-            ]
-        )
-
-    기존 방식도 임시 호환:
-        create_html_email(medical_summaries=[...], lotte_summaries=[...])
+    네이버메일 호환을 위해 table layout + inline style 중심으로 작성한다.
     """
     if briefing_name is None:
         briefing_name = "뉴스 브리핑"
@@ -420,407 +427,69 @@ def create_html_email(
     mail_title = f"{today_text} - {subject_prefix}"
 
     html_body = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="UTF-8">
-        <style>
-            :root {{
-                color-scheme: light dark;
-                supported-color-schemes: light dark;
-            }}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{safe_text(mail_title)}</title>
+</head>
+<body style="margin:0; padding:0;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+           style="border-collapse:collapse; width:100%;">
+        <tr>
+            <td align="left" style="padding:14px 12px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                       style="border-collapse:collapse; width:100%; max-width:900px;">
+                    <tr>
+                        <td style="padding:0 0 12px 0; border-bottom:2px solid #999999;">
+                            <div style="font-family:'Malgun Gothic','Apple SD Gothic Neo',Arial,sans-serif;
+                                        font-size:22px; font-weight:900; line-height:1.35;
+                                        letter-spacing:-0.5px;">
+                                {safe_text(mail_title)}
+                            </div>
+                        </td>
+                    </tr>
 
-            body {{
-                font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', Arial, sans-serif;
-                margin: 0;
-                padding: 12px;
-                color: #222222;
-                font-size: 13px;
-                line-height: 1.45;
-                text-align: left;
-                -webkit-text-size-adjust: 100%;
-            }}
-
-            .container {{
-                width: 100%;
-                max-width: 860px;
-                margin: 0;
-                padding: 0;
-                border: 0;
-                box-shadow: none;
-                overflow: visible;
-            }}
-
-            .header {{
-                margin: 0 0 14px 0;
-                padding: 0 0 10px 0;
-                border-bottom: 2px solid #222222;
-                color: #111111;
-            }}
-
-            .header h1 {{
-                margin: 0;
-                padding: 0;
-                font-size: 18px;
-                font-weight: 900;
-                line-height: 1.3;
-                letter-spacing: -0.4px;
-                color: #111111;
-            }}
-
-            .content {{
-                margin: 0;
-                padding: 0;
-            }}
-
-            .news-section {{
-                margin: 0 0 20px 0;
-                padding: 0 0 16px 10px;
-                border-bottom: 1px solid #dddddd;
-                border-left: 3px solid #666666;
-                overflow: visible;
-            }}
-
-            .section-title {{
-                margin: 0 0 8px 0;
-                padding: 0;
-                font-size: 16px;
-                font-weight: 900;
-                line-height: 1.3;
-                letter-spacing: -0.2px;
-            }}
-
-            .section-blue {{
-                border-left-color: #2563eb;
-            }}
-
-            .section-blue .section-title {{
-                color: #2563eb;
-            }}
-
-            .section-red {{
-                border-left-color: #dc2626;
-            }}
-
-            .section-red .section-title {{
-                color: #dc2626;
-            }}
-
-            .section-green {{
-                border-left-color: #16a34a;
-            }}
-
-            .section-green .section-title {{
-                color: #16a34a;
-            }}
-
-            .section-purple {{
-                border-left-color: #7c3aed;
-            }}
-
-            .section-purple .section-title {{
-                color: #7c3aed;
-            }}
-
-            .section-orange {{
-                border-left-color: #ea580c;
-            }}
-
-            .section-orange .section-title {{
-                color: #ea580c;
-            }}
-
-            .section-insights {{
-                margin: 0 0 14px 0;
-                padding: 0 0 10px 0;
-                border-bottom: 1px solid #eeeeee;
-                overflow: visible;
-            }}
-
-            .insight-line {{
-                margin: 3px 0;
-                padding: 0;
-                color: #333333;
-                font-size: 12px;
-                line-height: 1.5;
-                word-break: keep-all;
-                overflow-wrap: anywhere;
-            }}
-
-            .news-item {{
-                margin: 0 0 14px 0;
-                padding: 0 0 12px 0;
-                border: 0;
-                border-bottom: 1px solid #eeeeee;
-                box-shadow: none;
-                overflow: visible;
-            }}
-
-            .news-item:last-child {{
-                margin-bottom: 0;
-                padding-bottom: 0;
-                border-bottom: 0;
-            }}
-
-            .news-header {{
-                display: block;
-                margin: 0 0 4px 0;
-                padding: 0;
-            }}
-
-            .news-title {{
-                margin: 0;
-                padding: 0;
-                font-size: 14px;
-                font-weight: 800;
-                line-height: 1.38;
-                letter-spacing: -0.25px;
-                color: #111111;
-                word-break: keep-all;
-                overflow: visible;
-                height: auto;
-                max-height: none;
-            }}
-
-            .news-title a {{
-                color: #111111;
-                text-decoration: none;
-            }}
-
-            .news-title a:hover {{
-                color: #2563eb;
-                text-decoration: underline;
-            }}
-
-            .news-meta {{
-                display: block;
-                margin: 4px 0 6px 0;
-                padding: 0;
-                line-height: 1.35;
-            }}
-
-            .category-badge {{
-                display: inline-block;
-                margin: 0 6px 3px 0;
-                padding: 0;
-                color: #555555;
-                font-size: 10px;
-                font-weight: 800;
-                line-height: 1.4;
-            }}
-
-            .importance-badge {{
-                display: inline-block;
-                margin: 0 6px 3px 0;
-                padding: 0;
-                color: #c2410c;
-                font-size: 10px;
-                font-weight: 800;
-                line-height: 1.4;
-            }}
-
-            .importance-stars {{
-                display: inline-block;
-                margin: 0 6px 3px 0;
-                color: #d97706;
-                font-size: 10px;
-                letter-spacing: -1px;
-                line-height: 1.4;
-            }}
-
-            .publish-date {{
-                display: inline-block;
-                margin: 0 0 3px 0;
-                color: #777777;
-                font-size: 10px;
-                font-weight: 500;
-                line-height: 1.4;
-            }}
-
-            .news-summary {{
-                display: block;
-                margin: 0;
-                padding: 0;
-                color: #333333;
-                border: 0;
-                border-radius: 0;
-                font-size: 12px;
-                line-height: 1.55;
-                letter-spacing: -0.15px;
-                word-break: keep-all;
-                overflow-wrap: anywhere;
-                white-space: normal;
-                overflow: visible;
-                height: auto;
-                max-height: none;
-                -webkit-line-clamp: unset;
-                -webkit-box-orient: unset;
-            }}
-
-            .empty-section {{
-                margin: 0;
-                padding: 4px 0 2px 0;
-                color: #777777;
-                font-size: 12px;
-                line-height: 1.4;
-            }}
-
-            .footer {{
-                margin: 4px 0 0 0;
-                padding: 8px 2px 0 2px;
-                color: #999999;
-                border: 0;
-                font-size: 10px;
-                line-height: 1.35;
-                text-align: left;
-            }}
-
-            .footer p {{
-                margin: 2px 0;
-                padding: 0;
-            }}
-
-            @media (prefers-color-scheme: dark) {{
-                body {{
-                    color: #eeeeee !important;
-                }}
-
-                .header {{
-                    border-bottom-color: #eeeeee !important;
-                    color: #ffffff !important;
-                }}
-
-                .header h1 {{
-                    color: #ffffff !important;
-                }}
-
-                .news-section {{
-                    border-bottom-color: #555555 !important;
-                }}
-
-                .section-insights {{
-                    border-bottom-color: #444444 !important;
-                }}
-
-                .insight-line {{
-                    color: #eeeeee !important;
-                }}
-
-                .section-blue {{
-                    border-left-color: #93c5fd !important;
-                }}
-
-                .section-blue .section-title {{
-                    color: #93c5fd !important;
-                }}
-
-                .section-red {{
-                    border-left-color: #fca5a5 !important;
-                }}
-
-                .section-red .section-title {{
-                    color: #fca5a5 !important;
-                }}
-
-                .section-green {{
-                    border-left-color: #86efac !important;
-                }}
-
-                .section-green .section-title {{
-                    color: #86efac !important;
-                }}
-
-                .section-purple {{
-                    border-left-color: #c4b5fd !important;
-                }}
-
-                .section-purple .section-title {{
-                    color: #c4b5fd !important;
-                }}
-
-                .section-orange {{
-                    border-left-color: #fdba74 !important;
-                }}
-
-                .section-orange .section-title {{
-                    color: #fdba74 !important;
-                }}
-
-                .news-item {{
-                    border-bottom-color: #444444 !important;
-                }}
-
-                .news-title,
-                .news-title a {{
-                    color: #ffffff !important;
-                }}
-
-                .news-title a:hover {{
-                    color: #93c5fd !important;
-                }}
-
-                .category-badge {{
-                    color: #dddddd !important;
-                }}
-
-                .importance-badge {{
-                    color: #fdba74 !important;
-                }}
-
-                .importance-stars {{
-                    color: #fbbf24 !important;
-                }}
-
-                .publish-date {{
-                    color: #bbbbbb !important;
-                }}
-
-                .news-summary {{
-                    color: #eeeeee !important;
-                }}
-
-                .empty-section {{
-                    color: #bbbbbb !important;
-                }}
-
-                .footer {{
-                    color: #bbbbbb !important;
-                }}
-            }}
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">
-                <h1>{safe_text(mail_title)}</h1>
-            </div>
-
-            <div class="content">
-    """
+                    <tr>
+                        <td style="padding:16px 0 0 0;
+                                   font-family:'Malgun Gothic','Apple SD Gothic Neo',Arial,sans-serif;">
+"""
 
     for index, section_result in enumerate(section_results):
         section_name = section_result.get("section_name", f"뉴스 섹션 {index + 1}")
         summaries_for_section = section_result.get("summaries", [])
-        section_class = get_section_class(index)
+        section_color = get_section_color(index)
 
         html_body += build_news_section(
             section_title=section_name,
             summaries=summaries_for_section,
             default_keyword=section_name,
-            section_class=section_class
+            section_color=section_color
         )
 
     html_body += f"""
-            </div>
+                            </td>
+                        </tr>
 
-            <div class="footer">
-                <p><strong>이 메일은 AI를 통하여 자동으로 선별, 요약되어 발송되었습니다.</strong></p>
-                <p>{safe_text(briefing_name)} v1.0</p>
-                <p style="color: #adb5bd; margin-top: 4px;">
-                    © {now_kst.year} {safe_text(briefing_name)}. All rights reserved.
-                </p>
-            </div>
-        </div>
+                        <tr>
+                            <td style="padding:8px 0 0 0;
+                                       font-family:'Malgun Gothic','Apple SD Gothic Neo',Arial,sans-serif;
+                                       color:#a1a1aa; font-size:11px; line-height:1.5;">
+                                <div style="margin:0 0 3px 0;">
+                                    <strong>이 메일은 AI를 통하여 자동으로 선별, 요약되어 발송되었습니다.</strong>
+                                </div>
+                                <div style="margin:0 0 3px 0;">
+                                    AI News Scraper v1.0
+                                </div>
+                                <div style="margin:0;">
+                                    © {now_kst.year} AI News Scraper. All rights reserved.
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
     </body>
     </html>
     """
@@ -905,7 +574,12 @@ def send_email(
                     msg["From"] = EMAIL_SENDER
                     msg["To"] = receiver
 
+                    plain_body = f"{subject}\n\nHTML 메일을 지원하는 환경에서 뉴스 브리핑을 확인해 주세요."
+
+                    text_part = MIMEText(plain_body, "plain", "utf-8")
                     html_part = MIMEText(html_body, "html", "utf-8")
+
+                    msg.attach(text_part)
                     msg.attach(html_part)
 
                     server.send_message(msg)

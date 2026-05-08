@@ -1,0 +1,13 @@
+{
+  "briefing_name": "식물성 대체육 뉴스브리핑",
+  "subject_prefix": "식물성 대체육 뉴스 브리핑",
+  "receiver_env": "EMAIL_RECEIVER_INOHAS",
+  "sections": [
+    {
+      "section_name": "식물성 대체육 브리핑",
+      "keywords": ["식물성 대체육", "콩고기", "대체육"],
+      "topic_description": "국내외 식물성 대체육과 직접적으로 관련이 있는 뉴스, 홍보성 뉴스는 제외"
+    },
+
+  ]
+}
