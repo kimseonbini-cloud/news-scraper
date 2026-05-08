@@ -1,9 +1,9 @@
-name: Economy News Scraper
+name: Inohas News Scraper
 
 on:
   # 외부 트리거
   repository_dispatch:
-    types: [trigger-economy-scraper]
+    types: [trigger-inohas-scraper]
 
   # 수동 실행 버튼
   workflow_dispatch:
@@ -42,8 +42,8 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           EMAIL_SENDER: ${{ secrets.EMAIL_SENDER }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
-          EMAIL_RECEIVER_ECONOMY: ${{ secrets.EMAIL_RECEIVER_ECONOMY }}
-        run: python main.py --config configs/economy_briefing.json
+          EMAIL_RECEIVER_INOHAS: ${{ secrets.EMAIL_RECEIVER_INOHAS }}
+        run: python main.py --config configs/inohas_briefing.json
 
       - name: Commit and push if changed
         run: |
