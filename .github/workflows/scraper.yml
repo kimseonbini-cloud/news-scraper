@@ -2,7 +2,7 @@ name: EMR News Scraper
 
 on:
   schedule:
-    - cron: '35 5 * * *'
+    - cron: '33 5 * * *'
   workflow_dispatch:
 
 jobs:
