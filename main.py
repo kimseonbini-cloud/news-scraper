@@ -1,15 +1,15 @@
 """
 뉴스 스크래퍼
-네이버 뉴스 수집 → OpenAI 요약 → 이메일 발송
+네이버 뉴스 수집 → OpenAI 뉴스 선별 → OpenAI 요약 → 이메일 발송
 """
 import logging
 from datetime import datetime
-from difflib import SequenceMatcher
 import json
 import os
 
 # 모듈 임포트
 import naver_news_scraper
+import news_selector
 import summarizer
 import email_sender
 
@@ -25,224 +25,208 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
+
 logger = logging.getLogger(__name__)
 
-def select_balanced_news(news_list, keywords, total_limit=10):
-    """
-    키워드별로 균등하게 배분하되, 각 키워드 내에서는 최신순
-    """
-    from datetime import datetime
-    
-    def parse_date(date_str):
-        try:
-            return datetime.strptime(date_str, '%Y.%m.%d')
-        except:
-            return datetime.now()
-    
-    # 키워드당 할당량
-    per_keyword = max(1, total_limit // len(keywords))
-    
-    selected_news = []
-    
-    for keyword in keywords:
-        # 키워드별 필터링
-        keyword_news = [
-            news for news in news_list 
-            if news.get('keyword') == keyword
-        ]
-        
-        # 날짜순 정렬
-        keyword_news_sorted = sorted(
-            keyword_news,
-            key=lambda x: parse_date(x.get('date', '')),
-            reverse=True
-        )
-        
-        # 할당량만큼 선택
-        selected = keyword_news_sorted[:per_keyword]
-        selected_news.extend(selected)
-        
-        logger.info(f"   📌 '{keyword}': {len(keyword_news)}개 중 최신 {len(selected)}개 선택")
-    
-    # 전체 제한
-    if len(selected_news) > total_limit:
-        selected_news = selected_news[:total_limit]
-    
-    return selected_news
 
-def calculate_similarity(str1, str2):
+def collect_select_and_summarize(
+    section_name,
+    keywords,
+    topic_description,
+    raw_json_path,
+    selected_json_path,
+    summary_json_path,
+    display_per_keyword=30,
+    select_limit=10
+):
     """
-    두 문자열의 유사도 계산 (0.0 ~ 1.0)
-    
+    뉴스 수집 → OpenAI 선별 → 요약까지 공통 처리
+
     Args:
-        str1: 첫 번째 문자열
-        str2: 두 번째 문자열
-    
-    Returns:
-        float: 유사도 (0.0 ~ 1.0)
-    """
-    return SequenceMatcher(None, str1, str2).ratio()
+        section_name: 브리핑 섹션명
+        keywords: 검색 키워드 리스트
+        topic_description: OpenAI 선별 기준 설명
+        raw_json_path: 원본 뉴스 저장 경로
+        selected_json_path: 선별 뉴스 저장 경로
+        summary_json_path: 요약 뉴스 저장 경로
+        display_per_keyword: 키워드당 네이버 API 검색 개수
+        select_limit: 최종 선별 개수
 
-
-def remove_duplicates(news_list, similarity_threshold=0.8):
-    """
-    중복 뉴스 제거 (제목 유사도 기반)
-    
-    Args:
-        news_list: 뉴스 리스트
-        similarity_threshold: 유사도 임계값 (0.8 = 80% 이상 유사하면 중복)
-    
     Returns:
-        list: 중복 제거된 뉴스 리스트
+        summaries: 요약 결과 리스트
+        raw_count: 수집 뉴스 수
+        selected_count: 선별 뉴스 수
     """
+    logger.info("\n" + "=" * 60)
+    logger.info(f"📰 [{section_name}] 뉴스 수집 시작")
+    logger.info("=" * 60)
+
+    news_list = naver_news_scraper.search_multiple_keywords(
+        keywords,
+        display_per_keyword=display_per_keyword
+    )
+
     if not news_list:
-        return []
-    
-    unique_news = []
-    removed_count = 0
-    
-    for news in news_list:
-        is_duplicate = False
-        current_title = news.get('title', '').strip()
-        
-        # 기존 뉴스들과 비교
-        for unique in unique_news:
-            existing_title = unique.get('title', '').strip()
-            
-            # 제목 유사도 계산
-            similarity = calculate_similarity(current_title, existing_title)
-            
-            if similarity >= similarity_threshold:
-                is_duplicate = True
-                removed_count += 1
-                logger.info(f"   🗑️  중복 제거: '{current_title[:30]}...' (유사도: {similarity:.2%})")
-                break
-        
-        # 중복이 아니면 추가
-        if not is_duplicate:
-            unique_news.append(news)
-    
-    logger.info(f"   ✅ 중복 제거 완료: {removed_count}개 제거, {len(unique_news)}개 남음")
-    
-    return unique_news
+        logger.error(f"❌ [{section_name}] 수집된 뉴스가 없습니다.")
+        return [], 0, 0
+
+    logger.info(f"✅ [{section_name}] 후보 뉴스 {len(news_list)}개 수집 완료")
+
+    naver_news_scraper.save_to_json(
+        news_list,
+        raw_json_path
+    )
+
+    logger.info(f"💾 [{section_name}] 원본 뉴스 저장 완료: {raw_json_path}")
+
+    logger.info("\n" + "=" * 60)
+    logger.info(f"🧠 [{section_name}] OpenAI 뉴스 선별 시작")
+    logger.info("=" * 60)
+
+    selected_news = news_selector.select_important_news(
+        news_list=news_list,
+        topic_name=section_name,
+        topic_description=topic_description,
+        limit=select_limit
+    )
+
+    if not selected_news:
+        logger.error(f"❌ [{section_name}] 선별된 뉴스가 없습니다.")
+        return [], len(news_list), 0
+
+    with open(selected_json_path, 'w', encoding='utf-8') as f:
+        json.dump(selected_news, f, ensure_ascii=False, indent=2)
+
+    logger.info(f"💾 [{section_name}] 선별 뉴스 저장 완료: {selected_json_path}")
+    logger.info(f"✅ [{section_name}] {len(selected_news)}개 뉴스 선별 완료")
+
+    logger.info("\n" + "=" * 60)
+    logger.info(f"🤖 [{section_name}] AI 요약 시작")
+    logger.info("=" * 60)
+
+    for news in selected_news:
+        news['content'] = news.get('description', '')
+
+    summaries = summarizer.summarize_batch(selected_news)
+
+    if not summaries:
+        logger.error(f"❌ [{section_name}] 요약 생성 실패")
+        return [], len(news_list), len(selected_news)
+
+    with open(summary_json_path, 'w', encoding='utf-8') as f:
+        json.dump(summaries, f, ensure_ascii=False, indent=2)
+
+    logger.info(f"💾 [{section_name}] 요약 저장 완료: {summary_json_path}")
+    logger.info(f"✅ [{section_name}] {len(summaries)}개 뉴스 요약 완료")
+
+    return summaries, len(news_list), len(selected_news)
 
 
 def main():
     """
     메인 실행 함수
     """
-    logger.info("\n" + "="*60)
+    logger.info("\n" + "=" * 60)
     logger.info("🚀 뉴스 스크래퍼 시작")
     logger.info(f"⏰ {datetime.now().strftime('%Y년 %m월 %d일 %H:%M:%S')}")
-    logger.info("="*60)
-    
+    logger.info("=" * 60)
+
     # ====================================
-    # Step 1: 네이버 뉴스 수집
+    # 의료 뉴스
     # ====================================
-    logger.info("\n📰 [Step 1] 네이버 뉴스 수집 중...")
-    
-    keywords = [
+    medical_keywords = [
         "EMR",
         "의료정보시스템",
         "의료IT",
         "전자의무기록",
         "헬스케어"
     ]
-    
-    news_list = naver_news_scraper.search_multiple_keywords(
-        keywords,
-        display_per_keyword=15  # 키워드당 15개
+
+    medical_topic_description = """
+의료 IT, 병원 정보시스템, EMR, 전자의무기록, 디지털 헬스케어, 의료 데이터,
+병원 DX, 의료기관 시스템, 보건의료 기술 변화와 직접 관련 있는 뉴스를 선택한다.
+단순 건강정보, 일반 제약/바이오 기사, 병원 홍보성 기사는 우선순위를 낮춘다.
+"""
+
+    medical_summaries, medical_raw_count, medical_selected_count = collect_select_and_summarize(
+        section_name="롯데그룹 의료뉴스브리핑",
+        keywords=medical_keywords,
+        topic_description=medical_topic_description,
+        raw_json_path="data/raw_medical_news.json",
+        selected_json_path="data/selected_medical_news.json",
+        summary_json_path="data/medical_summaries.json",
+        display_per_keyword=30,
+        select_limit=10
     )
-    
-    if not news_list:
-        logger.error("❌ 수집된 뉴스가 없습니다!")
-        return
-    
-    logger.info(f"✅ 총 {len(news_list)}개 뉴스 수집 완료")
-    
-    # [Step 1.5] 중복 제거
-    logger.info("\n🔍 [Step 1.5] 중복 뉴스 제거 중...")
-    
-    news_list = remove_duplicates(
-        news_list=news_list,
-        similarity_threshold=0.5  # 50% 이상 유사하면 중복으로 판단
-    )
-    # 원본 저장
-    naver_news_scraper.save_to_json(news_list, 'data/raw_news.json')
-    
-    logger.info("\n📊 [Step 2] 요약할 뉴스 선택 중...")
-    
-    news_to_summarize = select_balanced_news(
-        news_list=news_list,
-        keywords=keywords,
-        total_limit=10  # 총 10개 (키워드당 3~4개씩)
-    )
-    
-    logger.info(f"✅ {len(news_to_summarize)}개 뉴스 선택 완료")
-    
-    # [Step 3] 요약
-    logger.info("\n🤖 [Step 3] AI 요약 중...")
-    
-    for news in news_to_summarize:
-        news['content'] = news['description']
-    
-    # [Step 3] AI 요약
-    logger.info("\n🤖 [Step 3] AI 요약 중...")
-    
-    summaries = summarizer.summarize_batch(news_to_summarize)
-    
-    if not summaries:
-        logger.error("❌ 요약 생성 실패!")
-        return
-    
-    logger.info(f"✅ {len(summaries)}개 뉴스 요약 완료")
-    
-    # 요약 저장
-    # 요약 저장
-    with open('data/summaries.json', 'w', encoding='utf-8') as f:
-        json.dump(summaries, f, ensure_ascii=False, indent=2)
-    logger.info("💾 요약 저장 완료: data/summarized_news.json")
-    
+
     # ====================================
-    # Step 3: 이메일 발송
+    # 롯데 관련 뉴스
     # ====================================
-    logger.info("\n📧 [Step 3] 이메일 발송 중...")
-    
-    result = email_sender.send_email(summaries)
-    
+    lotte_keywords = [
+        "롯데이노베이트",
+        "롯데그룹"
+    ]
+
+    lotte_topic_description = """
+롯데그룹, 롯데이노베이트, 롯데 계열사, 그룹 전략, IT/DX 사업, 신사업,
+실적, 투자, 제휴, 인사, 경영 변화와 직접 관련 있는 뉴스를 선택한다.
+단순 이벤트, 광고성 기사, 유통 할인 행사, 키워드만 포함된 관련성 낮은 기사는 제외한다.
+"""
+
+    lotte_summaries, lotte_raw_count, lotte_selected_count = collect_select_and_summarize(
+        section_name="롯데 관련 뉴스브리핑",
+        keywords=lotte_keywords,
+        topic_description=lotte_topic_description,
+        raw_json_path="data/raw_lotte_news.json",
+        selected_json_path="data/selected_lotte_news.json",
+        summary_json_path="data/lotte_summaries.json",
+        display_per_keyword=30,
+        select_limit=10
+    )
+
+    # ====================================
+    # 이메일 발송
+    # ====================================
+    logger.info("\n" + "=" * 60)
+    logger.info("📧 이메일 발송 시작")
+    logger.info("=" * 60)
+
+    result = email_sender.send_email(
+        medical_summaries=medical_summaries,
+        lotte_summaries=lotte_summaries
+    )
+
     if result['success']:
         logger.info(f"✅ {result['message']}")
     else:
         logger.error(f"❌ {result['message']}")
-    
+
     # ====================================
     # 최종 결과
     # ====================================
-    logger.info("\n" + "="*60)
+    logger.info("\n" + "=" * 60)
     logger.info("📊 작업 완료 요약")
-    logger.info("="*60)
-    
-    total_tokens = sum(s.get('tokens_used', 0) for s in summaries)
-    cost = total_tokens * 0.00015  # gpt-4o-mini 가격
-    
-    logger.info(f"📰 수집: {len(news_list)}개")
-    logger.info(f"✨ 요약: {len(summaries)}개")
-    logger.info(f"💰 비용: ${cost:.4f} USD")
+    logger.info("=" * 60)
+
+    all_summaries = medical_summaries + lotte_summaries
+    total_tokens = sum(s.get('tokens_used', 0) for s in all_summaries)
+    summary_cost = total_tokens * 0.00015
+
+    logger.info(f"📰 의료 뉴스 후보 수집: {medical_raw_count}개")
+    logger.info(f"🧠 의료 뉴스 선별: {medical_selected_count}개")
+    logger.info(f"✨ 의료 뉴스 요약: {len(medical_summaries)}개")
+
+    logger.info(f"📰 롯데 뉴스 후보 수집: {lotte_raw_count}개")
+    logger.info(f"🧠 롯데 뉴스 선별: {lotte_selected_count}개")
+    logger.info(f"✨ 롯데 뉴스 요약: {len(lotte_summaries)}개")
+
+    logger.info(f"💰 요약 기준 예상 비용: ${summary_cost:.4f} USD")
     logger.info(f"📧 발송: {result['success']}")
-    
-    # 주요 뉴스 출력
-    logger.info("\n" + "="*60)
-    logger.info("🔥 주요 뉴스 TOP 3")
-    logger.info("="*60)
-    
-    for i, summary in enumerate(summaries[:3], 1):
-        logger.info(f"\n[{i}] {summary['title']}")
-        logger.info(f"📝 {summary['summary']}")
-        logger.info(f"🔗 {summary['url']}")
-    
-    logger.info("\n" + "="*60)
-    logger.info("✅ 모든 작업 완료!")
-    logger.info("="*60 + "\n")
+
+
+    logger.info("\n" + "=" * 60)
+    logger.info("✅ 모든 작업 완료")
+    logger.info("=" * 60 + "\n")
 
 
 if __name__ == "__main__":
