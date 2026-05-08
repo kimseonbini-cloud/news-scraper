@@ -1,0 +1,22 @@
+{
+  "briefing_name": "경제 뉴스 브리핑",
+  "subject_prefix": "경제·부동산·증권 뉴스 브리핑",
+  "receiver_env": "EMAIL_RECEIVER_ECONOMY",
+  "sections": [
+    {
+      "section_name": "경제 뉴스 브리핑",
+      "keywords": ["한국경제", "금리", "환율", "물가", "소비자물가", "기준금리"],
+      "topic_description": "한국 경제, 금리, 환율, 물가, 경기 흐름과 직접 관련 있는 뉴스"
+    },
+    {
+      "section_name": "부동산 뉴스 브리핑",
+      "keywords": ["서울 아파트", "부동산 정책", "아파트 매매", "전세", "", "개봉동 부동산"],
+      "topic_description": "서울 아파트, 부동산 정책, 대출, 재건축, 전세, 주택시장 흐름과 직접 관련 있는 뉴스"
+    },
+    {
+      "section_name": "증권 뉴스 브리핑",
+      "keywords": ["코스피", "코스닥", "한국증시", "미국증시", "나스닥", "세계증시", "글로벌증시"],
+      "topic_description": "국내외 증시, 주요 기업 금리와 주식시장에 영향을 주는 뉴스"
+    }
+  ]
+}

@@ -1,0 +1,222 @@
+{
+  "briefing_name": "사내용 뉴스 브리핑",
+  "subject_prefix": "EMR·롯데 뉴스 브리핑",
+  "config_path": "configs/company_briefing.json",
+  "created_at": "2026-05-08T16:39:41.880234",
+  "sections": [
+    {
+      "section_name": "의료 뉴스 브리핑",
+      "summaries": [
+        {
+          "title": "EMR 무단열람 추적 강화된다…의료법 개정안 국회 본회의 통과",
+          "summary": "국회는 7일 전자의무기록(EMR) 무단 열람 추적을 강화하는 의료법 개정안을 통과시켰다. 이로 인해 EMR 업체의 시스템 개발 및 업데이트가 필요해질 예정이다.",
+          "url": "http://www.doctorsnews.co.kr/news/articleView.html?idxno=164487",
+          "keyword": "EMR",
+          "published_at": "Fri, 08 May 2026 11:16:00 +0900",
+          "importance_score": 5,
+          "category": "정책·규제",
+          "tokens_used": 308
+        },
+        {
+          "title": "EMR 시스템 인증제 일원화",
+          "summary": "보건복지부는 EMR 시스템 인증제도를 일원화하여 제품인증과 사용인증 구분을 폐지하고, 운영 효율성을 높이며 의료기관의 인증 절차 부담을 줄이기로 했다.",
+          "url": "http://www.newsmp.com/news/articleView.html?idxno=253109",
+          "keyword": "EMR",
+          "published_at": "Fri, 08 May 2026 14:48:00 +0900",
+          "importance_score": 4,
+          "category": "EMR",
+          "tokens_used": 279
+        },
+        {
+          "title": "서울재활병원-엠시스텍, 재활의료 디지털 전환 위한 HIS 고도화 협약 체...",
+          "summary": "서울재활병원과 엠시스텍은 재활의료 디지털 전환을 위한 HIS 고도화 협약을 체결하고, 2026년 3월부터 11개월간 모바일 EMR 시스템을 개발할 예정이다.",
+          "url": "https://n.news.naver.com/mnews/article/018/0006275809?sid=102",
+          "keyword": "EMR",
+          "published_at": "Fri, 08 May 2026 13:06:00 +0900",
+          "importance_score": 4,
+          "category": "병원IT",
+          "tokens_used": 306
+        },
+        {
+          "title": "전자의무기록 시스템 인증제 통합·개편",
+          "summary": "보건복지부가 전자의무기록(EMR) 시스템 인증제도를 통합·개편하여 의료기관의 행정 부담을 줄이고 운영 효율성을 높인다. 이번 개정은 의료법 제23조의2에 근거한다.",
+          "url": "https://www.idaegu.co.kr/news/articleView.html?idxno=547356",
+          "keyword": "EMR",
+          "published_at": "Thu, 07 May 2026 20:34:00 +0900",
+          "importance_score": 4,
+          "category": "정책·규제",
+          "tokens_used": 298
+        },
+        {
+          "title": "\"병원 밖 환자관리까지 AI로\"...가톨릭의료원, '애프터케어' 플랫폼 구축...",
+          "summary": "가톨릭의료원이 AWS 기반의 애프터케어 플랫폼을 구축하여 병원 EMR과 연동해 의료진의 진료에 활용하고 있으며, AI 상담을 위해 GPU 서버를 사용하고 있다.",
+          "url": "https://www.bosa.co.kr/news/articleView.html?idxno=3004247",
+          "keyword": "EMR",
+          "published_at": "Fri, 08 May 2026 06:00:00 +0900",
+          "importance_score": 4,
+          "category": "디지털헬스케어",
+          "tokens_used": 296
+        },
+        {
+          "title": "전자의무기록 무단열람 차단한다…더불어민주당 소병훈 국회의원, 의료...",
+          "summary": "더불어민주당 소병훈 국회의원이 발의한 개정안은 전자의무기록(EMR) 무단열람을 차단하고 환자 개인정보 보호를 강화하기 위해 접속기록 관리 범위를 확대하는 내용을 담고 있다.",
+          "url": "https://n.news.naver.com/mnews/article/031/0001027366?sid=102",
+          "keyword": "EMR",
+          "published_at": "Fri, 08 May 2026 16:35:00 +0900",
+          "importance_score": 3,
+          "category": "정책·규제",
+          "tokens_used": 306
+        },
+        {
+          "title": "환자 의료정보 '무단열람' 방지 '의료법 개정안' 국회 본회의 통과",
+          "summary": "환자의 전자의무기록 무단열람을 방지하기 위한 의료법 개정안이 국회 본회의를 통과했다. 앞으로 의료인 및 의료기관 종사자는 EMR 열람 시 접속기록을 의무적으로 남겨야 한다.",
+          "url": "https://www.bosa.co.kr/news/articleView.html?idxno=3004245",
+          "keyword": "EMR",
+          "published_at": "Thu, 07 May 2026 20:16:00 +0900",
+          "importance_score": 3,
+          "category": "정책·규제",
+          "tokens_used": 311
+        },
+        {
+          "title": "EMR 시스템 인증 일원화, 의료기관 행정부담 감소",
+          "summary": "보건복지부는 전자의무기록(EMR) 시스템의 제품인증과 사용인증을 통합하여 'EMR 시스템 인증'으로 일원화하고, 사후관리를 강화하는 고시 개정안을 확정했다. 이로 인해 의료기관의 행정부담이 감소할 것으로 기대된다.",
+          "url": "https://medicalworldnews.co.kr/news/view.php?idx=1510974542",
+          "keyword": "EMR",
+          "published_at": "Thu, 07 May 2026 19:40:00 +0900",
+          "importance_score": 3,
+          "category": "정책·규제",
+          "tokens_used": 313
+        },
+        {
+          "title": "전자의무기록 보관 강화법 국회 통과",
+          "summary": "전자의무기록을 열람할 때 접속기록을 별도로 보관해야 한다는 법안이 국회를 통과했다. 이로 인해 환자의 개인정보 보호가 강화될 전망이다.",
+          "url": "http://www.whosaeng.com/170405",
+          "keyword": "전자의무기록",
+          "published_at": "Fri, 08 May 2026 09:16:00 +0900",
+          "importance_score": 3,
+          "category": "정책·규제",
+          "tokens_used": 283
+        },
+        {
+          "title": "전자의무기록 열람만해도 접속기록 보관 의무화된다",
+          "summary": "전자의무기록 열람 시 접속기록을 보관해야 하는 의무가 생기며, 이는 환자의 민감한 진료 정보를 보호하기 위한 제도적 장치로 마련된다.",
+          "url": "http://www.mjmedi.com/news/articleView.html?idxno=62508",
+          "keyword": "전자의무기록",
+          "published_at": "Fri, 08 May 2026 07:50:00 +0900",
+          "importance_score": 3,
+          "category": "정책·규제",
+          "tokens_used": 294
+        }
+      ],
+      "raw_count": 121,
+      "selected_count": 10
+    },
+    {
+      "section_name": "롯데 뉴스 브리핑",
+      "summaries": [
+        {
+          "title": "롯데이노베이트, 정부 사업 주관기관 선정...피지컬 AI 인재 양성 나선...",
+          "summary": "롯데이노베이트가 과학기술정보통신부와 IITP의 '2026 피지컬 AI 인재 양성' 사업의 주관기관으로 선정되어 휴머노이드 로봇 등 피지컬 AI 분야의 핵심 인재 양성에 나선다.",
+          "url": "https://www.pinpointnews.co.kr/news/articleView.html?idxno=451410",
+          "keyword": "롯데이노베이트",
+          "published_at": "Fri, 08 May 2026 16:14:00 +0900",
+          "importance_score": 5,
+          "category": "신사업",
+          "tokens_used": 330
+        },
+        {
+          "title": "롯데이노베이트, 피지컬 AI 인재 키운다… 정부 사업 주관기관 선정",
+          "summary": "롯데이노베이트가 피지컬 AI 분야 인재 양성과 기술 확보를 위해 정부 사업의 주관기관으로 선정되었다. 이를 통해 산학 협력 기반의 전문 인력 육성 체계를 구축할 계획이다.",
+          "url": "https://www.mediapen.com/news/view/1097748",
+          "keyword": "롯데이노베이트",
+          "published_at": "Fri, 08 May 2026 16:02:00 +0900",
+          "importance_score": 5,
+          "category": "신사업",
+          "tokens_used": 301
+        },
+        {
+          "title": "롯데이노베이트, 과기정통부 '생성AI 선도 인재 양성 사업' 주관기관 선...",
+          "summary": "롯데이노베이트가 과학기술정보통신부와 정보통신기획평가원이 주관하는 2026년 '생성AI 선도 인재 양성 사업'의 주관기관으로 선정됐다. 이 사업은 산업계와 학계의 협력을 통해 현장 문제를 해결하는 인재를 양성하는 것을 목표로 한다.",
+          "url": "https://www.it-b.co.kr/news/articleView.html?idxno=88121",
+          "keyword": "롯데이노베이트",
+          "published_at": "Fri, 08 May 2026 15:46:00 +0900",
+          "importance_score": 5,
+          "category": "신사업",
+          "tokens_used": 340
+        },
+        {
+          "title": "'젊은피' 효과 본격화…롯데 계열사 1분기 실적 일제히 개선",
+          "summary": "롯데 계열사들이 1분기 실적을 개선했으며, 롯데이노베이트는 매출이 감소했지만 영업이익은 39.9% 증가했다. 이는 SI 부문 수익성 개선과 SM 부문 외형 확대에 기인한다.",
+          "url": "https://www.newsway.co.kr/news/view?ud=2026050812245918349",
+          "keyword": "롯데이노베이트",
+          "published_at": "Fri, 08 May 2026 13:42:00 +0900",
+          "importance_score": 4,
+          "category": "실적",
+          "tokens_used": 328
+        },
+        {
+          "title": "롯데이노베이트, 정부 '생성AI 선도 인재 양성 사업' 선정…휴머노이드...",
+          "summary": "롯데이노베이트가 정부의 생성형 AI 핵심 인재 육성 사업 주관기관으로 선정되어 휴머노이드 로봇 등 피지컬 AI 분야의 경쟁력 강화를 추진한다.",
+          "url": "http://www.newslock.co.kr/news/articleView.html?idxno=129868",
+          "keyword": "롯데이노베이트",
+          "published_at": "Fri, 08 May 2026 14:08:00 +0900",
+          "importance_score": 4,
+          "category": "신사업",
+          "tokens_used": 306
+        },
+        {
+          "title": "[#클라우드 월드] 오케스트로 'R&D' 수주·롯데이노 '생성AI 인재 양성' ...",
+          "summary": "오케스트로는 AI 반도체 특화 클라우드 네이티브 소프트웨어 스택 및 모델 허브 기술 개발 과제를 수주했으며, 롯데이노베이트는 생성AI 인재 양성 사업의 주관기관으로 선정됐다.",
+          "url": "https://www.newsworks.co.kr/news/articleView.html?idxno=840196",
+          "keyword": "롯데이노베이트",
+          "published_at": "Fri, 08 May 2026 16:10:00 +0900",
+          "importance_score": 4,
+          "category": "신사업",
+          "tokens_used": 321
+        },
+        {
+          "title": "롯데이노베이트, 환아가 그린 그림 인형으로 만들어 선물",
+          "summary": "롯데이노베이트가 가정의 달을 맞아 하남 보바스병원에서 치료 중인 어린이들이 그린 그림을 바탕으로 단 하나뿐인 인형을 제작해 선물했다고 8일 밝혔다.",
+          "url": "https://weekly.hankooki.com/news/articleView.html?idxno=7163321",
+          "keyword": "롯데이노베이트",
+          "published_at": "Fri, 08 May 2026 16:16:00 +0900",
+          "importance_score": 2,
+          "category": "기타",
+          "tokens_used": 299
+        },
+        {
+          "title": "[골든크로스 종목] 다원넥스뷰 피제이전자 원바이오젠 휴온스 주가 '신...",
+          "summary": "다원넥스뷰, 피제이전자, 원바이오젠, 휴온스의 주가가 상승세를 보였으며, 롯데이노베이트와 KTis도 강세를 나타냈다. 자동차 부품 및 자율주행 관련 종목들도 상승 흐름에 동참했다.",
+          "url": "https://www.pinpointnews.co.kr/news/articleView.html?idxno=451407",
+          "keyword": "롯데이노베이트",
+          "published_at": "Fri, 08 May 2026 16:16:00 +0900",
+          "importance_score": 2,
+          "category": "기타",
+          "tokens_used": 335
+        },
+        {
+          "title": "롯데이노베이트, 피지컬 AI 인재 양성소 맡았다",
+          "summary": "롯데이노베이트가 정부의 생성 인공지능(AI) 인재 양성 사업의 주관기관으로 선정되어, KAIST, 연세대, 인하대와 함께 4년간 72억5000만원 규모로 휴머노이드 핵심 기술을 확보할 예정이다.",
+          "url": "https://n.news.naver.com/mnews/article/009/0005677135?sid=105",
+          "keyword": "롯데이노베이트",
+          "published_at": "Fri, 08 May 2026 15:18:00 +0900",
+          "importance_score": 2,
+          "category": "신사업",
+          "tokens_used": 315
+        },
+        {
+          "title": "롯데이노베이트, 과기정통부 ‘생성AI 인재 양성’ 기관 선정",
+          "summary": "롯데이노베이트가 과학기술정보통신부와 IITP가 추진하는 '2026 생성AI 선도 인재 양성 사업'의 주관기관으로 선정되었다고 8일 밝혔다. 이 사업은 산업 현장 문제 해결을 중심으로 한 산학협력형 프로그램이다.",
+          "url": "https://www.sentv.co.kr/article/view/sentv202605080067",
+          "keyword": "롯데이노베이트",
+          "published_at": "Fri, 08 May 2026 15:42:00 +0900",
+          "importance_score": 2,
+          "category": "신사업",
+          "tokens_used": 318
+        }
+      ],
+      "raw_count": 49,
+      "selected_count": 10
+    }
+  ]
+}

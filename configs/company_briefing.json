@@ -1,0 +1,17 @@
+{
+  "briefing_name": "사내용 뉴스 브리핑",
+  "subject_prefix": "EMR·롯데 뉴스 브리핑",
+  "receiver_env": "EMAIL_RECEIVER",
+  "sections": [
+    {
+      "section_name": "의료 뉴스 브리핑",
+      "keywords": ["EMR", "의료정보시스템", "의료IT", "전자의무기록", "헬스케어"],
+      "topic_description": "의료 IT, 병원 정보시스템, EMR, 전자의무기록, 디지털 헬스케어와 직접 관련 있는 뉴스"
+    },
+    {
+      "section_name": "롯데 뉴스 브리핑",
+      "keywords": ["롯데이노베이트", "롯데그룹"],
+      "topic_description": "롯데그룹, 롯데이노베이트, 그룹 전략, IT/DX 사업, 실적, 투자, 제휴, 경영 변화와 직접 관련 있는 뉴스"
+    }
+  ]
+}
