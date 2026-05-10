@@ -1,0 +1,82 @@
+[
+  {
+    "title": "지역의사제·형사특례 특례…의료계 흔들 22개 법안 통과",
+    "summary": "22개 법안이 통과되며 지역의사제와 형사특례가 도입되었고, 의료법 개정으로 전자의무기록 접속 기록 보관이 의무화되어 환자 정보 보호가 강화됐다. 복지부는 하반기에 후속 조치를 추진할 계획이다.",
+    "url": "https://www.medicaltimes.com/Main/News/NewsView.html?ID=1168647&ref=naverpc",
+    "keyword": "EMR",
+    "published_at": "Mon, 11 May 2026 05:10:00 +0900",
+    "importance_score": 5,
+    "category": "정책·규제",
+    "tokens_used": 324
+  },
+  {
+    "title": "서영석 의원 대표 발의 '항생제 내성 체계 국가 차원 관리법' 국회 본회...",
+    "summary": "서영석 의원이 발의한 '항생제 내성 체계 국가 차원 관리법'이 국회 본회를 통과했다. 이 법은 항생제 사용 관리 정보시스템 구축과 예산 지원 근거를 신설해 항생제 처방 데이터 모니터링과 의료기관 간 연계 체계를 강화한다.",
+    "url": "https://www.kihoilbo.co.kr/news/articleView.html?idxno=3022248",
+    "keyword": "의료정보시스템",
+    "published_at": "Sun, 10 May 2026 14:30:00 +0900",
+    "importance_score": 4,
+    "category": "정책·규제",
+    "tokens_used": 324
+  },
+  {
+    "title": "임상순환기학회 \"CKM 통합관리 선봉… \"일차의료 역할 확대\"",
+    "summary": "임상순환기학회 이상 차기 회장은 CKM 시대에 일차 의료의 중요성이 커질 것이라며, IT 기술과 디지털 플랫폼을 활용해 의료진에게 최신 지식을 효율적으로 전달할 시스템을 강조했다.",
+    "url": "http://www.bokuennews.com/news/article.html?no=277904",
+    "keyword": "의료IT",
+    "published_at": "Mon, 11 May 2026 06:00:00 +0900",
+    "importance_score": 4,
+    "category": "의료IT",
+    "tokens_used": 288
+  },
+  {
+    "title": "삼진제약-온택트 헬스, '심장초음파 AI 솔루션 국내 독점 공급' 협약 체...",
+    "summary": "삼진제약은 온택트헬스와 심장초음파 AI 솔루션 'SONIX HEALTH'의 국내 독점 공급에 관한 업무협약을 체결했다고 8일 밝혔다. 이번 협약을 통해 'SONIX HEALTH'의 국내 공급 및 유통이 이루어진다.",
+    "url": "https://www.medigatenews.com/news/2877663134",
+    "keyword": "헬스케어",
+    "published_at": "Mon, 11 May 2026 06:50:00 +0900",
+    "importance_score": 4,
+    "category": "의료AI",
+    "tokens_used": 322
+  },
+  {
+    "title": "약국에 들어온 AI…\"기술보다 중요한 건 약사의 판단\"",
+    "summary": "약사는 AI 기술의 중요성을 인정하면서도, 보건의료 분야에서의 AI는 생명과 기본권에 큰 영향을 미치므로 신중한 판단이 필요하다고 강조했다.",
+    "url": "https://www.kpanews.co.kr/news/articleView.html?idxno=534521",
+    "keyword": "의료IT",
+    "published_at": "Mon, 11 May 2026 05:58:00 +0900",
+    "importance_score": 3,
+    "category": "의료IT",
+    "tokens_used": 279
+  },
+  {
+    "title": "백신 오접종 사고… 예방접종 관리체계 보완 필요",
+    "summary": "질병관리청은 예방접종 관리체계의 보완 필요성을 강조하며, 접종 전 환자의 과거 접종력과 백신 정보를 확인하고 등록하는 절차가 현장에서 인력 부족으로 어려움을 겪고 있다고 전했다.",
+    "url": "https://www.inews365.com/news/article.html?no=918559",
+    "keyword": "의료정보시스템",
+    "published_at": "Sun, 10 May 2026 16:06:00 +0900",
+    "importance_score": 3,
+    "category": "의료정보시스템",
+    "tokens_used": 293
+  },
+  {
+    "title": "국제사이버보안인증협회, '인공지능 사이버보안 연구회' 춘계학술발표대...",
+    "summary": "국제사이버보안인증협회는 '인공지능 사이버보안 연구회' 춘계학술발표대회에서 분야별 위험관리 기준과 멀티모달 AI 시스템의 개인정보 위험 연구 필요성을 강조했다.",
+    "url": "https://www.dailysecu.com/news/articleView.html?idxno=206648",
+    "keyword": "의료정보시스템",
+    "published_at": "Mon, 11 May 2026 06:22:00 +0900",
+    "importance_score": 3,
+    "category": "의료정보시스템",
+    "tokens_used": 297
+  },
+  {
+    "title": "\"중증 천식 산정특례 시급···알레르기질환 진료체계도 정비해야\"",
+    "summary": "중증 천식에 대한 산정특례가 시급하며, 알레르기 질환 진료체계의 정비가 필요하다는 지적이 제기됐다. 현재 상급종합병원 평가는 형식적인 기준에 의존하고 있어 개선이 요구된다.",
+    "url": "https://www.monews.co.kr/news/articleView.html?idxno=411077",
+    "keyword": "EMR",
+    "published_at": "Mon, 11 May 2026 05:56:00 +0900",
+    "importance_score": 2,
+    "category": "EMR",
+    "tokens_used": 309
+  }
+]
