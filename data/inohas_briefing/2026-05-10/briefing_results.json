@@ -1,0 +1,396 @@
+{
+  "briefing_name": "식품산업 및 대체단백질 뉴스브리핑",
+  "subject_prefix": "식품산업·대체단백질 뉴스 브리핑",
+  "config_path": "configs/inohas_briefing.json",
+  "created_at": "2026-05-10T23:02:31.905637",
+  "sections": [
+    {
+      "section_name": "식품산업 및 수출 동향",
+      "summaries": [
+        {
+          "title": "'30년 뚝심' 풀무원식품, 해외 매출비중 30% 가시권",
+          "summary": "풀무원식품이 해외 매출 비중 30% 달성을 목표로 하고 있으며, 미국에서 흑자 전환이 기대되고 중국 시장에서도 K푸드의 성장세가 본격화되고 있다. 회사는 현지 공장을 설립하는 전략을 통해 해외 진출을 확대하고 있다.",
+          "url": "https://dealsite.co.kr/articles/161434",
+          "keyword": "K푸드 수출",
+          "published_at": "Mon, 11 May 2026 07:02:00 +0900",
+          "importance_score": 5,
+          "category": "사업전략",
+          "tokens_used": 327
+        },
+        {
+          "title": "aT-완도군, 해조류 수출상담회서 800만달러 계약 성사",
+          "summary": "aT는 완도군과 함께 해조류 수출상담회를 개최해 800만 달러 계약을 성사시켰으며, 2030년까지 K-푸드 수출 210억 달러 달성을 목표로 하고 있다.",
+          "url": "https://www.s-journal.co.kr/news/articleView.html?idxno=41141",
+          "keyword": "K푸드 수출",
+          "published_at": "Sun, 10 May 2026 20:12:00 +0900",
+          "importance_score": 5,
+          "category": "수출동향",
+          "tokens_used": 313
+        },
+        {
+          "title": "거버넌스 바뀌자 전략도…남양유업, '직접 수출'로 해외 판 바꿨다",
+          "summary": "남양유업은 지배구조 개편과 실적 반등을 통해 오너 리스크를 해소하고, 직접 수출로 해외 판로를 확대하며 K푸드 산업 협력을 위한 전략적 업무협약(MOU)을 체결했다.",
+          "url": "https://n.news.naver.com/mnews/article/417/0001142463?sid=101",
+          "keyword": "K푸드 수출",
+          "published_at": "Mon, 11 May 2026 05:15:00 +0900",
+          "importance_score": 4,
+          "category": "사업전략",
+          "tokens_used": 315
+        },
+        {
+          "title": "\"이런 감칠 맛이…\" 캐나다 화끈하게 달군 K푸드",
+          "summary": "캐나다 통합한국관에서 12개 한국 수출업체가 김치, 냉동비빔밥, 비건만두 등 다양한 K푸드를 선보이며 발효식품과 간편식의 건강과 편의성을 강조했다.",
+          "url": "https://www.koreadaily.com/article/20260510152158997",
+          "keyword": "K푸드 수출",
+          "published_at": "Mon, 11 May 2026 07:22:00 +0900",
+          "importance_score": 4,
+          "category": "수출동향",
+          "tokens_used": 313
+        },
+        {
+          "title": "진격의 'K-스낵'… 올해도 해외 실적 업고 날아오른다",
+          "summary": "올해 K-푸드 수출 목표액이 160억 달러로 설정되었으며, 지난해에는 136억 달러로 사상 최대 실적을 기록했다. 정부는 수출 지원 사업을 지속적으로 추진하고 있다.",
+          "url": "https://www.asiatime.co.kr/article/20260510500166",
+          "keyword": "K푸드 수출",
+          "published_at": "Sun, 10 May 2026 15:22:00 +0900",
+          "importance_score": 4,
+          "category": "수출동향",
+          "tokens_used": 304
+        },
+        {
+          "title": "\"국내는 좁다\" 中 시장 공략 나선 제주삼다수",
+          "summary": "제주삼다수가 중국 시장을 직접 공략하기 위해 수출 전략을 전환했다. 이는 K뷰티와 K푸드에 대한 관심이 높아지는 가운데 한인 커뮤니티를 넘어 현지 소비자를 겨냥한 것이다.",
+          "url": "https://n.news.naver.com/mnews/article/009/0005677809?sid=102",
+          "keyword": "K푸드 수출",
+          "published_at": "Sun, 10 May 2026 17:45:00 +0900",
+          "importance_score": 4,
+          "category": "사업전략",
+          "tokens_used": 297
+        },
+        {
+          "title": "코스피, 1만 넘어 2만도 바라본다 [홍길용의 화식열전]",
+          "summary": "K-컬처 수출이 2025년 379억4000만 달러에 이를 것으로 예상되며, 이는 반도체와 자동차에 이어 한국의 주요 수출군으로 자리잡고 있다. 특히 K-뷰티의 성장세가 두드러진다.",
+          "url": "https://n.news.naver.com/mnews/article/016/0002641301?sid=110",
+          "keyword": "K푸드 수출",
+          "published_at": "Mon, 11 May 2026 00:02:00 +0900",
+          "importance_score": 3,
+          "category": "수출동향",
+          "tokens_used": 329
+        },
+        {
+          "title": "[창간1특집] 농업, 미래를 재설계한다 ①K-농업 새로운 성장동력 창출",
+          "summary": "정대희 한국농촌경제연구원 부연구위원은 '농업전망 2026'에서 2030년까지 K-푸드 수출 목표 달성을 위해 프리미엄화와 브랜드화 등의 전략 전환이 필요하다고 발표했다.",
+          "url": "https://www.aflnews.co.kr/news/articleView.html?idxno=320285",
+          "keyword": "K푸드 수출",
+          "published_at": "Mon, 11 May 2026 07:06:00 +0900",
+          "importance_score": 3,
+          "category": "사업전략",
+          "tokens_used": 320
+        },
+        {
+          "title": "[비바100] 중동 전쟁에 뜨는 ‘K-공급망 데이터’… 물류 AI로 존재감 키...",
+          "summary": "K-푸드 수출 확대와 공급망 관리의 중요성이 커지면서, 빙그레는 물류 AI 솔루션을 도입해 수출 화물 모니터링을 효율적으로 관리하고 해외 거래처에 정확한 도착 정보를 제공하고 있다.",
+          "url": "https://www.viva100.com/article/20260510500028",
+          "keyword": "K푸드 수출",
+          "published_at": "Mon, 11 May 2026 06:14:00 +0900",
+          "importance_score": 3,
+          "category": "기술변화",
+          "tokens_used": 311
+        },
+        {
+          "title": "\"기회의 땅 잡아라\"…K-유통 신흥 격전지로 떠오른 몽골",
+          "summary": "몽골의 화장품 수출액이 2023년 3100만 달러에서 지난해 4500만 달러로 급증했으며, K-푸드도 라면, 스낵, 조미김에서 각각 8%, 40%, 38% 성장했다. 국내 유통업계는 몽골의 성장 잠재력에 주목하고 있다.",
+          "url": "https://www.ajunews.com/view/20260507161438040",
+          "keyword": "K푸드 수출",
+          "published_at": "Sun, 10 May 2026 17:26:00 +0900",
+          "importance_score": 3,
+          "category": "수출동향",
+          "tokens_used": 354
+        }
+      ],
+      "raw_count": 39,
+      "selected_count": 10
+    },
+    {
+      "section_name": "유통·리테일·푸드서비스 동향",
+      "summaries": [
+        {
+          "title": "'30년 뚝심' 풀무원식품, 해외 매출비중 30% 가시권",
+          "summary": "풀무원식품은 냉동식품의 유통기한과 물류 효율성을 활용해 미국 시장에서 제품 포트폴리오를 다변화하고 있으며, 해외 매출 비중 30% 달성이 가시권에 들어왔다.",
+          "url": "https://dealsite.co.kr/articles/161434",
+          "keyword": "식품 유통",
+          "published_at": "Mon, 11 May 2026 07:02:00 +0900",
+          "importance_score": 4,
+          "category": "사업전략",
+          "tokens_used": 313
+        },
+        {
+          "title": "[Why] 배달 시장 커지는 베트남… K유통이 현지 공략 강화하는 이유는",
+          "summary": "베트남의 배달앱과 퀵커머스가 성장하면서 한국 유통 및 식품 기업들이 K콘텐츠와 결합한 생활 밀착형 전략으로 현지 시장 공략을 강화하고 있다.",
+          "url": "https://n.news.naver.com/mnews/article/366/0001163213?sid=101",
+          "keyword": "식품 유통",
+          "published_at": "Mon, 11 May 2026 06:02:00 +0900",
+          "importance_score": 4,
+          "category": "사업전략",
+          "tokens_used": 305
+        },
+        {
+          "title": "빵플레이션 파고든 편의점…PB 베이커리 존재감 갈수록 ‘빵빵’",
+          "summary": "편의점이 자체 브랜드(PB) 베이커리를 강화하며 품질을 높이고, 이를 통해 매출을 견인하고 있다. 편의점 빵은 단순한 먹거리를 넘어 콘텐츠형 상품으로 자리 잡고 있다.",
+          "url": "https://www.inthenews.co.kr/news/article.html?no=86597",
+          "keyword": "식품 PB",
+          "published_at": "Mon, 11 May 2026 06:00:00 +0900",
+          "importance_score": 4,
+          "category": "PB",
+          "tokens_used": 315
+        },
+        {
+          "title": "편의점株 다시 뛴다…BGF·GS리테일, 호실적에 주가 반등세",
+          "summary": "BGF와 GS리테일의 호실적에 힘입어 편의점 주가가 반등세를 보이고 있으며, 디저트와 간편식, 자체 브랜드 상품 판매 증가가 이익 구조 개선에 기여하고 있다.",
+          "url": "https://daily.hankooki.com/news/articleView.html?idxno=1365327",
+          "keyword": "식품 PB",
+          "published_at": "Sun, 10 May 2026 14:00:00 +0900",
+          "importance_score": 4,
+          "category": "PB",
+          "tokens_used": 301
+        },
+        {
+          "title": "정상화·흑자 남양유업, 단백질·커피로 해외 확장 원년 연다",
+          "summary": "남양유업은 고단백 브랜드 테이크핏을 통해 글로벌 건강기능식품 시장에 대응하며, 카자흐스탄, 몽골, 홍콩의 주요 유통망에 단백질 제품을 입점시켰다.",
+          "url": "https://n.news.naver.com/mnews/article/417/0001142465?sid=101",
+          "keyword": "식품 유통",
+          "published_at": "Mon, 11 May 2026 05:25:00 +0900",
+          "importance_score": 4,
+          "category": "사업전략",
+          "tokens_used": 310
+        },
+        {
+          "title": "유통업계, 인구 350만 몽골 시장 몰려드는 까닭은?",
+          "summary": "유통업계는 몽골 시장에 주목하고 있으며, 자동차, 석유화학제품, 의약품뿐 아니라 식품과 뷰티 분야에서도 기회를 보고 있다. 몽골의 소비 구조가 국내 유통기업에 유리하게 작용하고 있다는 분석이 나오고 있다.",
+          "url": "https://www.viva100.com/article/20260510500337",
+          "keyword": "식품 유통",
+          "published_at": "Mon, 11 May 2026 06:02:00 +0900",
+          "importance_score": 3,
+          "category": "사업전략",
+          "tokens_used": 308
+        },
+        {
+          "title": "SKB, 지역채널커머스 기반 명인 식품 판로 개척 지원 확대",
+          "summary": "SKB는 '명인 장터' 등 지역채널커머스를 통해 누룩, 간장, 한과 등 지역 명인 식품의 새로운 유통 채널을 마련하여 오프라인 중심의 유통 방식을 개선하고 지원을 확대한다.",
+          "url": "https://www.itbiznews.com/news/articleView.html?idxno=212380",
+          "keyword": "식품 유통",
+          "published_at": "Mon, 11 May 2026 07:00:00 +0900",
+          "importance_score": 3,
+          "category": "사업전략",
+          "tokens_used": 305
+        },
+        {
+          "title": "[관광 특수 리포트 下] K-쇼핑의 진화...'체험형 콘텐츠'에 지갑 연다",
+          "summary": "세븐일레븐은 대만 관광객의 결제 수요를 확보하고 글로벌 결제 환경을 강화하기 위해 새로운 서비스를 도입한다. 이윤호 팀장은 대만이 한국 편의점과 K-푸드를 즐기는 주요 국가라고 강조했다.",
+          "url": "https://www.banronbodo.com/news/articleView.html?idxno=32246",
+          "keyword": "푸드서비스",
+          "published_at": "Mon, 11 May 2026 08:00:00 +0900",
+          "importance_score": 3,
+          "category": "푸드서비스",
+          "tokens_used": 315
+        },
+        {
+          "title": "“한국 브랜드는 레벨이 달라요”...외국인 수요 폭증, K치킨 전성시대",
+          "summary": "K콘텐츠와 K푸드 열풍으로 BBQ 등 한국 치킨 브랜드의 외국인 수요가 급증하고 있으며, 제주 지역 점포는 SNS를 통해 방문하는 고객 비율이 높아지고 있다.",
+          "url": "https://n.news.naver.com/mnews/article/009/0005677889?sid=103",
+          "keyword": "푸드서비스",
+          "published_at": "Mon, 11 May 2026 06:40:00 +0900",
+          "importance_score": 3,
+          "category": "푸드서비스",
+          "tokens_used": 295
+        },
+        {
+          "title": "“로봇이 조리·배달”…K-푸드테크, 북미 외식시장 공략",
+          "summary": "K-푸드테크가 북미 외식시장에 진출하며, NRA 쇼에서 로봇 조리 및 배달 기술을 선보였다. 이 전시회는 전 세계 외식 사업자와 식자재 기업들이 참가하는 대형 플랫폼이다.",
+          "url": "https://n.news.naver.com/mnews/article/018/0006278002?sid=105",
+          "keyword": "푸드서비스",
+          "published_at": "Mon, 11 May 2026 06:02:00 +0900",
+          "importance_score": 3,
+          "category": "푸드서비스",
+          "tokens_used": 312
+        }
+      ],
+      "raw_count": 65,
+      "selected_count": 10
+    },
+    {
+      "section_name": "대체단백질·푸드테크 동향",
+      "summaries": [
+        {
+          "title": "[푸드테크] ① AI가 요리하고 로봇이 튀긴다…식품업에 나타난 '기술혁...",
+          "summary": "푸드테크 산업은 AI와 로봇 기술을 활용해 요리와 조리를 혁신하고 있으며, 향후 식량안보, 고령화, 기후위기 대응에 중요한 역할을 할 것으로 기대된다.",
+          "url": "https://www.newspim.com/news/view/20260509000067",
+          "keyword": "대체단백질",
+          "published_at": "Mon, 11 May 2026 06:00:00 +0900",
+          "importance_score": 4,
+          "category": "푸드테크",
+          "tokens_used": 307
+        },
+        {
+          "title": "[더벨]'쉐프엠' MDS코리아 상장 준비 막바지, 안정성 강점",
+          "summary": "'쉐프엠'이 MDS코리아 상장 준비를 마무리하고 있으며, 대체육 사업인 베지엠을 통해 성장성을 확보하고 있다.",
+          "url": "https://www.thebell.co.kr/free/content/ArticleView.asp?key=202605071432069560105470",
+          "keyword": "대체육",
+          "published_at": "Mon, 11 May 2026 07:02:00 +0900",
+          "importance_score": 4,
+          "category": "사업전략",
+          "tokens_used": 285
+        },
+        {
+          "title": "“로봇이 조리·배달”…K-푸드테크, 북미 외식시장 공략",
+          "summary": "K-푸드테크가 북미 외식시장에 진출하며, 협회는 사우스 빌딩 460번 부스에 한국관을 구성·운영한다. 참가기업으로는 뉴빌리티, 디에스피, 레인보우로보틱스 등이 있다.",
+          "url": "https://n.news.naver.com/mnews/article/018/0006278002?sid=105",
+          "keyword": "푸드테크",
+          "published_at": "Mon, 11 May 2026 06:02:00 +0900",
+          "importance_score": 4,
+          "category": "푸드테크",
+          "tokens_used": 329
+        },
+        {
+          "title": "‘블루푸드 산업’ 육성 순항…경상대 이어 부산대·서울대 ‘블루푸드...",
+          "summary": "부산대와 서울대에 오는 9월 '블루푸드테크 계약학과'가 개설되며 블루푸드 산업 육성 정책이 진행 중이다. 해양수산부와 한국어촌어항공단이 관련 공모를 통해 지원하고 있다.",
+          "url": "https://n.news.naver.com/mnews/article/082/0001379948?sid=101",
+          "keyword": "푸드테크",
+          "published_at": "Sun, 10 May 2026 16:06:00 +0900",
+          "importance_score": 4,
+          "category": "푸드테크",
+          "tokens_used": 319
+        },
+        {
+          "title": "경북 농산물, 기능성 식품으로 키운다…경북농기원·경북대 손잡아",
+          "summary": "경북농기원과 경북대가 협력해 지역 농산물을 활용한 기능성 식품과 푸드테크 산업을 육성하고 있다. 농림축산식품부는 그린바이오 산업을 미래 성장동력으로 지원하고 있다.",
+          "url": "https://www.kyongbuk.co.kr/news/articleView.html?idxno=4072281",
+          "keyword": "푸드테크",
+          "published_at": "Sun, 10 May 2026 15:46:00 +0900",
+          "importance_score": 4,
+          "category": "푸드테크",
+          "tokens_used": 310
+        },
+        {
+          "title": "“AI로 진화하는 K-Food”…중기중앙회, 식품 제조업 스마트공장 구축 지...",
+          "summary": "중기중앙회는 'AI로 진화하는 K-푸드 스마트공장에서 답을 찾다'라는 주제로 설명회를 열어 사업 공고와 계획서 작성 방법을 안내하며, 서울대학교 이기원 교수가 AI 기반 스마트 제조 혁신에 대해 특강을 진행한다.",
+          "url": "https://n.news.naver.com/mnews/article/030/0003425784?sid=101",
+          "keyword": "푸드테크",
+          "published_at": "Sun, 10 May 2026 12:01:00 +0900",
+          "importance_score": 4,
+          "category": "푸드테크",
+          "tokens_used": 308
+        },
+        {
+          "title": "중기중앙회-삼성전자, '스마트공장' 지원 사격…\"K-푸드 AI 입고 세계로...",
+          "summary": "중기중앙회와 삼성전자가 'AI로 진화하는 K-Food 스마트공장' 설명회를 개최하며, 서울대 이기원 교수의 특강과 함께 고구마스틱 제조사 '한울 농업회사법인'과 김 제조사 '해담솔'의 사례를 소개한다.",
+          "url": "https://www.pinpointnews.co.kr/news/articleView.html?idxno=451536",
+          "keyword": "푸드테크",
+          "published_at": "Sun, 10 May 2026 12:00:00 +0900",
+          "importance_score": 4,
+          "category": "푸드테크",
+          "tokens_used": 328
+        },
+        {
+          "title": "“혁신생태계 조성…인재들이 머물고 싶은 일자리 만들것”",
+          "summary": "기반 푸드·헬스테크 분야에서 공동연구를 추진하며, 생성형 유전체학 기술을 활용해 AI가 최적의 유전자 조합과 대사 경로를 예측하여 미생물의 산업적 기능을 향상시키고자 합니다.",
+          "url": "https://sjbnews.com/news/news.php?number=878086",
+          "keyword": "푸드테크",
+          "published_at": "Sun, 10 May 2026 18:35:00 +0900",
+          "importance_score": 3,
+          "category": "푸드테크",
+          "tokens_used": 311
+        },
+        {
+          "title": "공약 이행률 94.3% 익산시 '책임행정' 성과",
+          "summary": "익산시는 공약 이행률 94.3%를 기록하며, 국가식품클러스터를 중심으로 푸드테크 산업 생태계를 구축하고 바이오·식품 산업의 핵심 거점으로 성장하고 있다.",
+          "url": "http://www.jjn.co.kr/news/articleView.html?idxno=1040335",
+          "keyword": "푸드테크",
+          "published_at": "Sun, 10 May 2026 16:32:00 +0900",
+          "importance_score": 3,
+          "category": "푸드테크",
+          "tokens_used": 302
+        },
+        {
+          "title": "중기중앙회, 식품 제조업 스마트공장 구축 지원…30개사 모집",
+          "summary": "중기중앙회는 식품 제조업체 30개사를 모집해 스마트공장 구축을 지원하며, 이기원 서울대 교수의 특강과 두 업체의 사례를 공유할 예정이다.",
+          "url": "https://n.news.naver.com/mnews/article/018/0006277414?sid=101",
+          "keyword": "푸드테크",
+          "published_at": "Sun, 10 May 2026 12:04:00 +0900",
+          "importance_score": 3,
+          "category": "푸드테크",
+          "tokens_used": 289
+        }
+      ],
+      "raw_count": 36,
+      "selected_count": 10
+    },
+    {
+      "section_name": "식품 투자·스타트업·규제 동향",
+      "summaries": [
+        {
+          "title": "제주대, 산자부 '지역혁신클러스터' 선정…총 168억원 확보",
+          "summary": "제주대학교가 산자부의 '지역혁신클러스터'에 선정되어 168억원을 확보했으며, 이를 통해 제주 고유 천연자원과 AI·빅데이터 기술을 융합한 기능성 식품, 화장품, 융합바이오 분야의 글로벌 사업을 추진한다.",
+          "url": "https://www.jejusori.net/news/articleView.html?idxno=502621",
+          "keyword": "식품 스타트업",
+          "published_at": "Sun, 10 May 2026 14:38:00 +0900",
+          "importance_score": 5,
+          "category": "스타트업",
+          "tokens_used": 322
+        },
+        {
+          "title": "제주대, 산업통상자원부 지역혁신클러스터육성사업 선정",
+          "summary": "제주대학교가 산업통상자원부의 지역혁신클러스터육성사업에 선정되었으며, 이 사업은 AI 기반 신약개발 플랫폼과 기능성 식품, 화장품, 융합바이오 분야의 글로벌 산업화를 지원하는 프로젝트이다.",
+          "url": "http://www.samdailbo.com/news/articleView.html?idxno=264001",
+          "keyword": "식품 스타트업",
+          "published_at": "Sun, 10 May 2026 10:00:00 +0900",
+          "importance_score": 4,
+          "category": "스타트업",
+          "tokens_used": 299
+        },
+        {
+          "title": "건기식부터 AIoT 물류 솔루션까지…5월 첫째주 투자유치 스타트업은",
+          "summary": "한방원료 기반 건강기능식품 스타트업 케이에이치글로벌한방이 한국투자액셀러레이터로부터 5억원의 시드투자를 유치했다고 7일 밝혔다.",
+          "url": "https://n.news.naver.com/mnews/article/008/0005355295?sid=101",
+          "keyword": "식품 스타트업",
+          "published_at": "Sun, 10 May 2026 17:00:00 +0900",
+          "importance_score": 4,
+          "category": "스타트업",
+          "tokens_used": 306
+        },
+        {
+          "title": "보이지 않는 손, AI가 짠다···물류·유통의 새 질서",
+          "summary": "마켓컬리는 자체 개발한 AI 분석 시스템을 통해 신선식품 새벽 배송 시장을 선도하고 있으며, 포스텍과 지역 연구기관의 데이터 분석 역량이 지역 물류 스타트업과 결합할 경우 한국형 물류 시스템이 발전할 것으로 기대된다.",
+          "url": "https://www.kbmaeil.com/article/20260509500020",
+          "keyword": "식품 스타트업",
+          "published_at": "Sun, 10 May 2026 18:38:00 +0900",
+          "importance_score": 3,
+          "category": "스타트업",
+          "tokens_used": 307
+        },
+        {
+          "title": "[비바100] 중동 전쟁에 뜨는 ‘K-공급망 데이터’… 물류 AI로 존재감 키...",
+          "summary": "제조 및 식품업계에서 공급망 관리 솔루션인 트레드링스의 도입이 확대되고 있으며, 특히 대규모 글로벌 공급망을 운영하는 기업들이 화물 위치와 운항 정보를 실시간으로 관리하고 있다.",
+          "url": "https://www.viva100.com/article/20260510500028",
+          "keyword": "식품 스타트업",
+          "published_at": "Mon, 11 May 2026 06:14:00 +0900",
+          "importance_score": 3,
+          "category": "스타트업",
+          "tokens_used": 305
+        },
+        {
+          "title": "[Interview] 박종범 월드옥타 회장 | \"75개국 한인 기업가 네트워크, 지방...",
+          "summary": "박종범 월드옥타 회장은 2024년 오스트리아 빈에서 열리는 ‘코리아 비즈니스 엑스포 비엔나’에서 친환경 자동차 부품 스타트업과 정통 한식 매장 인증 제도를 도입할 계획을 밝혔다.",
+          "url": "https://economychosun.com/site/data/html_dir/2026/05/04/2026050400019.html",
+          "keyword": "식품 스타트업",
+          "published_at": "Mon, 11 May 2026 06:16:00 +0900",
+          "importance_score": 3,
+          "category": "스타트업",
+          "tokens_used": 313
+        }
+      ],
+      "raw_count": 20,
+      "selected_count": 6
+    }
+  ]
+}
