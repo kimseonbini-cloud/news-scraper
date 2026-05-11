@@ -6,12 +6,16 @@ import os
 import html as html_lib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.utils import parsedate_to_datetime, formataddr
 from datetime import datetime
 from dotenv import load_dotenv
 import logging
 import pytz
-from email.utils import parsedate_to_datetime
-from openai import OpenAI
+
+try:
+    from openai import OpenAI
+except Exception:
+    OpenAI = None
 
 load_dotenv()
 
@@ -37,7 +41,12 @@ SMTP_PORT = 587
 # OpenAI 설정
 # ====================================
 MODEL = "gpt-4o-mini"
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+if OpenAI is not None and OPENAI_API_KEY:
+    client = OpenAI(api_key=OPENAI_API_KEY)
+else:
+    client = None
 
 
 def safe_text(value):
@@ -162,23 +171,59 @@ def get_receiver_list(receiver_env_name=None):
     """
     환경변수에서 수신자 목록 가져오기
 
-    Args:
-        receiver_env_name:
-            EMAIL_RECEIVER
-            EMAIL_RECEIVER_ECONOMY
-            등 환경변수명
+    지원 형식:
+    1. 이메일만
+       EMAIL_RECEIVER=seonbin.kim@lotte.net,wootak.ko@lotte.net
+
+    2. 이름|이메일
+       EMAIL_RECEIVER=김선빈|seonbin.kim@lotte.net,고우탁|wootak.ko@lotte.net
+
+    Returns:
+        [
+            {
+                "name": "김선빈",
+                "email": "seonbin.kim@lotte.net",
+                "display": "=?utf-8?b?...?= <seonbin.kim@lotte.net>"
+            },
+            ...
+        ]
     """
     if receiver_env_name is None:
         receiver_env_name = "EMAIL_RECEIVER"
 
     receiver_value = os.getenv(receiver_env_name)
 
-    if receiver_value:
-        receivers = [email.strip() for email in receiver_value.split(",")]
-        receivers = [email for email in receivers if email]
-        return receivers
+    if not receiver_value:
+        return []
 
-    return []
+    receivers = []
+
+    for raw_item in receiver_value.split(","):
+        item = raw_item.strip()
+
+        if not item:
+            continue
+
+        if "|" in item:
+            name, email = item.split("|", 1)
+            name = name.strip()
+            email = email.strip()
+        else:
+            name = ""
+            email = item.strip()
+
+        if not email:
+            continue
+
+        display = formataddr((name, email)) if name else email
+
+        receivers.append({
+            "name": name,
+            "email": email,
+            "display": display
+        })
+
+    return receivers
 
 
 def build_section_insights(section_title, summaries):
@@ -233,6 +278,9 @@ def build_section_insights(section_title, summaries):
 """
 
     try:
+        if client is None:
+            raise ValueError("OPENAI_API_KEY가 없거나 OpenAI 클라이언트를 초기화할 수 없습니다.")
+
         response = client.chat.completions.create(
             model=MODEL,
             messages=[
@@ -298,11 +346,11 @@ def get_section_color(index):
     네이버메일 호환을 위해 class가 아니라 inline style에서 사용한다.
     """
     colors = [
-        "#2563eb",  # blue
-        "#dc2626",  # red
-        "#16a34a",  # green
-        "#7c3aed",  # purple
-        "#ea580c"   # orange
+        "#2563eb",
+        "#dc2626",
+        "#16a34a",
+        "#7c3aed",
+        "#ea580c"
     ]
 
     return colors[index % len(colors)]
@@ -397,11 +445,6 @@ def build_news_section(section_title, summaries, default_keyword, section_color)
 def normalize_section_results(section_results=None, summaries=None):
     """
     section_results 구조 정규화
-
-    원칙:
-    - 섹션명은 config의 section_name을 사용한다.
-    - 의료/롯데 같은 이름을 하드코딩하지 않는다.
-    - 구버전 단일 summaries 호출만 최소한으로 호환한다.
     """
     if section_results is not None:
         return section_results
@@ -523,18 +566,22 @@ def send_email(
     """
     이메일로 뉴스 요약 발송
 
-    신규 방식:
-        send_email(
-            briefing_name=briefing_name,
-            subject_prefix=subject_prefix,
-            section_results=section_results
-        )
-
-    수신자 분리:
-        사내용: EMAIL_RECEIVER
-        경제용: EMAIL_RECEIVER_ECONOMY
+    수신자 형식:
+    EMAIL_RECEIVER=김선빈|seonbin.kim@lotte.net,고우탁|wootak.ko@lotte.net
     """
     try:
+        if not EMAIL_SENDER:
+            return {
+                "success": False,
+                "message": "EMAIL_SENDER 환경변수가 설정되지 않았습니다."
+            }
+
+        if not EMAIL_PASSWORD:
+            return {
+                "success": False,
+                "message": "EMAIL_PASSWORD 환경변수가 설정되지 않았습니다."
+            }
+
         section_results = normalize_section_results(
             section_results=section_results,
             summaries=summaries
@@ -582,12 +629,39 @@ def send_email(
             server.starttls()
             server.login(EMAIL_SENDER, EMAIL_PASSWORD)
 
-            for receiver in receiver_list:
+            for receiver_info in receiver_list:
+                receiver_name = ""
+                receiver_email = ""
+                receiver_display = ""
+
                 try:
+                    if isinstance(receiver_info, dict):
+                        receiver_name = receiver_info.get("name") or ""
+                        receiver_email = receiver_info.get("email") or ""
+                        receiver_display = receiver_info.get("display") or receiver_email
+                    else:
+                        raw_receiver = str(receiver_info).strip()
+
+                        if "|" in raw_receiver:
+                            receiver_name, receiver_email = raw_receiver.split("|", 1)
+                            receiver_name = receiver_name.strip()
+                            receiver_email = receiver_email.strip()
+                            receiver_display = formataddr((receiver_name, receiver_email))
+                        else:
+                            receiver_email = raw_receiver
+                            receiver_display = receiver_email
+                            receiver_name = receiver_email
+
+                    if not receiver_email:
+                        raise ValueError("수신자 이메일이 비어 있습니다.")
+
+                    if not receiver_name:
+                        receiver_name = receiver_email
+
                     msg = MIMEMultipart("alternative")
                     msg["Subject"] = subject
                     msg["From"] = EMAIL_SENDER
-                    msg["To"] = receiver
+                    msg["To"] = receiver_display
 
                     plain_body = f"{subject}\n\nHTML 메일을 지원하는 환경에서 뉴스 브리핑을 확인해 주세요."
 
@@ -598,12 +672,13 @@ def send_email(
                     msg.attach(html_part)
 
                     server.send_message(msg)
-                    logger.info(f"   ✅ {receiver} 발송 완료")
+                    logger.info(f"   ✅ {receiver_name} ({receiver_email}) 발송 완료")
                     success_count += 1
 
                 except Exception as e:
-                    logger.error(f"   ❌ {receiver} 발송 실패: {str(e)}")
-                    failed_list.append(receiver)
+                    display_name = receiver_name or receiver_email or str(receiver_info)
+                    logger.error(f"   ❌ {display_name} 발송 실패: {str(e)}")
+                    failed_list.append(display_name)
 
         if success_count == len(receiver_list):
             logger.info(f"🎉 모든 이메일 발송 완료! ({success_count}명)")
@@ -622,14 +697,14 @@ def send_email(
         logger.error("❌ 모든 이메일 발송 실패")
         return {
             "success": False,
-            "message": "모든 발송 실패"
+            "message": f"모든 발송 실패: {', '.join(failed_list)}"
         }
 
     except smtplib.SMTPAuthenticationError:
         logger.error("❌ 로그인 실패! 이메일/비밀번호를 확인하세요.")
         return {
             "success": False,
-            "message": "SMTP 인증 실패. 앱 비밀번호 확인 필요"
+            "message": "SMTP 인증 실패. Gmail 앱 비밀번호 확인 필요"
         }
 
     except Exception as e:
@@ -638,3 +713,35 @@ def send_email(
             "success": False,
             "message": f"이메일 발송 실패: {str(e)}"
         }
+
+
+def send_test_email(receiver_env_name="EMAIL_RECEIVER"):
+    """
+    이메일 전송만 테스트한다.
+
+    - 뉴스 수집 안 함
+    - 뉴스 요약 안 함
+    - OpenAI 호출 안 함
+    - SMTP 로그인/전송/수신자 파싱만 확인
+    """
+    today_text, _ = get_today_date_text()
+
+    test_section_results = [
+        {
+            "section_name": "이메일 전송 테스트",
+            "summaries": []
+        }
+    ]
+
+    return send_email(
+        subject=f"✅ 이메일 전송 테스트 - {today_text}",
+        briefing_name="이메일 전송 테스트",
+        subject_prefix="이메일 전송 테스트",
+        section_results=test_section_results,
+        receiver_env_name=receiver_env_name
+    )
+
+
+if __name__ == "__main__":
+    result = send_test_email(receiver_env_name="EMAIL_RECEIVER")
+    logger.info(result)
