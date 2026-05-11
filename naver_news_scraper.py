@@ -4,11 +4,14 @@
 import os
 import requests
 import json
+import re
 from datetime import datetime, timedelta
 from email.utils import parsedate_to_datetime
+from urllib.parse import urlparse
 from dotenv import load_dotenv
 import logging
 import pytz
+from press_map import PRESS_MAP
 
 load_dotenv()
 
@@ -70,13 +73,92 @@ def is_within_last_hours(pub_date: str, hours: int = 24) -> bool:
     published_dt = parse_naver_pubdate(pub_date)
 
     if published_dt is None:
-        # 날짜 파싱 실패한 뉴스는 과거 뉴스일 가능성을 배제할 수 없으므로 제외
         return False
 
     now_kst = get_now_kst()
     cutoff_dt = now_kst - timedelta(hours=hours)
 
     return cutoff_dt <= published_dt <= now_kst
+
+
+def remove_html_tags(text: str) -> str:
+    """
+    HTML 태그 제거
+    """
+    if text is None:
+        return ""
+
+    clean = re.sub("<.*?>", "", text)
+    clean = clean.replace("&quot;", '"').replace("&amp;", "&")
+    clean = clean.replace("&lt;", "<").replace("&gt;", ">")
+    clean = clean.replace("&#39;", "'")
+
+    return clean.strip()
+
+
+def extract_press_name(item: dict) -> str:
+    """
+    네이버 뉴스 API 응답에는 언론사명 전용 필드가 없으므로,
+    originallink 또는 link의 도메인을 기준으로 언론사명을 추정한다.
+
+    1. PRESS_MAP에 매핑된 도메인이 있으면 한글 언론사명 반환
+    2. 매핑이 없으면 도메인 앞부분 반환
+
+    예:
+    www.example.co.kr      -> example
+    example.co.kr          -> example
+    news.example.co.kr     -> news.example
+    www.medicaltimes.com   -> 메디컬타임즈
+    health.chosun.com      -> 헬스조선
+    """
+    url = item.get("originallink") or item.get("link") or ""
+
+    try:
+        domain = urlparse(url).netloc.lower().strip()
+
+        if not domain:
+            return "언론사 미상"
+
+        # 포트 제거
+        domain = domain.split(":")[0]
+
+        # www. 제거
+        if domain.startswith("www."):
+            domain = domain[4:]
+
+        # 정확히 일치하거나 하위 도메인인 경우 매핑
+        # 예: health.chosun.com -> health.chosun.com 우선 매칭
+        # 예: news.health.chosun.com -> health.chosun.com 하위 도메인 매칭
+        for key, name in PRESS_MAP.items():
+            if domain == key or domain.endswith("." + key):
+                return name
+
+        logger.info(f"🧩 언론사 매핑 없음: {domain}")
+
+        # 매핑 안 된 경우: 도메인에서 대표 영문명 추출
+        suffixes = [
+            ".co.kr",
+            ".or.kr",
+            ".go.kr",
+            ".ac.kr",
+            ".com",
+            ".net",
+            ".org",
+            ".kr",
+        ]
+
+        press_code = domain
+
+        for suffix in suffixes:
+            if press_code.endswith(suffix):
+                press_code = press_code[: -len(suffix)]
+                break
+
+        return press_code or "언론사 미상"
+
+    except Exception as e:
+        logger.warning(f"⚠️ 언론사명 추출 실패: {url} / {e}")
+        return "언론사 미상"
 
 
 def search_naver_news(query: str, display: int = 10, sort: str = "date") -> dict:
@@ -98,18 +180,18 @@ def search_naver_news(query: str, display: int = 10, sort: str = "date") -> dict
 
     if not NAVER_CLIENT_ID or not NAVER_CLIENT_SECRET:
         logger.error("❌ 네이버 API 키가 없습니다!")
-        return {'success': False, 'error': 'API 키 없음'}
+        return {"success": False, "error": "API 키 없음"}
 
     try:
         headers = {
             "X-Naver-Client-Id": NAVER_CLIENT_ID,
-            "X-Naver-Client-Secret": NAVER_CLIENT_SECRET
+            "X-Naver-Client-Secret": NAVER_CLIENT_SECRET,
         }
 
         params = {
             "query": query,
             "display": min(display, 100),
-            "sort": sort
+            "sort": sort,
         }
 
         logger.info(f"🔍 검색 중: '{query}' (최대 {display}개)")
@@ -118,24 +200,25 @@ def search_naver_news(query: str, display: int = 10, sort: str = "date") -> dict
             NAVER_SEARCH_URL,
             headers=headers,
             params=params,
-            timeout=10
+            timeout=10,
         )
 
         response.raise_for_status()
         data = response.json()
 
-        # HTML 태그 제거
-        items = data.get('items', [])
+        items = data.get("items", [])
+
         for item in items:
-            item['title'] = remove_html_tags(item.get('title', ''))
-            item['description'] = remove_html_tags(item.get('description', ''))
+            item["title"] = remove_html_tags(item.get("title", ""))
+            item["description"] = remove_html_tags(item.get("description", ""))
+            item["source"] = extract_press_name(item)
 
         logger.info(f"✅ {len(items)}개 뉴스 수집 (전체 {data.get('total', 0)}개)")
 
         return {
-            'success': True,
-            'items': items,
-            'total': data.get('total', 0)
+            "success": True,
+            "items": items,
+            "total": data.get("total", 0),
         }
 
     except requests.exceptions.HTTPError as e:
@@ -144,32 +227,17 @@ def search_naver_news(query: str, display: int = 10, sort: str = "date") -> dict
         else:
             logger.error(f"❌ HTTP 오류: {e}")
 
-        return {'success': False, 'error': str(e)}
+        return {"success": False, "error": str(e)}
 
     except Exception as e:
         logger.error(f"❌ 검색 실패: {e}")
-        return {'success': False, 'error': str(e)}
-
-
-def remove_html_tags(text: str) -> str:
-    """
-    HTML 태그 제거
-    """
-    import re
-
-    if text is None:
-        return ""
-
-    clean = re.sub('<.*?>', '', text)
-    clean = clean.replace('&quot;', '"').replace('&amp;', '&')
-    clean = clean.replace('&lt;', '<').replace('&gt;', '>')
-    return clean.strip()
+        return {"success": False, "error": str(e)}
 
 
 def search_multiple_keywords(
     keywords: list,
     display_per_keyword: int = 10,
-    recent_hours: int = 24
+    recent_hours: int = 24,
 ) -> list:
     """
     여러 키워드로 뉴스 검색
@@ -187,7 +255,10 @@ def search_multiple_keywords(
                 'title': str,
                 'description': str,
                 'url': str,
+                'originallink': str,
+                'source': str,
                 'published_at': str,
+                'published_at_kst': str,
                 'keyword': str,
                 'scraped_at': str
             },
@@ -206,7 +277,7 @@ def search_multiple_keywords(
     cutoff_dt = now_kst - timedelta(hours=recent_hours)
 
     logger.info("\n" + "=" * 60)
-    logger.info(f"🕒 최근 뉴스 필터 적용")
+    logger.info("🕒 최근 뉴스 필터 적용")
     logger.info(f"기준 현재 시각: {now_kst.strftime('%Y-%m-%d %H:%M:%S %Z')}")
     logger.info(f"저장 기준: {cutoff_dt.strftime('%Y-%m-%d %H:%M:%S %Z')} 이후 발행 뉴스")
     logger.info("=" * 60)
@@ -219,15 +290,15 @@ def search_multiple_keywords(
         result = search_naver_news(
             keyword,
             display=display_per_keyword,
-            sort="date"
+            sort="date",
         )
 
-        if result['success']:
-            for item in result['items']:
+        if result["success"]:
+            for item in result["items"]:
                 total_seen_count += 1
 
-                link = item.get('link', '')
-                pub_date = item.get('pubDate', '')
+                link = item.get("link", "")
+                pub_date = item.get("pubDate", "")
 
                 published_dt = parse_naver_pubdate(pub_date)
 
@@ -239,7 +310,7 @@ def search_multiple_keywords(
                 if not (cutoff_dt <= published_dt <= now_kst):
                     old_news_count += 1
                     logger.info(
-                        f"   ⏭️ 24시간 초과 뉴스 제외: "
+                        f"   ⏭️ {recent_hours}시간 초과 뉴스 제외: "
                         f"{published_dt.strftime('%Y-%m-%d %H:%M')} / "
                         f"{item.get('title', '')[:50]}"
                     )
@@ -253,15 +324,19 @@ def search_multiple_keywords(
 
                 seen_links.add(link)
 
-                all_news.append({
-                    'title': item.get('title', ''),
-                    'description': item.get('description', ''),
-                    'url': link,
-                    'published_at': pub_date,
-                    'published_at_kst': published_dt.isoformat(),
-                    'keyword': keyword,
-                    'scraped_at': now_kst.isoformat()
-                })
+                all_news.append(
+                    {
+                        "title": item.get("title", ""),
+                        "description": item.get("description", ""),
+                        "url": link,
+                        "originallink": item.get("originallink", ""),
+                        "source": item.get("source") or extract_press_name(item),
+                        "published_at": pub_date,
+                        "published_at_kst": published_dt.isoformat(),
+                        "keyword": keyword,
+                        "scraped_at": now_kst.isoformat(),
+                    }
+                )
 
         else:
             logger.warning(f"⚠️ '{keyword}' 검색 실패")
@@ -269,8 +344,8 @@ def search_multiple_keywords(
     logger.info(f"\n{'=' * 60}")
     logger.info("✅ 뉴스 수집 완료")
     logger.info(f"전체 조회 기사 수: {total_seen_count}개")
-    logger.info(f"24시간 이내 저장 기사 수: {len(all_news)}개")
-    logger.info(f"24시간 초과 제외: {old_news_count}개")
+    logger.info(f"{recent_hours}시간 이내 저장 기사 수: {len(all_news)}개")
+    logger.info(f"{recent_hours}시간 초과 제외: {old_news_count}개")
     logger.info(f"중복 제외: {duplicate_count}개")
     logger.info(f"날짜 파싱 실패 제외: {parse_fail_or_invalid_count}개")
     logger.info(f"{'=' * 60}")
@@ -285,62 +360,10 @@ def save_to_json(news_list: list, filename: str = "data/naver_news.json"):
     try:
         os.makedirs(os.path.dirname(filename), exist_ok=True)
 
-        with open(filename, 'w', encoding='utf-8') as f:
+        with open(filename, "w", encoding="utf-8") as f:
             json.dump(news_list, f, ensure_ascii=False, indent=2)
 
         logger.info(f"💾 저장 완료: {filename}")
 
     except Exception as e:
         logger.error(f"❌ 저장 실패: {e}")
-
-
-# ====================================
-# 테스트 코드
-# ====================================
-if __name__ == "__main__":
-    print("\n" + "=" * 60)
-    print("🚀 네이버 뉴스 스크래퍼 테스트")
-    print("=" * 60)
-
-    # 테스트 1: 단일 검색
-    print("\n[테스트 1] 'EMR' 검색")
-    result = search_naver_news("EMR", display=5)
-
-    if result['success']:
-        print(f"\n✅ 총 {result['total']}개 중 {len(result['items'])}개 가져옴\n")
-
-        for i, item in enumerate(result['items'][:3], 1):
-            print(f"[{i}] {item['title']}")
-            print(f"    📝 {item['description'][:80]}...")
-            print(f"    🔗 {item['link']}")
-            print(f"    📅 {item['pubDate']}")
-            print(f"    🕒 최근 24시간 여부: {is_within_last_hours(item['pubDate'], 24)}\n")
-
-    else:
-        print(f"❌ 오류: {result.get('error')}")
-
-    # 테스트 2: 다중 키워드
-    print("\n" + "=" * 60)
-    print("[테스트 2] 다중 키워드 검색 - 최근 24시간만 저장")
-    print("=" * 60)
-
-    keywords = ["EMR", "전자의무기록", "디지털헬스케어"]
-    news_list = search_multiple_keywords(
-        keywords,
-        display_per_keyword=20,
-        recent_hours=24
-    )
-
-    if news_list:
-        save_to_json(news_list)
-
-        print("\n🔥 최근 24시간 뉴스 상위 5개:")
-        for i, news in enumerate(news_list[:5], 1):
-            print(f"\n[{i}] {news['title']}")
-            print(f"    키워드: {news['keyword']}")
-            print(f"    발행일: {news['published_at']}")
-            print(f"    {news['description'][:80]}...")
-
-    print("\n" + "=" * 60)
-    print("✅ 테스트 완료!")
-    print("=" * 60)

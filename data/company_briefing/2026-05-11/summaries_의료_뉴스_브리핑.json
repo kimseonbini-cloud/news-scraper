@@ -1,0 +1,112 @@
+[
+  {
+    "title": "어웰 주식회사 김완 대표, 대한필러학회 춘계 학술대회서 AI 병원 운영 ...",
+    "summary": "어웰 주식회사 김완 대표는 대한필러학회 춘계 학술대회에서 AI를 활용한 병원 운영의 필요성을 강조하며, 환자 데이터 관리의 미비점을 지적했다. 특히 신환, 예약 미완료 환자 등 세분화 관리와 노쇼 관리의 자동화 필요성을 언급했다.",
+    "url": "https://www.lecturernews.com/news/articleView.html?idxno=202103",
+    "keyword": "EMR",
+    "published_at": "Mon, 11 May 2026 13:46:00 +0900",
+    "importance_score": 4,
+    "category": "EMR",
+    "source": "lecturernews",
+    "tokens_used": 331
+  },
+  {
+    "title": "\"진화하는 진료현장, 병원약사 역할 재조명\"",
+    "summary": "병원약사는 환자 전자의무기록과 투약 이력을 스마트 모니터링하여 의사결정을 지원하며, 이송로봇과 의약품 자동 불출기 등 최신 장비로 물리적 업무를 효율화하고 있다.",
+    "url": "https://www.dailymedi.com/news/news_view.php?wr_id=936145",
+    "keyword": "EMR",
+    "published_at": "Mon, 11 May 2026 12:12:00 +0900",
+    "importance_score": 4,
+    "category": "EMR",
+    "source": "데일리메디",
+    "tokens_used": 304
+  },
+  {
+    "title": "제이엘케이, 의료영상 특화 LLM 플랫폼 ‘JOOMED’ 공개…“범용 AI 한계...",
+    "summary": "제이엘케이가 의료영상에 특화된 LLM 플랫폼 ‘JOOMED’를 공개했다. 이 플랫폼은 EMR, PACS, 글로벌 의학 지식을 결합하여 멀티모달 의료 AI 구조를 형성한다.",
+    "url": "http://www.fntimes.com/html/view.php?ud=202605111119475364923defd0cc_18",
+    "keyword": "EMR",
+    "published_at": "Mon, 11 May 2026 11:24:00 +0900",
+    "importance_score": 5,
+    "category": "EMR",
+    "source": "fntimes",
+    "tokens_used": 310
+  },
+  {
+    "title": "[AI의료]뷰노, 심부전 선별 AI 알고리즘 고도화…예측정확도 0.956 달성 ...",
+    "summary": "뷰노는 심부전 선별 AI 알고리즘을 고도화하여 예측 정확도 0.956을 달성했다. 이 알고리즘은 전자의무기록(EMR) 데이터를 통합해 분석할 수 있도록 설계되었다.",
+    "url": "https://www.getnews.co.kr/news/articleView.html?idxno=869807",
+    "keyword": "EMR",
+    "published_at": "Mon, 11 May 2026 11:12:00 +0900",
+    "importance_score": 4,
+    "category": "EMR",
+    "source": "글로벌경제신문",
+    "tokens_used": 319
+  },
+  {
+    "title": "가천대 길병원, AI 등 최신 스마트 기술 활용 간호 환경 구축 박차",
+    "summary": "가천대 길병원은 헬스IT 기술을 도입하여 환자 안전을 강화하고 간호업무 효율성을 높이고 있으며, AI를 활용해 환자와 의료진 간의 진료 대화를 음성으로 인식하고 정리하는 시스템을 구축하고 있다.",
+    "url": "https://www.kgnews.co.kr/news/article.html?no=895128",
+    "keyword": "의료IT",
+    "published_at": "Mon, 11 May 2026 13:54:00 +0900",
+    "importance_score": 4,
+    "category": "의료IT",
+    "source": "경기신문",
+    "tokens_used": 309
+  },
+  {
+    "title": "엠투소프트-모노커뮤니케이션즈-세피스, 전문기술 및 사업협력에 '맞손...",
+    "summary": "엠투소프트, 모노커뮤니케이션즈, 세피스는 시장 경쟁력 강화와 비즈니스 확장을 위해 협력하며, 최근 사업부 인수로 호남지사를 신설하고 의료 분야로 사업을 확장하고 있다.",
+    "url": "https://n.news.naver.com/mnews/article/030/0003426094?sid=105",
+    "keyword": "의료IT",
+    "published_at": "Mon, 11 May 2026 13:04:00 +0900",
+    "importance_score": 4,
+    "category": "의료IT",
+    "source": "전자신문",
+    "tokens_used": 307
+  },
+  {
+    "title": "연세대, AI로 신약 개발 혁신 나선다",
+    "summary": "연세대학교는 과학기술정보통신부 주관의 '2026년 바이오·의료기술개발사업'에 참여해 AI를 활용한 신약 개발 혁신을 추진하며, 산·학·연 연계성을 강화할 계획이다.",
+    "url": "https://dhnews.co.kr/news/view/1065577477576701",
+    "keyword": "의료IT",
+    "published_at": "Mon, 11 May 2026 10:48:00 +0900",
+    "importance_score": 4,
+    "category": "의료IT",
+    "source": "대학저널",
+    "tokens_used": 305
+  },
+  {
+    "title": "왓츠랩, 중기부 '산학연 Collabo R&D 2단계' 선정",
+    "summary": "왓츠랩은 세종대학교와 협력하여 의료 XR 기반 디지털 카데바 실습 솔루션의 상용화 연구를 진행하며, 월드IT쇼(WIS 2026)에서 혁신상을 수상했다.",
+    "url": "https://www.kdpress.co.kr/news/articleView.html?idxno=205140",
+    "keyword": "의료IT",
+    "published_at": "Mon, 11 May 2026 11:14:00 +0900",
+    "importance_score": 4,
+    "category": "의료IT",
+    "source": "데일리경제",
+    "tokens_used": 309
+  },
+  {
+    "title": "GC셀 미국 관계사 아티바, NK세포 치료제 3상 진입·3억 달러 조달",
+    "summary": "GC셀의 미국 관계사 아티바가 NK세포 치료제로 3상 임상시험에 진입하며 3억 달러를 조달했다. 이번 공모에는 블랙스톤, 바이킹 글로벌 등 헬스케어 전문 투자기관이 참여했다.",
+    "url": "https://www.rapportian.com/news/articleView.html?idxno=235788",
+    "keyword": "헬스케어",
+    "published_at": "Mon, 11 May 2026 14:16:00 +0900",
+    "importance_score": 4,
+    "category": "헬스케어",
+    "source": "라포르시안",
+    "tokens_used": 316
+  },
+  {
+    "title": "동국생명과학, 대한흉부영상의학회와 흉부영상의학 발전 위한 업무협약",
+    "summary": "동국생명과학은 대한흉부영상의학회와 흉부영상의학 발전을 위한 업무협약을 체결했다. 이 회사는 조영제 라인업을 기반으로 영상진단 시장에서 입지를 다지고 있으며, AI 기반 영상 분석 솔루션 등 디지털 헬스케어 분야로도 확장하고 있다.",
+    "url": "https://www.the-stock.kr/news/articleView.html?idxno=32508",
+    "keyword": "헬스케어",
+    "published_at": "Mon, 11 May 2026 14:38:00 +0900",
+    "importance_score": 4,
+    "category": "헬스케어",
+    "source": "더스탁",
+    "tokens_used": 334
+  }
+]

@@ -1,0 +1,337 @@
+{
+  "briefing_name": "경제 뉴스 브리핑",
+  "subject_prefix": "경제·부동산·증권 뉴스 브리핑",
+  "config_path": "configs/economy_briefing.json",
+  "created_at": "2026-05-11T14:53:10.304866",
+  "sections": [
+    {
+      "section_name": "경제 뉴스 브리핑",
+      "summaries": [
+        {
+          "title": "금융硏, 올해 한국 경제 2.8% 성장 전망…0.7%p 상향",
+          "summary": "한국금융연구원이 올해 한국 경제 성장률을 2.8%로 0.7%포인트 상향 조정하며, 반도체 수출 호조와 설비 투자 확대가 반등을 이끌 것이라고 발표했다.",
+          "url": "https://n.news.naver.com/mnews/article/001/0016069807?sid=101",
+          "keyword": "한국경제",
+          "published_at": "Mon, 11 May 2026 14:32:00 +0900",
+          "importance_score": 5,
+          "category": "경제성장",
+          "source": "연합뉴스",
+          "tokens_used": 312
+        },
+        {
+          "title": "KDI \"중동 사태로 올해 소비자물가 최대 1.6%포인트 상승 가능\"",
+          "summary": "KDI는 미국과 이란 간의 전쟁으로 인해 국제유가가 상승하면서 올해 한국의 소비자물가가 최대 1.6%포인트 오를 수 있다고 분석했다.",
+          "url": "https://n.news.naver.com/mnews/article/469/0000930062?sid=101",
+          "keyword": "소비자물가",
+          "published_at": "Mon, 11 May 2026 14:20:00 +0900",
+          "importance_score": 5,
+          "category": "물가",
+          "source": "한국일보",
+          "tokens_used": 292
+        },
+        {
+          "title": "우리은행, 전세대출 금리 0.15%p 인하…최저 연 3.71%",
+          "summary": "우리은행이 전세자금대출 금리를 0.15%p 인하해 최저 연 3.71%로 조정했다. 이는 실수요 고객의 이자 비용 경감과 주거 안정을 도모하기 위한 조치다.",
+          "url": "https://n.news.naver.com/mnews/article/001/0016069815?sid=101",
+          "keyword": "금리",
+          "published_at": "Mon, 11 May 2026 14:33:00 +0900",
+          "importance_score": 4,
+          "category": "금리",
+          "source": "연합뉴스",
+          "tokens_used": 307
+        },
+        {
+          "title": "中, 미중 정상회담 일정 발표 후 준비 공식화…의제 조율 속도",
+          "summary": "중국 상무부에 따르면, 스콧 베선트 미 재무장관과 허리펑 중국 국무원 총리는 13일 한국에서 경제·무역 협상을 진행할 예정이다. 이번 만남은 미중 정상회담에 앞선 사전 조율로 이루어진다.",
+          "url": "https://n.news.naver.com/mnews/article/001/0016069852?sid=104",
+          "keyword": "한국경제",
+          "published_at": "Mon, 11 May 2026 14:46:00 +0900",
+          "importance_score": 3,
+          "category": "기타",
+          "source": "연합뉴스",
+          "tokens_used": 314
+        },
+        {
+          "title": "‘자본시장 개혁의 성과와 전망’ 심포지엄 22일 개최",
+          "summary": "서울사회경제연구소, 자본시장연구원, 한국경제발전학회가 22일 '자본시장 개혁의 성과와 전망'을 주제로 심포지엄을 개최한다.",
+          "url": "https://n.news.naver.com/mnews/article/028/0002804525?sid=101",
+          "keyword": "한국경제",
+          "published_at": "Mon, 11 May 2026 14:44:00 +0900",
+          "importance_score": 3,
+          "category": "기타",
+          "source": "한겨레",
+          "tokens_used": 298
+        },
+        {
+          "title": "[인사] 데일리한국",
+          "summary": "데일리한국의 정치경제부장에 김성배가 임명됐다. 인사 관련 문의는 카톡 뉴스1제보와 이메일을 통해 가능하다.",
+          "url": "https://n.news.naver.com/mnews/article/421/0008937514?sid=102",
+          "keyword": "한국경제",
+          "published_at": "Mon, 11 May 2026 14:43:00 +0900",
+          "importance_score": 3,
+          "category": "기타",
+          "source": "뉴스1",
+          "tokens_used": 242
+        },
+        {
+          "title": "로보틱스 다음은 하늘차…현대차그룹, 빅테크로 변신",
+          "summary": "현대차그룹이 로보틱스 분야에서 하늘차 개발로 진화하고 있으며, 보스턴다이내믹스의 아틀라스 로봇에 대한 군의 요청이 있었다고 한국경제TV가 보도했다.",
+          "url": "https://n.news.naver.com/mnews/article/215/0001251709?sid=101",
+          "keyword": "한국경제",
+          "published_at": "Mon, 11 May 2026 14:32:00 +0900",
+          "importance_score": 3,
+          "category": "기타",
+          "source": "wowtv",
+          "tokens_used": 306
+        },
+        {
+          "title": "[성공예감] 증시 신고가의 딜레마…삼전닉스 PER 아직 싸다 - 김학균 전...",
+          "summary": "김학균 전 애널리스트는 세계화가 진행됨에 따라 국적의 중요성이 감소하고 있으며, 한국의 GDP를 기반으로 한 경제 활동의 의미가 크다고 강조했다.",
+          "url": "https://n.news.naver.com/mnews/article/056/0012178560?sid=101",
+          "keyword": "한국경제",
+          "published_at": "Mon, 11 May 2026 14:23:00 +0900",
+          "importance_score": 3,
+          "category": "기타",
+          "source": "KBS",
+          "tokens_used": 277
+        },
+        {
+          "title": "경기도, 산·학·연·병 협력 바이오 인재 500명 양성 추진",
+          "summary": "경기도와 경기도경제과학진흥원이 한국바이오협회 및 여러 대학과 협력해 바이오 전문인력 500명을 양성하기 위한 교육생을 모집한다.",
+          "url": "https://www.hitnews.co.kr/news/articleView.html?idxno=76035",
+          "keyword": "한국경제",
+          "published_at": "Mon, 11 May 2026 14:14:00 +0900",
+          "importance_score": 3,
+          "category": "기타",
+          "source": "히트뉴스",
+          "tokens_used": 294
+        },
+        {
+          "title": "[뉴스클레임 사설] 코스피 8000 앞둔 반도체 장세, 지수만 번지르르 해서...",
+          "summary": "금융당국과 거래소, 연기금은 지수 중심 운용 관행을 점검하고 기업지배구조 및 신산업 지원 제도를 개선해야 한다. 이를 통해 코스피의 기록이 한국 경제의 기본 체력으로 남을 수 있다.",
+          "url": "https://www.newsclaim.co.kr/news/articleView.html?idxno=3063265",
+          "keyword": "한국경제",
+          "published_at": "Mon, 11 May 2026 14:06:00 +0900",
+          "importance_score": 3,
+          "category": "기타",
+          "source": "newsclaim",
+          "tokens_used": 318
+        }
+      ],
+      "raw_count": 139,
+      "selected_count": 10
+    },
+    {
+      "section_name": "부동산 뉴스 브리핑",
+      "summaries": [
+        {
+          "title": "서울 아파트 매물 이틀새 2813건 감소 ... 다주택자 매물 회수 본격화",
+          "summary": "서울 아파트 매물이 이틀 사이 2813건 감소하며 다주택자들이 양도소득세 중과 유예 종료 후 매도 대신 '버티기'로 돌아섰다. 이로 인해 시장에서 매물 잠김 현상이 발생하고 있다.",
+          "url": "http://www.queen.co.kr/news/articleView.html?idxno=456646",
+          "keyword": "서울 아파트",
+          "published_at": "Mon, 11 May 2026 14:10:00 +0900",
+          "importance_score": 5,
+          "category": "부동산 정책",
+          "source": "queen",
+          "tokens_used": 313
+        },
+        {
+          "title": "현대건설, 압구정3구역 '미래형 하이엔드' 제안…로봇·무인셔틀 총동원",
+          "summary": "현대건설은 압구정3구역에서 로봇과 무인셔틀을 활용한 '미래형 하이엔드' 아파트 단지 운영체계를 제안하며, 이를 현장 체험형 콘텐츠로 선보였다.",
+          "url": "http://www.4th.kr/news/articleView.html?idxno=2111578",
+          "keyword": "서울 아파트",
+          "published_at": "Mon, 11 May 2026 14:24:00 +0900",
+          "importance_score": 4,
+          "category": "부동산 정책",
+          "source": "4th",
+          "tokens_used": 317
+        },
+        {
+          "title": "오세훈 “‘닥치고 공급’이 전·월세 문제 해법…정부가 막은 주택 대...",
+          "summary": "오세훈은 11일 부동산 문제 해결을 위해 “‘닥치고 공급’이 근본적인 해법”이라고 강조하며, 정부의 대출 규제가 주택 시장에 미치는 부정적 영향을 지적했다.",
+          "url": "https://n.news.naver.com/mnews/article/366/0001163351?sid=162",
+          "keyword": "부동산 정책",
+          "published_at": "Mon, 11 May 2026 14:44:00 +0900",
+          "importance_score": 4,
+          "category": "부동산 정책",
+          "source": "조선일보",
+          "tokens_used": 299
+        },
+        {
+          "title": "하이닉스 랠리·억대 성과급…반도체 머니 다시 집으로 가나",
+          "summary": "하이닉스의 주가 상승과 억대 성과급 지급이 반도체 산업에 긍정적인 영향을 미치고 있으며, 이에 따라 주택 시장에서도 매물 부족과 상승 기대감이 나타나고 있다.",
+          "url": "https://n.news.naver.com/mnews/article/421/0008937546?sid=101",
+          "keyword": "서울 아파트",
+          "published_at": "Mon, 11 May 2026 14:49:00 +0900",
+          "importance_score": 3,
+          "category": "기타",
+          "source": "뉴스1",
+          "tokens_used": 299
+        },
+        {
+          "title": "서초 'PH1603 프라이빗 오뜨 갤러리', 후분양 진행",
+          "summary": "서초구 서초동에 위치한 'PH1603 프라이빗 오뜨 갤러리'가 후분양을 진행하며, 아파트와 오피스텔의 장점을 결합한 124세대 규모의 단지이다. 이곳은 법조타운, 예술의전당, 서울교대 등 인프라를 이용할 수 있는 중심권에 자리잡고 있다.",
+          "url": "https://www.woodkorea.co.kr/news/articleView.html?idxno=89380",
+          "keyword": "서울 아파트",
+          "published_at": "Mon, 11 May 2026 14:48:00 +0900",
+          "importance_score": 3,
+          "category": "기타",
+          "source": "woodkorea",
+          "tokens_used": 339
+        },
+        {
+          "title": "이인선, ‘음주운전 꼼수 차단법’ 발의⋯“아파트 주차장도 면허취소...",
+          "summary": "이인선 의원이 아파트 주차장에서의 음주운전으로 인한 면허 취소를 가능하게 하는 '음주운전 꼼수 차단법'을 발의했다. 지난해 서울고등법원은 아파트 주차장에서의 음주운전이 도로교통법상 '도로'에 해당하지 않는다며 면허 취소 처분을 취소한 바 있다.",
+          "url": "https://www.kbmaeil.com/article/20260511500413",
+          "keyword": "서울 아파트",
+          "published_at": "Mon, 11 May 2026 14:46:00 +0900",
+          "importance_score": 3,
+          "category": "기타",
+          "source": "kbmaeil",
+          "tokens_used": 349
+        },
+        {
+          "title": "[취재후 Talk] 대학 기숙사는 왜 지어지지 못할까?",
+          "summary": "대학 기숙사 건설의 문제점과 해결책을 찾기 위해 TV조선 취재진이 서울주택도시공사(SH)와 경기주택도시공사(GH) 사장과 인터뷰를 진행했다. 이 과정에서 아파트 공간복지의 도입이 임대업자들의 재산권을 강화할 가능성도 논의되었다.",
+          "url": "https://n.news.naver.com/mnews/article/448/0000610413?sid=102",
+          "keyword": "서울 아파트",
+          "published_at": "Mon, 11 May 2026 14:40:00 +0900",
+          "importance_score": 3,
+          "category": "기타",
+          "source": "TV조선",
+          "tokens_used": 336
+        },
+        {
+          "title": "“센트럴파크·워터프론트 품었다”… ‘더샵 송도그란테르’, 송도 랜...",
+          "summary": "‘더샵 송도그란테르’는 지하 2층에서 지상 46층까지 총 15개 동으로 구성되며, 전용면적 84~198㎡의 아파트 1,544가구와 주거형 오피스텔을 포함하고 있다.",
+          "url": "https://n.news.naver.com/mnews/article/243/0000097669?sid=101",
+          "keyword": "서울 아파트",
+          "published_at": "Mon, 11 May 2026 14:38:00 +0900",
+          "importance_score": 3,
+          "category": "기타",
+          "source": "economist",
+          "tokens_used": 338
+        },
+        {
+          "title": "[이란인의 한국살이] “빨래 말렸는데 냄새 난다”…외국인들이 한국 집...",
+          "summary": "이란인 외국인이 한국 주거 공간의 특징을 언급하며, 현대 아파트와 주택의 보일러 난방 방식과 서울의 원룸 및 오피스텔의 상대적으로 작은 크기를 경험했다고 전했다.",
+          "url": "https://www.wikitree.co.kr/articles/1135929",
+          "keyword": "서울 아파트",
+          "published_at": "Mon, 11 May 2026 14:28:00 +0900",
+          "importance_score": 3,
+          "category": "기타",
+          "source": "wikitree",
+          "tokens_used": 302
+        },
+        {
+          "title": "신축아파트 하자 잡는다…은평구, ‘중장년 아파트 사전점검 전문가 양...",
+          "summary": "서울 은평구는 중장년층의 제2의 인생 설계를 지원하기 위해 ‘중장년 아파트 사전점검 전문가 양성과정’ 참여자를 모집한다고 11일 발표했다. 이 과정은 신축 공동주택의 하자 점검 수요 증가에 대응하기 위한 것이다.",
+          "url": "https://n.news.naver.com/mnews/article/081/0003642659?sid=102",
+          "keyword": "서울 아파트",
+          "published_at": "Mon, 11 May 2026 14:28:00 +0900",
+          "importance_score": 3,
+          "category": "기타",
+          "source": "서울신문",
+          "tokens_used": 316
+        }
+      ],
+      "raw_count": 95,
+      "selected_count": 10
+    },
+    {
+      "section_name": "증권 뉴스 브리핑",
+      "summaries": [
+        {
+          "title": "삼성자산운용, 새 커버드콜 ETF 출격…반도체 성장·월배당 잡는다",
+          "summary": "삼성자산운용은 반도체 산업의 성장과 월배당을 목표로 하는 새로운 커버드콜 ETF를 출시했다. 이 ETF는 코스피 200 위클리 옵션의 30%를 고정 매도하는 전략을 채택하고 있다.",
+          "url": "https://www.sisaon.co.kr/news/articleView.html?idxno=200957",
+          "keyword": "코스피",
+          "published_at": "Mon, 11 May 2026 14:48:00 +0900",
+          "importance_score": 4,
+          "category": "ETF",
+          "source": "sisaon",
+          "tokens_used": 320
+        },
+        {
+          "title": "[속보] 불붙은 증시 랠리…한국 증시 시가총액 7000조 넘었다",
+          "summary": "코스피가 반도체주 중심으로 상승세를 이어가며 11일 오전 10시 8분 기준 한국 증시 시가총액이 7037조 7977억 원을 기록했다.",
+          "url": "https://n.news.naver.com/mnews/article/011/0004619392?sid=101",
+          "keyword": "한국증시",
+          "published_at": "Mon, 11 May 2026 10:12:00 +0900",
+          "importance_score": 3,
+          "category": "증시전망",
+          "source": "서울경제",
+          "tokens_used": 302
+        },
+        {
+          "title": "BNK부산은행, 코스피200 지수연동 예금… 연최고 4.3% 기대",
+          "summary": "BNK부산은행이 코스피200 지수에 연동된 'BNK지수연동 정기예금 3차'를 출시하며, 최고 연 4.3%의 수익률을 기대할 수 있다고 11일 발표했다.",
+          "url": "https://www.g-enews.com/view.php?ud=20260511143319585cd0bfacc1c_1",
+          "keyword": "코스피",
+          "published_at": "Mon, 11 May 2026 14:48:00 +0900",
+          "importance_score": 3,
+          "category": "기타",
+          "source": "g-enews",
+          "tokens_used": 314
+        },
+        {
+          "title": "코스피 5.29% 상승 7894.28 거래중",
+          "summary": "11일 오후 코스피가 396.28 포인트(5.29%) 상승한 7894.28로 거래되고, 코스닥은 3.40 포인트(0.28%) 하락한 1204.32로 나타났다.",
+          "url": "https://www.newspim.com/news/view/20260511000919",
+          "keyword": "코스피",
+          "published_at": "Mon, 11 May 2026 14:46:00 +0900",
+          "importance_score": 3,
+          "category": "기타",
+          "source": "뉴스핌",
+          "tokens_used": 308
+        },
+        {
+          "title": "‘자본시장 개혁의 성과와 전망’ 심포지엄 22일 개최",
+          "summary": "‘자본시장 개혁의 성과와 전망’ 심포지엄이 22일 개최되며, 최근 코스피 지수가 8000선에 근접해 주식시장이 정상화되고 투자자 신뢰가 회복되고 있음을 강조했다.",
+          "url": "https://n.news.naver.com/mnews/article/028/0002804525?sid=101",
+          "keyword": "코스피",
+          "published_at": "Mon, 11 May 2026 14:44:00 +0900",
+          "importance_score": 3,
+          "category": "기타",
+          "source": "한겨레",
+          "tokens_used": 304
+        },
+        {
+          "title": "마통 뚫고 1억 베팅…'불나방 개미'가 쏜 7500선",
+          "summary": "코스피가 7000선을 넘어 7500선을 향해 상승하며 개인 투자자들이 적극적으로 베팅하고 있다. 이들은 상승장에서 소외될 것을 우려하고 있다.",
+          "url": "https://www.mediapen.com/news/view/1098077",
+          "keyword": "코스피",
+          "published_at": "Mon, 11 May 2026 14:38:00 +0900",
+          "importance_score": 3,
+          "category": "기타",
+          "source": "미디어펜",
+          "tokens_used": 304
+        },
+        {
+          "title": "[글로벌 증시 따라잡기] \"전쟁에도 돈은 움직인다\"…美 증시 흐름은?",
+          "summary": "올해 코스피는 70% 상승률을 기록하고, 미국 증시는 사상 최고치를 유지하고 있다. 하반기에는 '빅3' 상장이 예정되어 있다.",
+          "url": "https://n.news.naver.com/mnews/article/374/0000509324?sid=101",
+          "keyword": "코스피",
+          "published_at": "Mon, 11 May 2026 14:31:00 +0900",
+          "importance_score": 3,
+          "category": "기타",
+          "source": "SBS",
+          "tokens_used": 312
+        },
+        {
+          "title": "[4th-Infra] \"양극화 심화, 한국형 복지목적세 도입 필요\"",
+          "summary": "전문가는 한국의 양극화 문제 해결을 위해 복지목적세 도입이 필요하다고 강조하며, 자본시장 상승의 혜택을 사회적으로 공정하게 분배하는 논의가 부족하다고 지적했다.",
+          "url": "http://www.4th.kr/news/articleView.html?idxno=2111570",
+          "keyword": "코스피",
+          "published_at": "Mon, 11 May 2026 14:28:00 +0900",
+          "importance_score": 3,
+          "category": "기타",
+          "source": "4th",
+          "tokens_used": 298
+        }
+      ],
+      "raw_count": 144,
+      "selected_count": 8
+    }
+  ]
+}

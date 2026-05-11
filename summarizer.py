@@ -56,11 +56,13 @@ def summarize_article(article: Dict, max_length: int = 220) -> Dict:
         article: {
             'title': str,
             'content': str,
+            'description': str,
             'url': str,
             'keyword': str,
             'published_at': str,
             'importance_score': int,
-            'category': str
+            'category': str,
+            'source': str
         }
         max_length: 요약 최대 길이, 기본 220자
 
@@ -73,6 +75,7 @@ def summarize_article(article: Dict, max_length: int = 220) -> Dict:
             'published_at': str,
             'importance_score': int,
             'category': str,
+            'source': str,
             'tokens_used': int
         }
     """
@@ -83,6 +86,15 @@ def summarize_article(article: Dict, max_length: int = 220) -> Dict:
     published_at = _safe_text(article.get("published_at", ""))
     importance_score = _safe_int(article.get("importance_score", 3))
     category = _safe_text(article.get("category")) or "기타"
+
+    # 언론사명 유지
+    source = (
+        _safe_text(article.get("source"))
+        or _safe_text(article.get("press"))
+        or _safe_text(article.get("publisher"))
+        or _safe_text(article.get("media"))
+        or "언론사 미상"
+    )
 
     try:
         prompt = f"""
@@ -136,6 +148,7 @@ def summarize_article(article: Dict, max_length: int = 220) -> Dict:
             "published_at": published_at,
             "importance_score": importance_score,
             "category": category,
+            "source": source,
             "tokens_used": tokens_used
         }
 
@@ -152,6 +165,7 @@ def summarize_article(article: Dict, max_length: int = 220) -> Dict:
             "published_at": published_at,
             "importance_score": importance_score,
             "category": category,
+            "source": source,
             "tokens_used": 0,
             "error": str(e)
         }

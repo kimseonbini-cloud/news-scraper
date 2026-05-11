@@ -97,7 +97,10 @@ def format_korean_datetime(date_string):
             period = "오후"
             display_hour = hour if hour == 12 else hour - 12
 
-        return f"{dt_kst.year}년 {dt_kst.month:02d}월 {dt_kst.day:02d}일 {weekday} {period} {display_hour:02d}:{dt_kst.minute:02d}"
+        return (
+            f"{dt_kst.year}년 {dt_kst.month:02d}월 {dt_kst.day:02d}일 "
+            f"{weekday} {period} {display_hour:02d}:{dt_kst.minute:02d}"
+        )
 
     except Exception:
         return safe_text(date_string)
@@ -119,7 +122,12 @@ def get_today_date_text():
     return formatted_date, now_kst
 
 
-def determine_receiver_env_name(briefing_name=None, subject_prefix=None, section_results=None, receiver_env_name=None):
+def determine_receiver_env_name(
+    briefing_name=None,
+    subject_prefix=None,
+    section_results=None,
+    receiver_env_name=None
+):
     """
     브리핑 종류에 따라 사용할 수신자 환경변수명 결정
 
@@ -197,10 +205,11 @@ def build_section_insights(section_title, summaries):
         title = str(news.get("title", "")).strip()
         summary = str(news.get("summary", "")).strip()
         category = str(news.get("category", "기타")).strip()
+        source = str(news.get("source", "언론사 미상")).strip()
         importance_score = str(news.get("importance_score", "3")).strip()
 
         news_text_list.append(
-            f"{i}. [{category} / 중요도 {importance_score}] {title}\n요약: {summary}"
+            f"{i}. [{category} / {source} / 중요도 {importance_score}] {title}\n요약: {summary}"
         )
 
     news_text = "\n\n".join(news_text_list)
@@ -282,6 +291,7 @@ def build_section_insights(section_title, summaries):
         </table>
     """
 
+
 def get_section_color(index):
     """
     섹션별 포인트 색상 반환
@@ -296,6 +306,7 @@ def get_section_color(index):
     ]
 
     return colors[index % len(colors)]
+
 
 def build_news_section(section_title, summaries, default_keyword, section_color):
     """
@@ -338,6 +349,7 @@ def build_news_section(section_title, summaries, default_keyword, section_color)
         summary_html = safe_text(summary).replace("\n", "<br>")
 
         category = safe_text(news.get("category", default_keyword) or default_keyword)
+        source = safe_text(news.get("source", "언론사 미상") or "언론사 미상")
         importance_score = safe_int(news.get("importance_score", 3))
         stars = "★" * importance_score + "☆" * (5 - importance_score)
 
@@ -355,6 +367,8 @@ def build_news_section(section_title, summaries, default_keyword, section_color)
 
                                 <div style="font-size:11px; line-height:1.5; margin:0 0 7px 0;">
                                     <span style="font-weight:800;">{category}</span>
+                                    <span>　</span>
+                                    <span style="font-weight:800;">{source}</span>
                                     <span>　</span>
                                     <span style="font-weight:800; color:#ea580c;">중요도 {importance_score}</span>
                                     <span>　</span>
@@ -378,6 +392,7 @@ def build_news_section(section_title, summaries, default_keyword, section_color)
     """
 
     return html_body
+
 
 def normalize_section_results(section_results=None, summaries=None):
     """
@@ -468,31 +483,31 @@ def create_html_email(
         )
 
     html_body += f"""
-                            </td>
-                        </tr>
+                        </td>
+                    </tr>
 
-                        <tr>
-                            <td style="padding:8px 0 0 0;
-                                       font-family:'Malgun Gothic','Apple SD Gothic Neo',Arial,sans-serif;
-                                       color:#a1a1aa; font-size:11px; line-height:1.5;">
-                                <div style="margin:0 0 3px 0;">
-                                    <strong>이 메일은 AI를 통하여 자동으로 선별, 요약되어 발송되었습니다.</strong>
-                                </div>
-                                <div style="margin:0 0 3px 0;">
-                                    AI News Scraper v1.0
-                                </div>
-                                <div style="margin:0;">
-                                    © {now_kst.year} AI News Scraper. All rights reserved.
-                                </div>
-                            </td>
-                        </tr>
-                    </table>
-                </td>
-            </tr>
-        </table>
-    </body>
-    </html>
-    """
+                    <tr>
+                        <td style="padding:8px 0 0 0;
+                                   font-family:'Malgun Gothic','Apple SD Gothic Neo',Arial,sans-serif;
+                                   color:#a1a1aa; font-size:11px; line-height:1.5;">
+                            <div style="margin:0 0 3px 0;">
+                                <strong>이 메일은 AI를 통하여 자동으로 선별, 요약되어 발송되었습니다.</strong>
+                            </div>
+                            <div style="margin:0 0 3px 0;">
+                                AI News Scraper v1.0
+                            </div>
+                            <div style="margin:0;">
+                                © {now_kst.year} AI News Scraper. All rights reserved.
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+"""
 
     return html_body
 
