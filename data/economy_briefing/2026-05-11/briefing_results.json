@@ -2,12 +2,17 @@
   "briefing_name": "경제 뉴스 브리핑",
   "subject_prefix": "경제·부동산·증권 뉴스 브리핑",
   "config_path": "configs/economy_briefing.json",
+<<<<<<< HEAD
   "created_at": "2026-05-11T06:17:57.483371",
+=======
+  "created_at": "2026-05-11T15:50:58.469149",
+>>>>>>> 6d0c4f0 (...)
   "sections": [
     {
       "section_name": "경제 뉴스 브리핑",
       "summaries": [
         {
+<<<<<<< HEAD
           "title": "韓 경제 성장률 2.1%→2.8% 상향... 금융연 \"반도체 실적 주도\"",
           "summary": "한국금융연구원이 올해 한국 경제 성장률 전망치를 2.1%에서 2.8%로 상향 조정하며, 반도체 실적이 주요 요인으로 작용했다고 발표했습니다.",
           "url": "https://n.news.naver.com/mnews/article/661/0000076021?sid=101",
@@ -98,11 +103,93 @@
       ],
       "raw_count": 145,
       "selected_count": 8
+=======
+          "title": "금융硏, 올해 경제성장률 2.8%로 상향…“반도체·AI 수출 확대”",
+          "summary": "한국금융연구원은 올해 한국 경제성장률 전망치를 2.8%로 0.7%포인트 상향 조정하며, 반도체와 인공지능(AI) 수출 호조가 성장을 이끌 것으로 분석했다.",
+          "url": "https://n.news.naver.com/mnews/article/011/0004619523?sid=101",
+          "keyword": "한국경제",
+          "published_at": "Mon, 11 May 2026 15:28:00 +0900",
+          "importance_score": 5,
+          "category": "경제성장",
+          "source": "서울경제",
+          "tokens_used": 316
+        },
+        {
+          "title": "한국 반도체 호황에도 금리인상 압박 커진다, 골드만삭스 \"경제 양극화...",
+          "summary": "골드만삭스는 한국 경제가 반도체 중심의 수출 호조에도 불균형한 성장세를 보일 것으로 전망하며, 이로 인해 금리 인상 압박이 커질 것이라고 분석했다.",
+          "url": "https://www.businesspost.co.kr/BP?command=article_view&num=437490",
+          "keyword": "한국경제",
+          "published_at": "Mon, 11 May 2026 14:40:00 +0900",
+          "importance_score": 5,
+          "category": "경제성장",
+          "source": "비즈니스포스트",
+          "tokens_used": 297
+        },
+        {
+          "title": "삼성전자 노사 협상 돌입 “성과급 상한 폐지 요구 변화 없다”",
+          "summary": "삼성전자가 노사 협상에 들어갔으나 성과급 상한 폐지 요구는 변함이 없다. 반도체가 한국 경제의 46.3%를 차지하며, 총파업 시 경제에 큰 타격이 우려된다.",
+          "url": "https://m.skyedaily.com/news_view.html?ID=303825",
+          "keyword": "한국경제",
+          "published_at": "Mon, 11 May 2026 15:32:00 +0900",
+          "importance_score": 4,
+          "category": "기업리스크",
+          "source": "스카이데일리",
+          "tokens_used": 305
+        },
+        {
+          "title": "'인하파' 신성환 금통위원도 \"지금은 금리인하 부담\"…인상 초읽기",
+          "summary": "신성환 금통위원은 한국 경제의 양극화를 언급하며 현재 금리 인하에 대한 부담이 있다고 밝혔다. 그는 극단적인 상황에 처해 있다고 평가했다.",
+          "url": "https://www.newspim.com/news/view/20260511000957",
+          "keyword": "한국경제",
+          "published_at": "Mon, 11 May 2026 15:12:00 +0900",
+          "importance_score": 4,
+          "category": "금융정책",
+          "source": "뉴스핌",
+          "tokens_used": 295
+        },
+        {
+          "title": "OECD, 에너지물가 1년새 8% 급등… 중동發 ‘워플레이션’ 초비상",
+          "summary": "OECD에 따르면 중동 전쟁으로 인해 국제유가가 상승하면서 2023년 3월 회원국의 에너지 물가가 1년 새 8% 급등했다. 한국은 석유 최고가격제와 유류세 인하로 에너지 물가에 영향을 받고 있다.",
+          "url": "https://n.news.naver.com/mnews/article/020/0003718473?sid=101",
+          "keyword": "물가",
+          "published_at": "Mon, 11 May 2026 00:31:00 +0900",
+          "importance_score": 4,
+          "category": "물가",
+          "source": "동아일보",
+          "tokens_used": 322
+        },
+        {
+          "title": "자녀에게 물려줄 수 있는 최고의 유산, '달러보험'이라는 글로벌 경쟁력",
+          "summary": "한국 경제가 미국의 금리와 달러 흐름에 영향을 받으며, 원화 자산만으로는 미래 준비가 불안정하다는 인식이 확산되고 있다. 이 가운데 '달러보험'은 자녀에게 물려줄 수 있는 중요한 유산으로 주목받고 있다.",
+          "url": "https://www.ibabynews.com/news/articleView.html?idxno=151208",
+          "keyword": "한국경제",
+          "published_at": "Mon, 11 May 2026 15:46:00 +0900",
+          "importance_score": 3,
+          "category": "기타",
+          "source": "ibabynews",
+          "tokens_used": 307
+        },
+        {
+          "title": "나무호 외부 피격...공격 주체 신중한 정부 속사정",
+          "summary": "한국 경제는 중동 원유 의존도가 높아 이란과의 관계 악화가 치명적이며, 미국의 오인 사격이나 제재 과정에서의 무력 행사 시 상황이 더욱 복잡해질 수 있다.",
+          "url": "http://www.00news.co.kr/news/articleView.html?idxno=103703",
+          "keyword": "한국경제",
+          "published_at": "Mon, 11 May 2026 15:24:00 +0900",
+          "importance_score": 3,
+          "category": "기타",
+          "source": "00news",
+          "tokens_used": 292
+        }
+      ],
+      "raw_count": 100,
+      "selected_count": 7
+>>>>>>> 6d0c4f0 (...)
     },
     {
       "section_name": "부동산 뉴스 브리핑",
       "summaries": [
         {
+<<<<<<< HEAD
           "title": "설마 했는데 결국… 양도세 중과 이틀 만에 '서울 아파트' 시장서 벌어...",
           "summary": "양도소득세 중과가 시행된 지 이틀 만에 서울 아파트 매물이 약 2800건 감소해 현재 6만5682건으로 집계됐다.",
           "url": "https://www.wikitree.co.kr/articles/1135922",
@@ -183,10 +270,49 @@
           "title": "하이닉스 랠리·억대 성과급…반도체 머니 다시 집으로 가나",
           "summary": "하이닉스의 성과급 증가와 반도체 산업의 회복세가 주택 시장에 영향을 미치고 있으며, 집주인들은 추가 상승을 기대하며 매물을 아끼고 있는 상황이다.",
           "url": "https://n.news.naver.com/mnews/article/421/0008937546?sid=101",
+=======
+          "title": "“오세훈 시정 주택공급 기반 ‘탄탄’… 공급위기 없을 것”",
+          "summary": "오세훈 서울시장이 추진하는 재개발 정책으로 서울의 주택 공급 기반이 강화되고 있으며, 김 위원장은 신속통합기획을 통해 아파트 인허가 물량이 곧 착공될 것이라고 밝혔다.",
+          "url": "https://n.news.naver.com/mnews/article/005/0001848244?sid=102",
           "keyword": "서울 아파트",
-          "published_at": "Mon, 11 May 2026 14:49:00 +0900",
+          "published_at": "Mon, 11 May 2026 15:24:00 +0900",
+          "importance_score": 5,
+          "category": "부동산 정책",
+          "source": "국민일보",
+          "tokens_used": 306
+        },
+        {
+          "title": "심상찮은 아파트 전세가…올들어 매매가격 오름폭 크게 추월",
+          "summary": "5월 첫째 주 서울 아파트 전세가격이 직전 주 대비 0.23% 상승하며 2015년 11월 이후 최고 수준에 도달했다. 전셋값 누적 상승률이 가장 높은 지역은 경기 수원시 영통구(4.57%)였다.",
+          "url": "https://n.news.naver.com/mnews/article/001/0016068492?sid=101",
+          "keyword": "서울 아파트",
+          "published_at": "Mon, 11 May 2026 05:55:00 +0900",
+          "importance_score": 5,
+          "category": "전세",
+          "source": "연합뉴스",
+          "tokens_used": 326
+        },
+        {
+          "title": "무인셔틀에 로봇까지…현대건설, 압구정3구역에 ‘미래 주거’ 그렸다 ...",
+          "summary": "현대건설은 압구정3구역 재건축 홍보관에서 무인셔틀과 로봇 등 미래 주거 모델을 제시했다. 압구정3구역은 올해 준공 50년을 맞는 현대아파트 단지 중 핵심 입지로 평가받고 있다.",
+          "url": "https://www.etoday.co.kr/news/view/2583322",
+          "keyword": "서울 아파트",
+          "published_at": "Mon, 11 May 2026 15:46:00 +0900",
+          "importance_score": 4,
+          "category": "재건축",
+          "source": "이투데이",
+          "tokens_used": 330
+        },
+        {
+          "title": "[분양캘린더] 5월 둘째주 수도권·지방서 4166가구 일반분양",
+          "summary": "5월 둘째 주에 전국에서 5404가구의 아파트가 신규 분양되며, 수도권에서는 평택 고덕국제신도시와 인천 송도, 김포를 중심으로 공급된다.",
+          "url": "https://daily.hankooki.com/news/articleView.html?idxno=1365750",
+>>>>>>> 6d0c4f0 (...)
+          "keyword": "서울 아파트",
+          "published_at": "Mon, 11 May 2026 15:32:00 +0900",
           "importance_score": 3,
           "category": "기타",
+<<<<<<< HEAD
           "source": "뉴스1",
           "tokens_used": 295
         },
@@ -194,10 +320,20 @@
           "title": "서초 'PH1603 프라이빗 오뜨 갤러리', 후분양 진행",
           "summary": "서초구 서초동에 위치한 'PH1603 프라이빗 오뜨 갤러리'가 후분양을 진행하며, 아파트와 오피스텔의 장점을 결합한 124세대 규모의 단지로 법조타운과 예술의전당 등 인프라를 이용할 수 있다.",
           "url": "https://www.woodkorea.co.kr/news/articleView.html?idxno=89380",
+=======
+          "source": "데일리한국",
+          "tokens_used": 301
+        },
+        {
+          "title": "李, ‘매물잠김’ 앞 부동산 심리전…“갭투자 허용 주장은 ‘억까’”",
+          "summary": "이재명은 부동산 시장의 '매물 잠김' 현상에 대해 언급하며, 갭투자 허용 주장을 '억까'라고 비판했다. 서울 아파트 매물은 양도세 중과 부활 첫 날 6만6582건으로 열흘 전보다 9.4% 감소했다.",
+          "url": "https://n.news.naver.com/mnews/article/025/0003522379?sid=100",
+>>>>>>> 6d0c4f0 (...)
           "keyword": "서울 아파트",
-          "published_at": "Mon, 11 May 2026 14:48:00 +0900",
+          "published_at": "Mon, 11 May 2026 15:26:00 +0900",
           "importance_score": 3,
           "category": "기타",
+<<<<<<< HEAD
           "source": "woodkorea",
           "tokens_used": 324
         },
@@ -205,21 +341,40 @@
           "title": "이인선, ‘음주운전 꼼수 차단법’ 발의⋯“아파트 주차장도 면허취소...",
           "summary": "이인선 의원이 아파트 주차장에서의 음주운전으로 인한 면허 취소를 가능하게 하는 '음주운전 꼼수 차단법'을 발의했다. 지난해 서울고등법원은 아파트 주차장에서의 음주운전이 도로교통법상 '도로'에 해당하지 않는다며 면허 취소를 취소한 바 있다.",
           "url": "https://www.kbmaeil.com/article/20260511500413",
+=======
+          "source": "중앙일보",
+          "tokens_used": 342
+        },
+        {
+          "title": "국세청 메리츠증권 특별세무조사 착수···PF 탈세 혐의 포착",
+          "summary": "국세청이 메리츠증권 본사에 특별세무조사를 착수했으며, 이는 부동산 프로젝트파이낸싱(PF) 탈세 혐의와 관련이 있다.",
+          "url": "https://www.womaneconomy.co.kr/news/articleView.html?idxno=253554",
+>>>>>>> 6d0c4f0 (...)
           "keyword": "서울 아파트",
-          "published_at": "Mon, 11 May 2026 14:46:00 +0900",
+          "published_at": "Mon, 11 May 2026 15:14:00 +0900",
           "importance_score": 3,
           "category": "기타",
+<<<<<<< HEAD
           "source": "kbmaeil",
           "tokens_used": 347
         }
       ],
       "raw_count": 109,
       "selected_count": 10
+=======
+          "source": "여성경제신문",
+          "tokens_used": 297
+        }
+      ],
+      "raw_count": 100,
+      "selected_count": 6
+>>>>>>> 6d0c4f0 (...)
     },
     {
       "section_name": "증권 뉴스 브리핑",
       "summaries": [
         {
+<<<<<<< HEAD
           "title": "유진투자증권 \"건설업, 국민성장펀드 최대 수혜\"",
           "summary": "유진투자증권은 건설업이 국민성장펀드의 최대 수혜를 받을 것으로 전망하며, 주요 종목으로 현대건설, 삼성E&A, DL이앤씨, GS건설을 제시했다. 올해 코스피 건설업종 지수는 134.9% 상승했다.",
           "url": "https://n.news.naver.com/mnews/article/215/0001251718?sid=101",
@@ -331,6 +486,119 @@
         }
       ],
       "raw_count": 151,
+=======
+          "title": "코스피, 사상 첫 7,800선 돌파…'8천피'까지 177포인트 남았다",
+          "summary": "코스피가 11일 4% 넘게 급등하며 사상 최초로 7,800선을 돌파, 7,822.24로 마감했다. '8천피'까지는 177포인트 남았다.",
+          "url": "https://n.news.naver.com/mnews/article/001/0016070111?sid=101",
+          "keyword": "코스피",
+          "published_at": "Mon, 11 May 2026 15:42:00 +0900",
+          "importance_score": 5,
+          "category": "증시전망",
+          "source": "연합뉴스",
+          "tokens_used": 323
+        },
+        {
+          "title": "조상호·최민호 세종시장 후보 첫 방송토론…'행정수도·4년 시정' 공방",
+          "summary": "조상호 민주당 후보와 최민호 후보의 첫 방송토론에서 행정수도와 4년 시정에 대한 공방이 벌어졌다. 조 후보는 이재명 대통령의 성과를 강조하며 대한민국의 발전을 주장했다.",
+          "url": "https://n.news.naver.com/mnews/article/421/0008937745?sid=162",
+          "keyword": "코스피",
+          "published_at": "Mon, 11 May 2026 15:47:00 +0900",
+          "importance_score": 3,
+          "category": "기타",
+          "source": "뉴스1",
+          "tokens_used": 312
+        },
+        {
+          "title": "전쟁리스크에도 개인투자자 10명 중 8명은 수익...평균 848만원 벌었다",
+          "summary": "전쟁 리스크에도 1분기 동안 개인 투자자 10명 중 8명이 평균 848만원의 수익을 올렸으며, 삼성전자가 가장 많은 수익과 손실을 안긴 종목으로 나타났다.",
+          "url": "https://www.greened.kr/news/articleView.html?idxno=340485",
+          "keyword": "코스피",
+          "published_at": "Mon, 11 May 2026 15:47:00 +0900",
+          "importance_score": 3,
+          "category": "기타",
+          "source": "녹색경제신문",
+          "tokens_used": 302
+        },
+        {
+          "title": "8000선 바라보는 코스피 질주에 '마통'도 급증세···'포모' 심리 확산...",
+          "summary": "코스피 지수가 사상 최고치를 경신하며 상승세를 보이자, 투자자들의 포모 심리가 확산되고 빚투가 급증하고 있다.",
+          "url": "https://www.todaykorea.co.kr/news/articleView.html?idxno=401566",
+          "keyword": "코스피",
+          "published_at": "Mon, 11 May 2026 15:44:00 +0900",
+          "importance_score": 3,
+          "category": "기타",
+          "source": "todaykorea",
+          "tokens_used": 295
+        },
+        {
+          "title": "가계대출은 막혔는데 '빚투'는 급증…대출 규제의 역설",
+          "summary": "가계대출이 제한된 가운데, 투자자들이 주식에 빚을 내서 투자하는 '빚투'가 급증하고 있다. 한국거래소에 따르면 코스피는 장중 7800선을 돌파하며 사상 최고치를 기록했다.",
+          "url": "http://www.opinionnews.co.kr/news/articleView.html?idxno=138212",
+          "keyword": "코스피",
+          "published_at": "Mon, 11 May 2026 15:44:00 +0900",
+          "importance_score": 3,
+          "category": "기타",
+          "source": "오피니언뉴스",
+          "tokens_used": 308
+        },
+        {
+          "title": "[속보] 진격의 코스피…'28만전자·188만닉스' 반도체 날았다",
+          "summary": "코스피가 상승세를 보이며, 삼성전자 주가는 28만 원, SK하이닉스 주가는 188만 원에 도달했다. 반도체 업종이 주도하는 상승세가 이어지고 있다.",
+          "url": "https://n.news.naver.com/mnews/article/215/0001251728?sid=101",
+          "keyword": "코스피",
+          "published_at": "Mon, 11 May 2026 15:44:00 +0900",
+          "importance_score": 3,
+          "category": "기타",
+          "source": "한국경제TV",
+          "tokens_used": 254
+        },
+        {
+          "title": "[속보]코스피 7822.24 마감, 또 새 기록 썼다…4.32% 상승",
+          "summary": "코스피가 7822.24로 마감하며 4.32% 상승, 또다시 새로운 기록을 세웠다.",
+          "url": "https://n.news.naver.com/mnews/article/079/0004145588?sid=101",
+          "keyword": "코스피",
+          "published_at": "Mon, 11 May 2026 15:43:00 +0900",
+          "importance_score": 3,
+          "category": "기타",
+          "source": "노컷뉴스",
+          "tokens_used": 289
+        },
+        {
+          "title": "[그래픽] 코스피·코스닥 추이",
+          "summary": "11일 코스피는 324.24포인트(4.32%) 상승한 7822.24로 거래를 마치며 사상 최고치를 기록했으며, 장중에는 7899.32포인트에 도달했다.",
+          "url": "https://n.news.naver.com/mnews/article/421/0008937727?sid=101",
+          "keyword": "코스피",
+          "published_at": "Mon, 11 May 2026 15:43:00 +0900",
+          "importance_score": 3,
+          "category": "기타",
+          "source": "뉴스1",
+          "tokens_used": 303
+        },
+        {
+          "title": "코스피 7822.24 마감, 또 사상 최고 경신…SK하이닉스 한때 190만원 돌파",
+          "summary": "코스피가 11일 7,822.24로 마감하며 사상 최고가를 경신했다. SK하이닉스는 한때 190만원을 돌파했다.",
+          "url": "https://www.slist.kr/news/articleView.html?idxno=738319",
+          "keyword": "코스피",
+          "published_at": "Mon, 11 May 2026 15:42:00 +0900",
+          "importance_score": 3,
+          "category": "기타",
+          "source": "slist",
+          "tokens_used": 315
+        },
+        {
+          "title": "엔비디아發 호재·종전 기대감에 ETF 희비…전력 '훨훨' vs 원유·방산 '...",
+          "summary": "엔비디아의 호재와 종전 기대감으로 전력 관련 ETF가 강세를 보이며 코스피 상승률을 초과했다. 이는 중복 편입 종목들의 급격한 주가 상승에 기인한 것으로 분석된다.",
+          "url": "https://n.news.naver.com/mnews/article/629/0000498127?sid=101",
+          "keyword": "코스피",
+          "published_at": "Mon, 11 May 2026 15:41:00 +0900",
+          "importance_score": 3,
+          "category": "기타",
+          "source": "더팩트",
+          "tokens_used": 324
+        }
+      ],
+      "raw_count": 100,
+>>>>>>> 6d0c4f0 (...)
       "selected_count": 10
     }
   ]

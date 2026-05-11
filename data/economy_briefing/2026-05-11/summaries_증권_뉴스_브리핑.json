@@ -1,5 +1,6 @@
 [
   {
+<<<<<<< HEAD
     "title": "유진투자증권 \"건설업, 국민성장펀드 최대 수혜\"",
     "summary": "유진투자증권은 건설업이 국민성장펀드의 최대 수혜를 받을 것으로 전망하며, 주요 종목으로 현대건설, 삼성E&A, DL이앤씨, GS건설을 제시했다. 올해 코스피 건설업종 지수는 134.9% 상승했다.",
     "url": "https://n.news.naver.com/mnews/article/215/0001251718?sid=101",
@@ -108,5 +109,115 @@
     "category": "기타",
     "source": "문화일보",
     "tokens_used": 329
+=======
+    "title": "코스피, 사상 첫 7,800선 돌파…'8천피'까지 177포인트 남았다",
+    "summary": "코스피가 11일 4% 넘게 급등하며 사상 최초로 7,800선을 돌파, 7,822.24로 마감했다. '8천피'까지는 177포인트 남았다.",
+    "url": "https://n.news.naver.com/mnews/article/001/0016070111?sid=101",
+    "keyword": "코스피",
+    "published_at": "Mon, 11 May 2026 15:42:00 +0900",
+    "importance_score": 5,
+    "category": "증시전망",
+    "source": "연합뉴스",
+    "tokens_used": 323
+  },
+  {
+    "title": "조상호·최민호 세종시장 후보 첫 방송토론…'행정수도·4년 시정' 공방",
+    "summary": "조상호 민주당 후보와 최민호 후보의 첫 방송토론에서 행정수도와 4년 시정에 대한 공방이 벌어졌다. 조 후보는 이재명 대통령의 성과를 강조하며 대한민국의 발전을 주장했다.",
+    "url": "https://n.news.naver.com/mnews/article/421/0008937745?sid=162",
+    "keyword": "코스피",
+    "published_at": "Mon, 11 May 2026 15:47:00 +0900",
+    "importance_score": 3,
+    "category": "기타",
+    "source": "뉴스1",
+    "tokens_used": 312
+  },
+  {
+    "title": "전쟁리스크에도 개인투자자 10명 중 8명은 수익...평균 848만원 벌었다",
+    "summary": "전쟁 리스크에도 1분기 동안 개인 투자자 10명 중 8명이 평균 848만원의 수익을 올렸으며, 삼성전자가 가장 많은 수익과 손실을 안긴 종목으로 나타났다.",
+    "url": "https://www.greened.kr/news/articleView.html?idxno=340485",
+    "keyword": "코스피",
+    "published_at": "Mon, 11 May 2026 15:47:00 +0900",
+    "importance_score": 3,
+    "category": "기타",
+    "source": "녹색경제신문",
+    "tokens_used": 302
+  },
+  {
+    "title": "8000선 바라보는 코스피 질주에 '마통'도 급증세···'포모' 심리 확산...",
+    "summary": "코스피 지수가 사상 최고치를 경신하며 상승세를 보이자, 투자자들의 포모 심리가 확산되고 빚투가 급증하고 있다.",
+    "url": "https://www.todaykorea.co.kr/news/articleView.html?idxno=401566",
+    "keyword": "코스피",
+    "published_at": "Mon, 11 May 2026 15:44:00 +0900",
+    "importance_score": 3,
+    "category": "기타",
+    "source": "todaykorea",
+    "tokens_used": 295
+  },
+  {
+    "title": "가계대출은 막혔는데 '빚투'는 급증…대출 규제의 역설",
+    "summary": "가계대출이 제한된 가운데, 투자자들이 주식에 빚을 내서 투자하는 '빚투'가 급증하고 있다. 한국거래소에 따르면 코스피는 장중 7800선을 돌파하며 사상 최고치를 기록했다.",
+    "url": "http://www.opinionnews.co.kr/news/articleView.html?idxno=138212",
+    "keyword": "코스피",
+    "published_at": "Mon, 11 May 2026 15:44:00 +0900",
+    "importance_score": 3,
+    "category": "기타",
+    "source": "오피니언뉴스",
+    "tokens_used": 308
+  },
+  {
+    "title": "[속보] 진격의 코스피…'28만전자·188만닉스' 반도체 날았다",
+    "summary": "코스피가 상승세를 보이며, 삼성전자 주가는 28만 원, SK하이닉스 주가는 188만 원에 도달했다. 반도체 업종이 주도하는 상승세가 이어지고 있다.",
+    "url": "https://n.news.naver.com/mnews/article/215/0001251728?sid=101",
+    "keyword": "코스피",
+    "published_at": "Mon, 11 May 2026 15:44:00 +0900",
+    "importance_score": 3,
+    "category": "기타",
+    "source": "한국경제TV",
+    "tokens_used": 254
+  },
+  {
+    "title": "[속보]코스피 7822.24 마감, 또 새 기록 썼다…4.32% 상승",
+    "summary": "코스피가 7822.24로 마감하며 4.32% 상승, 또다시 새로운 기록을 세웠다.",
+    "url": "https://n.news.naver.com/mnews/article/079/0004145588?sid=101",
+    "keyword": "코스피",
+    "published_at": "Mon, 11 May 2026 15:43:00 +0900",
+    "importance_score": 3,
+    "category": "기타",
+    "source": "노컷뉴스",
+    "tokens_used": 289
+  },
+  {
+    "title": "[그래픽] 코스피·코스닥 추이",
+    "summary": "11일 코스피는 324.24포인트(4.32%) 상승한 7822.24로 거래를 마치며 사상 최고치를 기록했으며, 장중에는 7899.32포인트에 도달했다.",
+    "url": "https://n.news.naver.com/mnews/article/421/0008937727?sid=101",
+    "keyword": "코스피",
+    "published_at": "Mon, 11 May 2026 15:43:00 +0900",
+    "importance_score": 3,
+    "category": "기타",
+    "source": "뉴스1",
+    "tokens_used": 303
+  },
+  {
+    "title": "코스피 7822.24 마감, 또 사상 최고 경신…SK하이닉스 한때 190만원 돌파",
+    "summary": "코스피가 11일 7,822.24로 마감하며 사상 최고가를 경신했다. SK하이닉스는 한때 190만원을 돌파했다.",
+    "url": "https://www.slist.kr/news/articleView.html?idxno=738319",
+    "keyword": "코스피",
+    "published_at": "Mon, 11 May 2026 15:42:00 +0900",
+    "importance_score": 3,
+    "category": "기타",
+    "source": "slist",
+    "tokens_used": 315
+  },
+  {
+    "title": "엔비디아發 호재·종전 기대감에 ETF 희비…전력 '훨훨' vs 원유·방산 '...",
+    "summary": "엔비디아의 호재와 종전 기대감으로 전력 관련 ETF가 강세를 보이며 코스피 상승률을 초과했다. 이는 중복 편입 종목들의 급격한 주가 상승에 기인한 것으로 분석된다.",
+    "url": "https://n.news.naver.com/mnews/article/629/0000498127?sid=101",
+    "keyword": "코스피",
+    "published_at": "Mon, 11 May 2026 15:41:00 +0900",
+    "importance_score": 3,
+    "category": "기타",
+    "source": "더팩트",
+    "tokens_used": 324
+>>>>>>> 6d0c4f0 (...)
   }
 ]

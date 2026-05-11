@@ -1,5 +1,6 @@
 [
   {
+<<<<<<< HEAD
     "title": "설마 했는데 결국… 양도세 중과 이틀 만에 '서울 아파트' 시장서 벌어...",
     "description": "다주택자에 대한 양도소득세 중과가 시행된 가운데, 부활 이틀 만에 서울 아파트 매물이 약 2800건 감소된 것으로 나타났다. 11일 부동산 빅데이터 플랫폼 아실에 따르면 이날 기준 서울 아파트 매물은 6만5682건으로...",
     "url": "https://www.wikitree.co.kr/articles/1135922",
@@ -101,27 +102,94 @@
     "published_at_kst": "2026-05-11T14:49:00+09:00",
     "keyword": "서울 아파트",
     "scraped_at": "2026-05-11T15:16:16.041467+09:00"
+=======
+    "title": "“오세훈 시정 주택공급 기반 ‘탄탄’… 공급위기 없을 것”",
+    "description": "부동산 정책의 뜨거운 감자인 서울시의 재개발 정책과 관련해 오세훈 시정 들어 서울의 주택 공급 기반이... 김 위원장은 “오세훈 시정의 신속통합기획을 거친 아파트 인허가 물량은 머지않은 미래에 착공을 앞둔 정책...",
+    "url": "https://n.news.naver.com/mnews/article/005/0001848244?sid=102",
+    "originallink": "https://www.kmib.co.kr/article/view.asp?arcid=0029804148&code=61122011&cp=nv",
+    "source": "국민일보",
+    "published_at": "Mon, 11 May 2026 15:24:00 +0900",
+    "published_at_kst": "2026-05-11T15:24:00+09:00",
+    "keyword": "서울 아파트",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:49:20.706337+09:00",
+    "importance_score": 5,
+    "category": "부동산 정책",
+    "content": "부동산 정책의 뜨거운 감자인 서울시의 재개발 정책과 관련해 오세훈 시정 들어 서울의 주택 공급 기반이... 김 위원장은 “오세훈 시정의 신속통합기획을 거친 아파트 인허가 물량은 머지않은 미래에 착공을 앞둔 정책..."
   },
   {
-    "title": "서초 'PH1603 프라이빗 오뜨 갤러리', 후분양 진행",
-    "description": "해당 단지는 아파트와 오피스텔의 장점을 결합한 형태로, 서초구 서초동 일대에 총 124세대 규모로... 입지는 법조타운, 예술의전당, 서울교대 인프라를 모두 이용할 수 있는 서초동 중심권에 위치한다. 분양 관계자는...",
-    "url": "https://www.woodkorea.co.kr/news/articleView.html?idxno=89380",
-    "originallink": "https://www.woodkorea.co.kr/news/articleView.html?idxno=89380",
-    "source": "woodkorea",
-    "published_at": "Mon, 11 May 2026 14:48:00 +0900",
-    "published_at_kst": "2026-05-11T14:48:00+09:00",
+    "title": "심상찮은 아파트 전세가…올들어 매매가격 오름폭 크게 추월",
+    "description": "5월 첫째 주 서울 아파트 전세가격은 직전 주 대비 0.23% 올라 2015년 11월 셋째 주(0.26%) 이후 최고 수준을 기록했다. 전셋값 누적 상승률이 가장 높은 지역은 경기 수원시 영통구(4.57%)였고 이어 경기 안양시 동안구(4.53...",
+    "url": "https://n.news.naver.com/mnews/article/001/0016068492?sid=101",
+    "originallink": "https://www.yna.co.kr/view/AKR20260510042000003?input=1195m",
+    "source": "연합뉴스",
+    "published_at": "Mon, 11 May 2026 05:55:00 +0900",
+    "published_at_kst": "2026-05-11T05:55:00+09:00",
     "keyword": "서울 아파트",
-    "scraped_at": "2026-05-11T15:16:16.041467+09:00"
+    "sort": "sim",
+    "scraped_at": "2026-05-11T15:49:20.706337+09:00",
+    "importance_score": 5,
+    "category": "전세",
+    "content": "5월 첫째 주 서울 아파트 전세가격은 직전 주 대비 0.23% 올라 2015년 11월 셋째 주(0.26%) 이후 최고 수준을 기록했다. 전셋값 누적 상승률이 가장 높은 지역은 경기 수원시 영통구(4.57%)였고 이어 경기 안양시 동안구(4.53..."
   },
   {
-    "title": "이인선, ‘음주운전 꼼수 차단법’ 발의⋯“아파트 주차장도 면허취소...",
-    "description": "실제 지난해 5월 서울고등법원은 아파트 단지 내 주차장에서 이뤄진 음주운전에 대해 “해당 장소가 도로교통법상 ‘도로’에 해당하지 않는다”며 운전면허 취소 처분을 취소한 바 있다. 현행법상 행정처분 근거 조항인...",
-    "url": "https://www.kbmaeil.com/article/20260511500413",
-    "originallink": "https://www.kbmaeil.com/article/20260511500413",
-    "source": "kbmaeil",
-    "published_at": "Mon, 11 May 2026 14:46:00 +0900",
-    "published_at_kst": "2026-05-11T14:46:00+09:00",
+    "title": "무인셔틀에 로봇까지…현대건설, 압구정3구역에 ‘미래 주거’ 그렸다 ...",
+    "description": "11일 찾은 서울 강남구 압구정동 압구정3구역 재건축 홍보관에서 현대건설이 조합원을 대상으로 제작한... 압구정3구역은 올해 준공 50년을 맞은 압구정 현대아파트 단지 가운데서도 핵심 입지로 꼽힌다. 북쪽으로...",
+    "url": "https://www.etoday.co.kr/news/view/2583322",
+    "originallink": "https://www.etoday.co.kr/news/view/2583322",
+    "source": "이투데이",
+    "published_at": "Mon, 11 May 2026 15:46:00 +0900",
+    "published_at_kst": "2026-05-11T15:46:00+09:00",
     "keyword": "서울 아파트",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:49:20.706337+09:00",
+    "importance_score": 4,
+    "category": "재건축",
+    "content": "11일 찾은 서울 강남구 압구정동 압구정3구역 재건축 홍보관에서 현대건설이 조합원을 대상으로 제작한... 압구정3구역은 올해 준공 50년을 맞은 압구정 현대아파트 단지 가운데서도 핵심 입지로 꼽힌다. 북쪽으로..."
+  },
+  {
+    "title": "[분양캘린더] 5월 둘째주 수도권·지방서 4166가구 일반분양",
+    "description": "서울 아파트 단지. 사진=연합뉴스  이번 주 전국에서 5404가구 규모의 아파트 신규 분양이 이뤄진다. 수도권에서는 평택 고덕국제신도시와 인천 송도, 김포 등을 중심으로 공급이 이뤄지고 지방에서는 부산·창원...",
+    "url": "https://daily.hankooki.com/news/articleView.html?idxno=1365750",
+    "originallink": "https://daily.hankooki.com/news/articleView.html?idxno=1365750",
+    "source": "데일리한국",
+    "published_at": "Mon, 11 May 2026 15:32:00 +0900",
+    "published_at_kst": "2026-05-11T15:32:00+09:00",
+    "keyword": "서울 아파트",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:49:20.706337+09:00"
+>>>>>>> 6d0c4f0 (...)
+  },
+  {
+    "title": "李, ‘매물잠김’ 앞 부동산 심리전…“갭투자 허용 주장은 ‘억까’”",
+    "description": "부동산 정보 사이트 ‘아실’에 따르면, 양도세 중과 부활 첫 날인 이날 서울의 아파트 매물(매매 기준)은 6만6582건으로 열흘 전(7만2428건)보다 9.4% 감소했다. ‘매물 잠김’ 현상이 현실화하면서 일각에선 부동산 가격이...",
+    "url": "https://n.news.naver.com/mnews/article/025/0003522379?sid=100",
+    "originallink": "https://www.joongang.co.kr/article/25427315",
+    "source": "중앙일보",
+    "published_at": "Mon, 11 May 2026 15:26:00 +0900",
+    "published_at_kst": "2026-05-11T15:26:00+09:00",
+    "keyword": "서울 아파트",
+<<<<<<< HEAD
     "scraped_at": "2026-05-11T15:16:16.041467+09:00"
+=======
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:49:20.706337+09:00"
+>>>>>>> 6d0c4f0 (...)
+  },
+  {
+    "title": "국세청 메리츠증권 특별세무조사 착수···PF 탈세 혐의 포착",
+    "description": "11일 금융권에 따르면 서울지방국세청 조사4국은 이날 오전 서울 영등포구 여의도 메리츠증권 본사에... ☞ 부동산 프로젝트파이낸싱(PF): 아파트나 상가 건물 등을 지을 때 그 사업의 미래 가치를 보고 돈을 빌려주는...",
+    "url": "https://www.womaneconomy.co.kr/news/articleView.html?idxno=253554",
+    "originallink": "https://www.womaneconomy.co.kr/news/articleView.html?idxno=253554",
+    "source": "여성경제신문",
+    "published_at": "Mon, 11 May 2026 15:14:00 +0900",
+    "published_at_kst": "2026-05-11T15:14:00+09:00",
+    "keyword": "서울 아파트",
+<<<<<<< HEAD
+    "scraped_at": "2026-05-11T15:16:16.041467+09:00"
+=======
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:49:20.706337+09:00"
+>>>>>>> 6d0c4f0 (...)
   }
 ]

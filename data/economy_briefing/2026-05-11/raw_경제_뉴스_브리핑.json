@@ -1,5 +1,6 @@
 [
   {
+<<<<<<< HEAD
     "title": "골드만삭스 \"한국·대만, 반도체 성장…올해 각각 2차례 금리인상\"",
     "description": "또한 한국 경제 성장률이 지난해 1%에서 올해 2.5%로 반등하고, 대만 성장률은 지난해 8.7%에서 올해 10% 수준으로 가속화할 것으로 예상했다. 다만 뚜렷한 수치 개선에도 불구하고 경제 전반의 온기는 균일하지 않을...",
     "url": "https://n.news.naver.com/mnews/article/008/0005355758?sid=104",
@@ -273,27 +274,309 @@
     "published_at_kst": "2026-05-11T14:46:00+09:00",
     "keyword": "한국경제",
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
+=======
+    "title": "[들어보니]퇴임 D-1 신성환, “통화정책, 양극화 속 교과서대로 작용 안...",
+    "description": "물가를 잡기 위해 금리를 움직이는 기존 중앙은행 공식이 지금 한국 경제에서는 점점 힘을 잃고 있다는 문제의식이다. 11일 신 위원은 기자간담회에서 자신이 지난 4년간 기준금리 인하 소수의견을 반복적으로 냈던...",
+    "url": "https://www.nspna.com/news/?mode=view&newsid=812501",
+    "originallink": "https://www.nspna.com/news/?mode=view&newsid=812501",
+    "source": "nspna",
+    "published_at": "Mon, 11 May 2026 15:46:00 +0900",
+    "published_at_kst": "2026-05-11T15:46:00+09:00",
+    "keyword": "한국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+>>>>>>> 6d0c4f0 (...)
   },
   {
-    "title": "‘자본시장 개혁의 성과와 전망’ 심포지엄 22일 개최",
-    "description": "서울사회경제연구소(소장 원승연 명지대 교수), 자본시장연구원(원장 김세완 이화여대 교수), 한국경제발전학회(회장 김진영 중앙대 교수)가 공동으로 오는 22일 ‘자본시장 개혁의 성과와 전망’을 주제로 심포지엄을...",
-    "url": "https://n.news.naver.com/mnews/article/028/0002804525?sid=101",
-    "originallink": "https://www.hani.co.kr/arti/economy/economy_general/1258077.html",
-    "source": "한겨레",
-    "published_at": "Mon, 11 May 2026 14:44:00 +0900",
-    "published_at_kst": "2026-05-11T14:44:00+09:00",
+    "title": "자녀에게 물려줄 수 있는 최고의 유산, '달러보험'이라는 글로벌 경쟁력",
+    "description": "한국 경제 역시 미국의 금리와 달러 흐름에 큰 영향을 받는다. 원화 자산만으로 미래를 준비하기에는 불안정성이 커졌다는 인식도 확산되고 있다. 이런 상황에서 달러보험은 단순한 저축 이상의 의미를 가진다. 자녀에게...",
+    "url": "https://www.ibabynews.com/news/articleView.html?idxno=151208",
+    "originallink": "https://www.ibabynews.com/news/articleView.html?idxno=151208",
+    "source": "ibabynews",
+    "published_at": "Mon, 11 May 2026 15:46:00 +0900",
+    "published_at_kst": "2026-05-11T15:46:00+09:00",
     "keyword": "한국경제",
+<<<<<<< HEAD
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
+=======
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+>>>>>>> 6d0c4f0 (...)
   },
   {
-    "title": "[인사] 데일리한국",
-    "description": "◆데일리한국 △정치경제부장(부국장) 김성배 * 인사 게재 문의는 카톡 뉴스1제보, 이메일 (확인용 담당자 연락처 포함)",
-    "url": "https://n.news.naver.com/mnews/article/421/0008937514?sid=102",
-    "originallink": "https://www.news1.kr/life-culture/press/6162826",
-    "source": "뉴스1",
-    "published_at": "Mon, 11 May 2026 14:43:00 +0900",
-    "published_at_kst": "2026-05-11T14:43:00+09:00",
+    "title": "금융연구원, 올해 한국 경제 2.8% 성장 전망…\"반도체 수출 호조, 반등 ...",
+    "description": "▲ 한국금융연구원 로고 한국금융연구원이 올해 한국 경제성장률 전망치를 2.8%로 높여 전망했습니다. 금융연구원은 오늘(11일) 발표한 '2026년 수정경제전망'에서 올해 실질 국내총생산(GDP) 성장률이 2.8%에 달할 것이라고...",
+    "url": "https://n.news.naver.com/mnews/article/055/0001355130?sid=101",
+    "originallink": "https://news.sbs.co.kr/news/endPage.do?news_id=N1008555711&plink=ORI&cooper=NAVER",
+    "source": "SBS",
+    "published_at": "Mon, 11 May 2026 15:44:00 +0900",
+    "published_at_kst": "2026-05-11T15:44:00+09:00",
     "keyword": "한국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "이임식 앞둔 비둘기파 신성환 금통위원 \"현 시점, 물가 압력 크다\"",
+    "description": "케빈 워시 미국 연방준비제도(Fed) 의장의 새 리더십이 한국 경제와 한은 통화정책에 미치는 영향에 대해선 \"달러에 대한 Fed의 대차대조표 축소가 이뤄진다면, 물론 굉장히 조심스럽게 하겠지만 달러를 조이는 상황이 전...",
+    "url": "https://n.news.naver.com/mnews/article/277/0005761016?sid=101",
+    "originallink": "https://view.asiae.co.kr/article/2026051115413191434",
+    "source": "아시아경제",
+    "published_at": "Mon, 11 May 2026 15:41:00 +0900",
+    "published_at_kst": "2026-05-11T15:41:00+09:00",
+    "keyword": "한국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "금융연구원, 올해 한국 경제 2.8% 성장 전망…0.7%p 상향",
+    "description": "\"수출 호조세와 설비투자 확대가 성장률 반등 주도\" 한국금융연구원이 올해 한국 경제성장률 전망치를 종전보다 0.7%포인트(p) 높인 2.8%로 제시했다. 금융연구원은 11일 발표한 '2026년 수정경제전망'에서 올해 실질...",
+    "url": "https://n.news.naver.com/mnews/article/586/0000128835?sid=101",
+    "originallink": "https://www.sisajournal.com/news/articleView.html?idxno=372395",
+    "source": "시사저널",
+    "published_at": "Mon, 11 May 2026 15:39:00 +0900",
+    "published_at_kst": "2026-05-11T15:39:00+09:00",
+    "keyword": "한국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "반도체가 한국 경제 살렸다 … 금융硏, 올해 GDP 성장률 2.8% 전망",
+    "description": "뉴데일리 신희강 기자 = 반도체 수출 호조와 인공지능(AI) 투자 확대에 힘입어 올해 한국 경제 성장률 전망치가 큰 폭으로 상향 조정됐다. 다만 중동발 고유가와 물가 불안이 동시에 커지면서 기준금리 인하 가능성은...",
+    "url": "https://biz.newdaily.co.kr/site/data/html/2026/05/11/2026051100216.html",
+    "originallink": "https://biz.newdaily.co.kr/site/data/html/2026/05/11/2026051100216.html",
+    "source": "뉴데일리경제",
+    "published_at": "Mon, 11 May 2026 15:32:00 +0900",
+    "published_at_kst": "2026-05-11T15:32:00+09:00",
+    "keyword": "한국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "삼성전자 노사 협상 돌입 “성과급 상한 폐지 요구 변화 없다”",
+    "description": "반도체가 한국 경제 전체를 이끄는 상황에서 삼성전자 총파업은 한국 경제에 큰 타격이 될 전망이다. 관세청 자료에 따르면 전체 수출에서 반도체가 차지하는 비중은 46.3%로 전년 동기 대비 19.7%p 증가했다. 한국 경제의...",
+    "url": "https://m.skyedaily.com/news_view.html?ID=303825",
+    "originallink": "https://m.skyedaily.com/news_view.html?ID=303825",
+    "source": "스카이데일리",
+    "published_at": "Mon, 11 May 2026 15:32:00 +0900",
+    "published_at_kst": "2026-05-11T15:32:00+09:00",
+    "keyword": "한국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "증상만 쫓는 사후처방 정치",
+    "description": "최근 한국 경제는 반도체 수출 회복에 힘입어 일부 지표가 개선되는 모습을 보이고 있다. 그러나 반도체의 호황이 경제 전체의 건강을 의미하지는 않는다. 내수는 여전히 부진하고 자영업자는 높은 임대료와 인건비, 낮은...",
+    "url": "https://www.kihoilbo.co.kr/news/articleView.html?idxno=3022316",
+    "originallink": "https://www.kihoilbo.co.kr/news/articleView.html?idxno=3022316",
+    "source": "기호일보",
+    "published_at": "Mon, 11 May 2026 15:30:00 +0900",
+    "published_at_kst": "2026-05-11T15:30:00+09:00",
+    "keyword": "한국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "금융硏, 올해 경제성장률 2.8%로 상향…“반도체·AI 수출 확대”",
+    "description": "한국금융연구원이 올해 한국 경제성장률 전망치를 2.8%로 종전보다 0.7%포인트 상향했다. 연구원은 반도체와 인공지능(AI)을 중심으로 한 수출 호조가 성장을 견인할 것으로 봤다. 연구원은 11일 발표한 ‘2026년...",
+    "url": "https://n.news.naver.com/mnews/article/011/0004619523?sid=101",
+    "originallink": "https://www.sedaily.com/article/20042592?ref=naver",
+    "source": "서울경제",
+    "published_at": "Mon, 11 May 2026 15:28:00 +0900",
+    "published_at_kst": "2026-05-11T15:28:00+09:00",
+    "keyword": "한국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "'떠나는 비둘기파' 신성환 금통위원 \"금리 인하 논하기엔 부담…물가 안...",
+    "description": "한편 대외 변수인 미국 연방준비제도(Fed)의 새로운 리더십 출범과 관련해서는 대차대조표 축소 등이 급격히 진행될 경우 전 세계적인 달러 경색 현상이 발생해 한국 경제에 영향을 미칠 수 있다고 내다봤다. 조건부로...",
+    "url": "https://www.newsway.co.kr/news/view?ud=2026051115134579673",
+    "originallink": "https://www.newsway.co.kr/news/view?ud=2026051115134579673",
+    "source": "뉴스웨이",
+    "published_at": "Mon, 11 May 2026 15:28:00 +0900",
+    "published_at_kst": "2026-05-11T15:28:00+09:00",
+    "keyword": "한국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "나무호 외부 피격...공격 주체 신중한 정부 속사정",
+    "description": "중동 원유 의존도가 높은 한국 경제의 특성상 이란과의 관계 경색은 치명적이다. 반면 미국 측의 오인 사격이나 제재 집행 과정에서의 무력 행사로 드러날 경우 문제는 더욱 복잡해진다. 이 경우 미국이 한국의...",
+    "url": "http://www.00news.co.kr/news/articleView.html?idxno=103703",
+    "originallink": "http://www.00news.co.kr/news/articleView.html?idxno=103703",
+    "source": "00news",
+    "published_at": "Mon, 11 May 2026 15:24:00 +0900",
+    "published_at_kst": "2026-05-11T15:24:00+09:00",
+    "keyword": "한국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "금융연구원, 경제성장률 2.8%로 상향…\"반도체가 견인\"",
+    "description": "경제성장률 추이/한국금융연구원 건설투자 증가율은 1.5%로 관측했다. 김 실장은 \"중동 전쟁으로 유가가 급등하며 일부 건설자재 공급에 애로가 발생할 수 있다\"며 \"점차 유가 급등이 건설 공사비에 반영되면서...",
+    "url": "http://www.metroseoul.co.kr/article/20260511500272",
+    "originallink": "http://www.metroseoul.co.kr/article/20260511500272",
+    "source": "메트로신문",
+    "published_at": "Mon, 11 May 2026 15:22:00 +0900",
+    "published_at_kst": "2026-05-11T15:22:00+09:00",
+    "keyword": "한국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "[김대윤칼럼] 태국을 망친 것은 군부인가",
+    "description": "그 과정에서 천운처럼 찾아온 중국의 경제 부상은 한국 경제에 날개를 달아주었다. 반면 태국은 아직도 군부 정치의 그림자 속에서 같은 단계의 무한 반복을 이어가고 있다. 군부 체제는 단기적 안정은 줄 수 있다. 그러나...",
+    "url": "http://www.worldkorean.net/news/articleView.html?idxno=56810",
+    "originallink": "http://www.worldkorean.net/news/articleView.html?idxno=56810",
+    "source": "worldkorean",
+    "published_at": "Mon, 11 May 2026 15:22:00 +0900",
+    "published_at_kst": "2026-05-11T15:22:00+09:00",
+    "keyword": "한국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "[설미현의 세무 인사이트] 가상자산 과세의 문제 2.0",
+    "description": "기고 (한국경제, 조세금융신문 등) · 국세청 과세사례, 조세심판원·행정법원 판례 분석 · 기업 경영자·전문가 대상 세무조사 대응, 불복 절차 강의 · 국제조세·디지털세·가상자산 과세 관련 학술 세미나 발표 [사진...",
+    "url": "https://www.tfmedia.co.kr/news/article.html?no=204428",
+    "originallink": "https://www.tfmedia.co.kr/news/article.html?no=204428",
+    "source": "tfmedia",
+    "published_at": "Mon, 11 May 2026 15:20:00 +0900",
+    "published_at_kst": "2026-05-11T15:20:00+09:00",
+    "keyword": "한국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "[아주사설 | 기본·원칙·상식] 미중 베이징 회담, 전쟁과 거래 사이의 ...",
+    "description": "미중 관계가 지나치게 악화하면 한국 경제는 수출·환율·금융시장 측면에서 직접 충격을 받을 수밖에 없다. 반대로 양국이 일정 수준의 안정적 관리 체제를 구축하면 단기적으로는 시장 불확실성이 완화되는 효과도...",
+    "url": "https://www.ajunews.com/view/20260511150642278",
+    "originallink": "https://www.ajunews.com/view/20260511150642278",
+    "source": "아주경제",
+    "published_at": "Mon, 11 May 2026 15:16:00 +0900",
+    "published_at_kst": "2026-05-11T15:16:00+09:00",
+    "keyword": "한국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "떠나는 신성환 \"고성능 자동차된 韓 경제, 제대로 된 에어백·브레이크...",
+    "description": "최근 코스피지수가 7800선을 돌파하고 외국인 투자자금이 적극 유입되고 있는 한국 경제시장에 대해서는 쏠림 현상에 대한 화두를 던졌다. 신 위원은 \"이제는 실물거래보다 금융자본 이동이 환율을 좌우하는 규모가 압도적...",
+    "url": "https://www.etoday.co.kr/news/view/2583327",
+    "originallink": "https://www.etoday.co.kr/news/view/2583327",
+    "source": "이투데이",
+    "published_at": "Mon, 11 May 2026 15:12:00 +0900",
+    "published_at_kst": "2026-05-11T15:12:00+09:00",
+    "keyword": "한국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "골드만삭스 \"한국·대만, 반도체 성장…올해 각각 2차례 금리인상\"",
+    "description": "또한 한국 경제 성장률이 지난해 1%에서 올해 2.5%로 반등하고, 대만 성장률은 지난해 8.7%에서 올해 10% 수준으로 가속화할 것으로 예상했다. 다만 뚜렷한 수치 개선에도 불구하고 경제 전반의 온기는 균일하지 않을...",
+    "url": "https://n.news.naver.com/mnews/article/008/0005355758?sid=104",
+    "originallink": "https://www.mt.co.kr/world/2026/05/11/2026051114233438030",
+    "source": "머니투데이",
+    "published_at": "Mon, 11 May 2026 15:12:00 +0900",
+    "published_at_kst": "2026-05-11T15:12:00+09:00",
+    "keyword": "한국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "'인하파' 신성환 금통위원도 \"지금은 금리인하 부담\"…인상 초읽기",
+    "description": "신 위원은 그간 통화정책 판단을 어렵게 한 요인으로 '한국 경제의 양극화'를 꼽았다. 그는 \"우리 경제가 극단적인 상황으로 와 있는 것 같다\"며 \"10% 정도 비중을 차지하는 섹터가 경제 전체의 헤드라인 넘버를 결정하고...",
+    "url": "https://www.newspim.com/news/view/20260511000957",
+    "originallink": "https://www.newspim.com/news/view/20260511000957",
+    "source": "뉴스핌",
+    "published_at": "Mon, 11 May 2026 15:12:00 +0900",
+    "published_at_kst": "2026-05-11T15:12:00+09:00",
+    "keyword": "한국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "韓 경제 성장률 2.1%→2.8% 상향... 금융연 \"반도체 실적 주도\"",
+    "description": "한국금융연구원이 올해 한국 경제성장률 전망치를 기존보다 0.7%포인트(p) 상향한 2.8%로 제시했습니다. 한국금융연구원이 오늘(11일) 발표한 '2026년 수정경제전망'에 따르면, 올해 우리나라 실질 국내총생산(GDP) 성장률은...",
+    "url": "https://n.news.naver.com/mnews/article/661/0000076021?sid=101",
+    "originallink": "https://www.jibs.co.kr/news/articles/articlesDetail/61024?feed=na",
+    "source": "jibs",
+    "published_at": "Mon, 11 May 2026 15:11:00 +0900",
+    "published_at_kst": "2026-05-11T15:11:00+09:00",
+    "keyword": "한국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "[공멸위기 자초 삼전노조]③ '성과급 논란'…소부장 협력사 1700곳 긴장",
+    "description": "신제윤 삼성전자 이사회 의장도 최근 내부 메시지에서 노조 파업이 생산과 납기 차질뿐 아니라 시장 리더십 약화, 한국 경제 전반 부담으로 이어질 수 있다고 경고한 것으로 전해졌다. 로이터 역시 삼성전자가 성과급...",
+    "url": "https://www.joongangenews.com/news/articleView.html?idxno=518350",
+    "originallink": "https://www.joongangenews.com/news/articleView.html?idxno=518350",
+    "source": "중앙이코노미뉴스",
+    "published_at": "Mon, 11 May 2026 15:10:00 +0900",
+    "published_at_kst": "2026-05-11T15:10:00+09:00",
+    "keyword": "한국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "골프장 14번 홀이 '쌀의 무대'로…농협경제지주, KLPGA 대회서 이색 기부...",
+    "description": "농협경제지주는 한국여자프로골프협회(KLPGA)와 '아침밥 먹기 업무협약'을 체결한 지 2년 차를 맞아, 아침밥 먹기 운동, 농산물 소비촉진 홍보, 우리 쌀 기반 간편식 제공 등 다양한 협력사업을 꾸준히 이어가고 있다....",
+    "url": "http://www.queen.co.kr/news/articleView.html?idxno=456655",
+    "originallink": "http://www.queen.co.kr/news/articleView.html?idxno=456655",
+    "source": "queen",
+    "published_at": "Mon, 11 May 2026 15:08:00 +0900",
+    "published_at_kst": "2026-05-11T15:08:00+09:00",
+    "keyword": "한국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "금융연 “올해 성장률 2.8%”… 반도체 호조에 0.7%p 상향",
+    "description": "AI 호황에 설비 투자 확대 “금리 인상 가능성도” 한국금융연구원이 올해 한국 경제 성장률 전망치를 기존보다 큰 폭으로 높여 잡았다. 미국 빅테크 기업들의 인공지능(AI) 인프라 투자 확대에 힘입어 반도체 수출이...",
+    "url": "https://n.news.naver.com/mnews/article/023/0003975769?sid=101",
+    "originallink": "https://www.chosun.com/economy/stock-finance/2026/05/11/L4NUYJ45Z5ET3OOYLAOI7PC3PU/?utm_source=naver&utm_medium=referral&utm_campaign=naver-news",
+    "source": "조선일보",
+    "published_at": "Mon, 11 May 2026 15:07:00 +0900",
+    "published_at_kst": "2026-05-11T15:07:00+09:00",
+    "keyword": "한국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "정상회담 하루 앞 베선트·하리펑 왜 한국서 만나나?",
+    "description": "11일 중국 상무부 발표와 스콧 베선트 미 재무장관의 설명에 따르면 베선트 장관과 허리펑 중국 국무원 총리는 오는 13일 한국에서 만나 경제·무역 협상을 진행합니다. 베센트 장관은 이번 만남이 미중 정상회담에...",
+    "url": "https://n.news.naver.com/mnews/article/374/0000509334?sid=104",
+    "originallink": "https://biz.sbs.co.kr/article_hub/20000309494?division=NAVER",
+    "source": "SBS",
+    "published_at": "Mon, 11 May 2026 15:06:00 +0900",
+    "published_at_kst": "2026-05-11T15:06:00+09:00",
+    "keyword": "한국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "농협경제지주, KLPGA대회서 '미(米)라클 존' 운영 .... 쌀 소비·미래 인...",
+    "description": "농협경제지주는 한국여자프로골프협회(KLPGA)와 '아침밥 먹기' 캠페인 협약 2년차를 맞아 관련 활동을 지속 확대하고 있다. 아침 식사 문화 확산과 쌀 기반 간편식 홍보 등을 통해 국내 쌀 소비 기반을 넓힌다는 계획이다....",
+    "url": "http://www.worktoday.co.kr/news/articleView.html?idxno=84482",
+    "originallink": "http://www.worktoday.co.kr/news/articleView.html?idxno=84482",
+    "source": "worktoday",
+    "published_at": "Mon, 11 May 2026 15:06:00 +0900",
+    "published_at_kst": "2026-05-11T15:06:00+09:00",
+    "keyword": "한국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "퇴임 앞둔 '파워 비둘기' 신성환 금통위원 \"금리인하 논하기 상당히 부...",
+    "description": "아울러 포워드가이던스와 금융시장 쏠림 현상, 반도체 중심 성장, 과도한 저축 구조 등을 언급하며 마지막 날까지 한국 경제의 구조적 과제를 지적했다. 신 위원은 \"한 10% 정도 비중, 고용 측면에서는 10%도 안 되는 섹터가...",
+    "url": "https://n.news.naver.com/mnews/article/421/0008937576?sid=101",
+    "originallink": "https://www.news1.kr/economy/trend/6162655",
+    "source": "뉴스1",
+    "published_at": "Mon, 11 May 2026 15:06:00 +0900",
+    "published_at_kst": "2026-05-11T15:06:00+09:00",
+    "keyword": "한국경제",
+<<<<<<< HEAD
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
   },
   {
@@ -306,17 +589,62 @@
     "published_at_kst": "2026-05-11T14:43:00+09:00",
     "keyword": "한국경제",
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
+=======
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+>>>>>>> 6d0c4f0 (...)
   },
   {
-    "title": "한국 반도체 호황에도 금리인상 압박 커진다, 골드만삭스 \"경제 양극화...",
-    "description": "한국 경제가 반도체 중심의 수출 호조에도 불균형한 성장세를 보일 것으로 전망돼 금리 인상 압박이 커지고 있다는 골드만삭스의 분석이 나왔다. 서울 중구 한국은행. <연합뉴스> 한국 경제가 반도체를 비롯한 주요...",
-    "url": "https://www.businesspost.co.kr/BP?command=article_view&num=437490",
-    "originallink": "https://www.businesspost.co.kr/BP?command=article_view&num=437490",
-    "source": "비즈니스포스트",
-    "published_at": "Mon, 11 May 2026 14:40:00 +0900",
-    "published_at_kst": "2026-05-11T14:40:00+09:00",
+    "title": "신성환 금통위원 “중앙은행 의무, 인플레이션 관리가 최우선”[일문일...",
+    "description": "-반도체가 한국경제 전체를 끌어가는 모습인데 경제 낙수효과는 어떻게 보는지 궁금하다. 마지막에 저축률에 대한 얘기를 하셨는데 어떤 방안, 생각하고 계신 게 있는지 궁금. △반도체 호황이 물가에 대한 영향을 크게...",
+    "url": "https://n.news.naver.com/mnews/article/018/0006278459?sid=101",
+    "originallink": "http://www.edaily.co.kr/news/newspath.asp?newsid=03660486645447936",
+    "source": "이데일리",
+    "published_at": "Mon, 11 May 2026 15:02:00 +0900",
+    "published_at_kst": "2026-05-11T15:02:00+09:00",
     "keyword": "한국경제",
+<<<<<<< HEAD
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
+=======
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "“물가와 싸움 더 격해질 수도” 퇴임 앞둔 신성환 금통위원의 경고",
+    "description": "고령화와 부동산 중심 자산 축적 문화가 맞물리면서 소비가 위축되고, 이는 결국 한국 경제의 성장 기반인 내수까지 약화시키고 있다는 문제의식이다. 그는 “우리나라 가계순저축률이 굉장히 높은 수준”이라며...",
+    "url": "https://n.news.naver.com/mnews/article/243/0000097670?sid=101",
+    "originallink": "https://economist.co.kr/article/view/ecn202605110030",
+    "source": "이코노미스트",
+    "published_at": "Mon, 11 May 2026 15:01:00 +0900",
+    "published_at_kst": "2026-05-11T15:01:00+09:00",
+    "keyword": "한국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "떠나는 ‘비둘기’ 신성환 금통위원…“경제 고통받아도 물가 잡아야”",
+    "description": "한국 경제의 과도한 주택 중심 저축 구조에 대한 쓴소리도 남겼다. 경제 성장률 지표는 나아지고 있지만, 가계의 높은 순저축률 탓에 실제 민간 소비 회복은 지지부진하다는 것이다. 그는 “굉장히 가난하게 살다가 부자로...",
+    "url": "https://n.news.naver.com/mnews/article/029/0003025982?sid=101",
+    "originallink": "https://www.dt.co.kr/article/12061769?ref=naver",
+    "source": "디지털타임스",
+    "published_at": "Mon, 11 May 2026 15:00:00 +0900",
+    "published_at_kst": "2026-05-11T15:00:00+09:00",
+    "keyword": "한국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "'비둘기 선봉장' 신성환 \"지금은 금리 인하 논하기 부담…물가 우려\"",
+    "description": "그는 당시 인하 소수의견 배경에 대해 \"한국 경제의 양극화 구조 속에서 헤드라인 성장률 숫자만으로 경기를 판단하기 어려웠다\"며 \"경제의 상당 부분을 차지하는 실물경제 부문이 장기간 어려움을 겪고 있었고 물가...",
+    "url": "https://n.news.naver.com/mnews/article/008/0005355737?sid=101",
+    "originallink": "https://www.mt.co.kr/economy/2026/05/11/2026051114130229864",
+    "source": "머니투데이",
+    "published_at": "Mon, 11 May 2026 15:00:00 +0900",
+    "published_at_kst": "2026-05-11T15:00:00+09:00",
+    "keyword": "한국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+>>>>>>> 6d0c4f0 (...)
   },
   {
     "title": "금융硏, 올해 한국 경제 2.8% 성장 전망…0.7%p 상향",
@@ -327,6 +655,7 @@
     "published_at": "Mon, 11 May 2026 14:32:00 +0900",
     "published_at_kst": "2026-05-11T14:32:00+09:00",
     "keyword": "한국경제",
+<<<<<<< HEAD
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
   },
   {
@@ -416,6 +745,166 @@
     "published_at_kst": "2026-05-11T13:38:00+09:00",
     "keyword": "세계경제",
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
+=======
+    "sort": "sim",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "금융硏 \"올 경제성장률 전망치 2.1%→2.8% 상향 조정\"",
+    "description": "연구원은 한국 경제가 내수·수출 동반 회복과 지난해 성장 둔화 기저 효과 등으로 2.8%로 반등할 것으로 예상했다. 다만 이란 전쟁으로 인한 불확실성이 매우 높다고 평가했다. 글로벌 AI 인프라 투자가 이어지며 반도체...",
+    "url": "https://n.news.naver.com/mnews/article/003/0013937271?sid=101",
+    "originallink": "https://www.newsis.com/view/NISX20260511_0003624289",
+    "source": "뉴시스",
+    "published_at": "Mon, 11 May 2026 14:00:00 +0900",
+    "published_at_kst": "2026-05-11T14:00:00+09:00",
+    "keyword": "한국경제",
+    "sort": "sim",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "한국 반도체 호황에도 금리인상 압박 커진다, 골드만삭스 \"경제 양극화...",
+    "description": "한국 경제가 반도체 중심의 수출 호조에도 불균형한 성장세를 보일 것으로 전망돼 금리 인상 압박이 커지고 있다는 골드만삭스의 분석이 나왔다. 서울 중구 한국은행. <연합뉴스> 한국 경제가 반도체를 비롯한 주요...",
+    "url": "https://www.businesspost.co.kr/BP?command=article_view&num=437490",
+    "originallink": "https://www.businesspost.co.kr/BP?command=article_view&num=437490",
+    "source": "비즈니스포스트",
+    "published_at": "Mon, 11 May 2026 14:40:00 +0900",
+    "published_at_kst": "2026-05-11T14:40:00+09:00",
+    "keyword": "한국경제",
+    "sort": "sim",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "유가 절벽 경고에도…야데니 S&P 500 목표가 8250으로 상향",
+    "description": "투자자들은 휴전 연장과 해협 재개방에 베팅하고 있지만, 에너지 전문가들은 원유 공급 절벽이 세계 경제를 침체로 몰아넣을 수 있다고 경고한다. 야데니 역시 재교전의 위험과 스테그플레이션 발생 가능성을...",
+    "url": "https://www.fortunekorea.co.kr/news/articleView.html?idxno=52460",
+    "originallink": "https://www.fortunekorea.co.kr/news/articleView.html?idxno=52460",
+    "source": "fortunekorea",
+    "published_at": "Mon, 11 May 2026 15:40:00 +0900",
+    "published_at_kst": "2026-05-11T15:40:00+09:00",
+    "keyword": "세계경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "[글로벌 워치] 세계 경제 목줄 쥔 해협들…\"다시 돌아온 지정학의 시대...",
+    "description": "국제안보 전문가들은 호르무즈해협뿐 아니라 말라카해협, 대만해협, 바브엘만데브해협 등 주요 협수로가 세계 경제의 약한 고리로 부상하고 있다고 경고한다. 세계 공급망이 촘촘하게 연결될수록 일부 해상 병목지대의...",
+    "url": "https://www.ebn.co.kr/news/articleView.html?idxno=1708283",
+    "originallink": "https://www.ebn.co.kr/news/articleView.html?idxno=1708283",
+    "source": "EBN",
+    "published_at": "Mon, 11 May 2026 15:40:00 +0900",
+    "published_at_kst": "2026-05-11T15:40:00+09:00",
+    "keyword": "세계경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "더 이상 뛰지 않는다…'오프런' 지고 '심신 회복' 소비 뜬다",
+    "description": "11일 글로벌웰니스연구소에 따르면 지난해 세계 웰니스 경제 규모는 6조8000억 달러(약 9400조원)에 달했다. 연구소는 오는 2029년에는 시장 규모가 9조8000억 달러 수준으로 확대될 것으로 전망했다. 수면, 멘탈케어, 운동...",
+    "url": "http://www.mkhealth.co.kr/news/articleView.html?idxno=78540",
+    "originallink": "http://www.mkhealth.co.kr/news/articleView.html?idxno=78540",
+    "source": "mkhealth",
+    "published_at": "Mon, 11 May 2026 15:32:00 +0900",
+    "published_at_kst": "2026-05-11T15:32:00+09:00",
+    "keyword": "세계경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "이준영의 WE (34회)",
+    "description": "국제현안과 세계경제흐름을 깊이있게 전해드리는 이준영의 위(WE) 시작합니다. 중동 전쟁 여파로 미국 자동차 업계에 비상이 걸렸습니다. 영국 파이낸셜타임스는 제너럴모터스와 포드, 스텔란티스 등 미국 자동차 빅3가...",
+    "url": "https://www.obsnews.co.kr/news/articleView.html?idxno=1523980",
+    "originallink": "https://www.obsnews.co.kr/news/articleView.html?idxno=1523980",
+    "source": "OBS",
+    "published_at": "Mon, 11 May 2026 15:32:00 +0900",
+    "published_at_kst": "2026-05-11T15:32:00+09:00",
+    "keyword": "세계경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "이란, '해저케이블 통제권' 주장…호르무즈 해협 디지털 인프라까지 긴...",
+    "description": "이란 반관영 매체인 파르스통신은 9일(현지시간) 보도를 통해 \"해저케이블은 세계 디지털 경제와 국제 금융 시스템, 클라우드 네트워크를 떠받치는 핵심 전략 자산\"이라며 \"이란은 해당 인프라에 대해 주권적 관할권과 규제...",
+    "url": "http://www.bizwnews.com/news/articleView.html?idxno=136148",
+    "originallink": "http://www.bizwnews.com/news/articleView.html?idxno=136148",
+    "source": "bizwnews",
+    "published_at": "Mon, 11 May 2026 15:10:00 +0900",
+    "published_at_kst": "2026-05-11T15:10:00+09:00",
+    "keyword": "세계경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "트럼프 \"이란 답변, 못 받아들여\"...협상 좌초되나?",
+    "description": "나오면 세계 경제에 지속적으로 영향을 미칠 거거든요. 그러니까 이 부분에 대해서 사실 대부분 전문가들의 관심의 초점이 있는데 트럼프 대통령이 지금 하는 것은 그냥 외형적으로 보여주는 것만 강조를 하고 있어서 핵...",
+    "url": "https://n.news.naver.com/mnews/article/052/0002351473?sid=104",
+    "originallink": "https://www.ytn.co.kr/_ln/0104_202605111509062470",
+    "source": "YTN",
+    "published_at": "Mon, 11 May 2026 15:09:00 +0900",
+    "published_at_kst": "2026-05-11T15:09:00+09:00",
+    "keyword": "세계경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "\"이란, 美 종전안 답변서 호르무즈 주권·전쟁 배상 요구\"",
+    "description": "출연해 미국의 최신 제안에는 '매우 분명한 레드라인'이 담겨 있다고 밝혔다. 그러면서 \"트럼프 대통령은 그들이 결코 핵무기를 보유하지 못할 것이며, 세계 경제를 인질로 잡을 수 없다는 점을 분명히 해왔다\"고 덧붙였다.",
+    "url": "https://www.ajunews.com/view/20260511145527262",
+    "originallink": "https://www.ajunews.com/view/20260511145527262",
+    "source": "아주경제",
+    "published_at": "Mon, 11 May 2026 15:06:00 +0900",
+    "published_at_kst": "2026-05-11T15:06:00+09:00",
+    "keyword": "세계경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "신성환 금통위원 “성장·물가 충돌한다면 한은, 당연히 물가 방어”",
+    "description": "국제통화기금(IMF)은 지난달 14일 세계경제전망을 발표하면서 한국의 올해 물가 상승률 전망치를 지난 1월 2.0%에서 2.5%로 상향 조정했다. 조기 휴전 기대감이 잦아들고 미국·이란 간 갈등이 봉합되지 않는 상태가...",
+    "url": "https://n.news.naver.com/mnews/article/023/0003975767?sid=101",
+    "originallink": "https://www.chosun.com/economy/economy_general/2026/05/11/6Z2PCSX62VAO5BFM3GNHMPOZIU/?utm_source=naver&utm_medium=referral&utm_campaign=naver-news",
+    "source": "조선일보",
+    "published_at": "Mon, 11 May 2026 15:01:00 +0900",
+    "published_at_kst": "2026-05-11T15:01:00+09:00",
+    "keyword": "세계경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "푸틴 “러-중 관계, 국제 관계 안정의 기둥”-전승절 기자회견",
+    "description": "푸틴 대통령은 “중미 양국은 주요 무역 및 경제 파트너로 양국 간의 상호 작용이 세계 경제에 직접적인 영향을 미친다”고 강조했다. 장 연구원은 “푸틴 대통령의 발언은 중러를 이른바 ‘반미 동맹’으로 묘사하는...",
+    "url": "https://n.news.naver.com/mnews/article/003/0013937502?sid=104",
+    "originallink": "https://www.newsis.com/view/NISX20260511_0003624506",
+    "source": "뉴시스",
+    "published_at": "Mon, 11 May 2026 14:57:00 +0900",
+    "published_at_kst": "2026-05-11T14:57:00+09:00",
+    "keyword": "세계경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "[기고] 2026년은 스스로 진화하는 AI의 원년 - 다보스 선언과 카파시의 ...",
+    "description": "어라이즈 AI 이승민 아시아태평양 기술총괄  지난 1월 스위스 다보스에서 열린 세계경제포럼은 새로운 시대의 시작을 알리는 신호탄이었다. AI 업계에서 가장 주목받는 리더인 앤스로픽의 다리오 아모데이 CEO와...",
+    "url": "http://www.itdaily.kr/news/articleView.html?idxno=239240",
+    "originallink": "http://www.itdaily.kr/news/articleView.html?idxno=239240",
+    "source": "itdaily",
+    "published_at": "Mon, 11 May 2026 14:24:00 +0900",
+    "published_at_kst": "2026-05-11T14:24:00+09:00",
+    "keyword": "세계경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "아람코 \"호르무즈 봉쇄로 원유 10억배럴 손실\"…정상화 수개월",
+    "description": "당시 그는 \"과거에도 공급 차질을 겪은 바 있지만 이번 사태는 중동 석유·가스 산업이 직면한 최대 위기\"라며, \"공급 차질이 계속된다면 세계 석유 시장에 재앙적인 결과가 초래되고 세계 경제에 미치는 영향도 더욱...",
+    "url": "https://n.news.naver.com/mnews/article/003/0013937247?sid=104",
+    "originallink": "https://www.newsis.com/view/NISX20260511_0003624123",
+    "source": "뉴시스",
+    "published_at": "Mon, 11 May 2026 13:49:00 +0900",
+    "published_at_kst": "2026-05-11T13:49:00+09:00",
+    "keyword": "세계경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+>>>>>>> 6d0c4f0 (...)
   },
   {
     "title": "[기고] AI시대, 반도체와 농업의 산업동맹 필요",
@@ -426,7 +915,12 @@
     "published_at": "Mon, 11 May 2026 13:10:00 +0900",
     "published_at_kst": "2026-05-11T13:10:00+09:00",
     "keyword": "세계경제",
+<<<<<<< HEAD
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
+=======
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+>>>>>>> 6d0c4f0 (...)
   },
   {
     "title": "AI가 브랜드를 선택하는 시대, 디자이노블이 제시하는 기업 대상 GEO 솔...",
@@ -437,29 +931,52 @@
     "published_at": "Mon, 11 May 2026 12:16:00 +0900",
     "published_at_kst": "2026-05-11T12:16:00+09:00",
     "keyword": "세계경제",
+<<<<<<< HEAD
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
+=======
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+>>>>>>> 6d0c4f0 (...)
   },
   {
     "title": "루비니 \"이란 전쟁 위험 과소평가…최악 땐 유가 200달러\"",
     "description": "루비니 교수는 이 경우 \"유가는 전쟁 초기 최고치를 넘어설 수 있으며, 세계 경제 성장률은 둔화하고 인플레이션은 상승해 세계 경제가 스태그플레이션에 빠질 수 있다\"고 경고했다. 루비니 교수는 세 번째 시나리오로...",
     "url": "https://news.einfomax.co.kr/news/articleView.html?idxno=4414094",
     "originallink": "https://news.einfomax.co.kr/news/articleView.html?idxno=4414094",
+<<<<<<< HEAD
     "source": "news.einfomax",
     "published_at": "Mon, 11 May 2026 11:52:00 +0900",
     "published_at_kst": "2026-05-11T11:52:00+09:00",
     "keyword": "세계경제",
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
+=======
+    "source": "연합인포맥스",
+    "published_at": "Mon, 11 May 2026 11:52:00 +0900",
+    "published_at_kst": "2026-05-11T11:52:00+09:00",
+    "keyword": "세계경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+>>>>>>> 6d0c4f0 (...)
   },
   {
     "title": "지석진 \"세계 평화 와야 주식 시장 좋아져\" (만학도 지씨)",
     "description": "특히 썬킴은 “여기서 처음 공개하는 이야기”라며 이란 혁명수비대의 탄생 배경과 역할, 호르무즈 해협 봉쇄가 세계 경제에 미치는 영향 등을 알기 쉽게 설명한다. 중동 경제 중심지인 두바이를 둘러싼 의외의 사실도...",
     "url": "https://m.entertain.naver.com/article/408/0000308024",
     "originallink": "http://enews.imbc.com/News/RetrieveNewsInfo/504472",
+<<<<<<< HEAD
     "source": "enews.imbc",
     "published_at": "Mon, 11 May 2026 11:51:00 +0900",
     "published_at_kst": "2026-05-11T11:51:00+09:00",
     "keyword": "세계경제",
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
+=======
+    "source": "MBC",
+    "published_at": "Mon, 11 May 2026 11:51:00 +0900",
+    "published_at_kst": "2026-05-11T11:51:00+09:00",
+    "keyword": "세계경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+>>>>>>> 6d0c4f0 (...)
   },
   {
     "title": "“트럼프, 네타냐후에 가스라이팅 당해”…썬킴, 美-이란 전쟁 해설 (만...",
@@ -470,6 +987,7 @@
     "published_at": "Mon, 11 May 2026 11:51:00 +0900",
     "published_at_kst": "2026-05-11T11:51:00+09:00",
     "keyword": "세계경제",
+<<<<<<< HEAD
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
   },
   {
@@ -658,6 +1176,82 @@
     "published_at_kst": "2026-05-11T09:16:00+09:00",
     "keyword": "세계경제",
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
+=======
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "서울서 밑그림, 베이징서 본게임…트럼프·시진핑 이틀 연속 회담",
+    "description": "애나 켈리 백악관 부대변인은 “트럼프 대통령은 이번 방문을 통해 중국과의 관계를 재조정하고 미국의 경제적 자립을 회복하기 위해 공정성을 최우선으로 삼을 것”이라고 강조했다. 핵심 의제는 경제와 안보가 모두...",
+    "url": "https://www.etoday.co.kr/news/view/2583317",
+    "originallink": "https://www.etoday.co.kr/news/view/2583317",
+    "source": "이투데이",
+    "published_at": "Mon, 11 May 2026 15:46:00 +0900",
+    "published_at_kst": "2026-05-11T15:46:00+09:00",
+    "keyword": "미국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "골드만, 연준 금리인하 예상시점 12월로 재차 늦춰",
+    "description": "골드만의 미국 경제 분석팀은 \"이란발 에너지 비용 상승의 파급으로, 근원 개인소비지출(PCE) 물가 상승률이 올해 연간으로 2%보다는 3%에 더 가깝게 유지될 가능성이 높다\"며 이같이 밝혔다. 연방준비제도(Fed) 본부...",
+    "url": "https://www.newspim.com/news/view/20260511001019",
+    "originallink": "https://www.newspim.com/news/view/20260511001019",
+    "source": "뉴스핌",
+    "published_at": "Mon, 11 May 2026 15:39:00 +0900",
+    "published_at_kst": "2026-05-11T15:39:00+09:00",
+    "keyword": "미국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "美 자동차 업계·정치권... 訪中 트럼프에 '시장 개방 말라' 로비",
+    "description": "그러면서 중국 전기차와 배터리를 막지 못한다면 자동차 부품망을 포함해 미국 경제와 일자리 기반을 흔들고 국가 안보까지 위협할 수 있다고 우려했다. 민주당 소속 엘리사 슬롯킨 미시간주 상원의원은 중국...",
+    "url": "https://n.news.naver.com/mnews/article/014/0005519798?sid=101",
+    "originallink": "http://www.fnnews.com/news/202605111114559268",
+    "source": "파이낸셜뉴스",
+    "published_at": "Mon, 11 May 2026 15:35:00 +0900",
+    "published_at_kst": "2026-05-11T15:35:00+09:00",
+    "keyword": "미국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "타코 밀어내는 '나초' 국면에...오일쇼크급 '에너지운송 불안'의 인플레...",
+    "description": "미국 경제매체 CNBC는 10일(현지시간) 낙관적인 '타코' 거래를 밀어내는 이같은 월가의 '나초' 트레이드에 주목하면서 \"시장 참여자들은 호르무즈 해협의 혼란을 일시적인 지정학적 충격이 아닌 거시경제 환경의 지속적...",
+    "url": "http://www.updownnews.co.kr/news/articleView.html?idxno=317159",
+    "originallink": "http://www.updownnews.co.kr/news/articleView.html?idxno=317159",
+    "source": "updownnews",
+    "published_at": "Mon, 11 May 2026 15:32:00 +0900",
+    "published_at_kst": "2026-05-11T15:32:00+09:00",
+    "keyword": "미국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "'세기의 담판' 앞서 서울서 사전 담판",
+    "description": "중국 상무부 대변인은 홈페이지를 통해 \"중미 양측 협의에 따라 허리펑 부총리가 12~13일 한국을 방문해 미국 측과 경제·무역 협상을 진행한다\"고 밝혔다. 상무부는 \"양측은 양국 정상이 부산 정상회담 및 여러 차례...",
+    "url": "https://www.dkilbo.com/news/articleView.html?idxno=544198",
+    "originallink": "https://www.dkilbo.com/news/articleView.html?idxno=544198",
+    "source": "dkilbo",
+    "published_at": "Mon, 11 May 2026 15:20:00 +0900",
+    "published_at_kst": "2026-05-11T15:20:00+09:00",
+    "keyword": "미국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "[머니컨설팅]변하지 않는 두 가지 투자 원칙",
+    "description": "유지되면서 미국 경제의 연착륙 가능성도 커지고 있다. 반면 국내 증시는 지난해 3분기까지는 의심 섞인 눈초리를 받았지만, 지난해 4분기부터는 양호한 성과를 보였다. 지난해 하반기부터 시작된 강력한 증시 부양...",
+    "url": "https://n.news.naver.com/mnews/article/020/0003718642?sid=101",
+    "originallink": "https://www.donga.com/news/Economy/article/all/20260511/133896047/1",
+    "source": "동아일보",
+    "published_at": "Mon, 11 May 2026 15:16:00 +0900",
+    "published_at_kst": "2026-05-11T15:16:00+09:00",
+    "keyword": "미국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+>>>>>>> 6d0c4f0 (...)
   },
   {
     "title": "구글, 개발자 면접에 AI 허용…코딩보다 '활용 역량' 본다",
@@ -668,18 +1262,32 @@
     "published_at": "Mon, 11 May 2026 14:44:00 +0900",
     "published_at_kst": "2026-05-11T14:44:00+09:00",
     "keyword": "미국경제",
+<<<<<<< HEAD
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
+=======
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+>>>>>>> 6d0c4f0 (...)
   },
   {
     "title": "美 소매업계 채용 '활짝'…전쟁·고물가에도 소비 견조 (수정완료)",
     "description": "미국 구인 플랫폼 인디드의 코리 스탈 이코노미스트는 “불확실성이 큰 상황에서도 소비 지출은 상당한 회복력을 보이고 있다”며 “유통업계와 미국 경제 전반에 고무적인 신호”라고 밝혔다. 이어 “지난해에는...",
     "url": "https://www.theguru.co.kr/news/article.html?no=101565",
     "originallink": "https://www.theguru.co.kr/news/article.html?no=101565",
+<<<<<<< HEAD
     "source": "theguru",
     "published_at": "Mon, 11 May 2026 14:42:00 +0900",
     "published_at_kst": "2026-05-11T14:42:00+09:00",
     "keyword": "미국경제",
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
+=======
+    "source": "더구루",
+    "published_at": "Mon, 11 May 2026 14:42:00 +0900",
+    "published_at_kst": "2026-05-11T14:42:00+09:00",
+    "keyword": "미국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+>>>>>>> 6d0c4f0 (...)
   },
   {
     "title": "美·中 무역대표, 트럼프 방중 앞두고 13일 서울서 회동",
@@ -690,7 +1298,12 @@
     "published_at": "Mon, 11 May 2026 14:39:00 +0900",
     "published_at_kst": "2026-05-11T14:39:00+09:00",
     "keyword": "미국경제",
+<<<<<<< HEAD
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
+=======
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+>>>>>>> 6d0c4f0 (...)
   },
   {
     "title": "엔비디아, AI 투자사 역할도 톡톡…올해만 58조원 투자",
@@ -701,18 +1314,32 @@
     "published_at": "Mon, 11 May 2026 14:30:00 +0900",
     "published_at_kst": "2026-05-11T14:30:00+09:00",
     "keyword": "미국경제",
+<<<<<<< HEAD
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
+=======
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+>>>>>>> 6d0c4f0 (...)
   },
   {
     "title": "중동 '격변'?...장중 장단기 OIL선물가격 '치솟고', 달러 '절상'",
     "description": "미국 경제방송 씨엔비씨에 따르면 이 시각 글로벌 OIL 마켓에서 6월 인도분 미국서부텍사스산원유(WTI CRUDE) 가격은 배럴당 100.14 달러로 4.95%나 치솟았다. 7월 인도분 WTI CRUDE 가격은 배럴당 96.12 달러로...",
     "url": "http://www.choicenews.co.kr/news/articleView.html?idxno=165073",
     "originallink": "http://www.choicenews.co.kr/news/articleView.html?idxno=165073",
+<<<<<<< HEAD
     "source": "choicenews",
     "published_at": "Mon, 11 May 2026 14:26:00 +0900",
     "published_at_kst": "2026-05-11T14:26:00+09:00",
     "keyword": "미국경제",
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
+=======
+    "source": "초이스경제",
+    "published_at": "Mon, 11 May 2026 14:26:00 +0900",
+    "published_at_kst": "2026-05-11T14:26:00+09:00",
+    "keyword": "미국경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+>>>>>>> 6d0c4f0 (...)
   },
   {
     "title": "美엔비디아, AI 패권 유지 비결은...'AI 5단 케이크' 수직생태계 직접 육...",
@@ -723,6 +1350,7 @@
     "published_at": "Mon, 11 May 2026 14:22:00 +0900",
     "published_at_kst": "2026-05-11T14:22:00+09:00",
     "keyword": "미국경제",
+<<<<<<< HEAD
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
   },
   {
@@ -735,6 +1363,10 @@
     "published_at_kst": "2026-05-11T14:08:00+09:00",
     "keyword": "미국경제",
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
+=======
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+>>>>>>> 6d0c4f0 (...)
   },
   {
     "title": "[세계家] 도널드 트럼프 미국 대통령 ④ㅣ 이란 압박부터 미중 정상회담...",
@@ -745,7 +1377,12 @@
     "published_at": "Mon, 11 May 2026 13:40:00 +0900",
     "published_at_kst": "2026-05-11T13:40:00+09:00",
     "keyword": "미국경제",
+<<<<<<< HEAD
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
+=======
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+>>>>>>> 6d0c4f0 (...)
   },
   {
     "title": "WSJ \"미국 경제, AI로 왜곡…AI 투자 급증도 장비 가격 상승 영향\"",
@@ -756,7 +1393,12 @@
     "published_at": "Mon, 11 May 2026 13:24:00 +0900",
     "published_at_kst": "2026-05-11T13:24:00+09:00",
     "keyword": "미국경제",
+<<<<<<< HEAD
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
+=======
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+>>>>>>> 6d0c4f0 (...)
   },
   {
     "title": "미중, 14일 베이징서 정상회담",
@@ -767,6 +1409,7 @@
     "published_at": "Mon, 11 May 2026 13:04:00 +0900",
     "published_at_kst": "2026-05-11T13:04:00+09:00",
     "keyword": "미국경제",
+<<<<<<< HEAD
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
   },
   {
@@ -801,6 +1444,202 @@
     "published_at_kst": "2026-05-11T11:38:00+09:00",
     "keyword": "미국경제",
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
+=======
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "\"정책자금 빌려 가맹점에 고리대금업\"...명륜당 등 가맹본부 '꼼수' 행각...",
+    "description": "정부가 정책자금을 저리로 대출받은 뒤, 이를 활용해 가맹점주에게 고금리 대출을 제공해온 가맹본부들의... 이 중 정책자금을 대출받아 가맹점주에게 고금리 대출을 취급한 사례는 명륜당을 비롯해 총 3건이며, 나머지...",
+    "url": "http://www.dailypop.kr/news/articleView.html?idxno=98731",
+    "originallink": "http://www.dailypop.kr/news/articleView.html?idxno=98731",
+    "source": "dailypop",
+    "published_at": "Mon, 11 May 2026 15:46:00 +0900",
+    "published_at_kst": "2026-05-11T15:46:00+09:00",
+    "keyword": "금리",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "미국 유류세 일시 중단 시사, 이란은 대규모 해고 직면…전쟁 장기화 속...",
+    "description": "파이낸셜타임스(FT)에 따르면, 투자운용사 핌코는 이란 전쟁이 연방준비제도(Fed)의 금리 인상을 촉발할 수 있다고 분석했다. 핌코는 Fed의 금리 인하는 역효과를 초래할 것이고, 오히려 대출 비용을 인상해야 할 수도...",
+    "url": "https://n.news.naver.com/mnews/article/021/0002790491?sid=104",
+    "originallink": "https://www.munhwa.com/article/11588173?ref=naver",
+    "source": "문화일보",
+    "published_at": "Mon, 11 May 2026 15:45:00 +0900",
+    "published_at_kst": "2026-05-11T15:45:00+09:00",
+    "keyword": "금리",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "신학기 수협은행장, 광폭 '외화 조달'…자산 성장세 잇는다",
+    "description": "환율과 글로벌 금리 변동성이 이어지는 상황에서 외화 조달선 다변화는 은행의 자금 운용 여력을 높이는... 금리 변동과 조달 비용 흐름에 따라 은행의 이자이익 체력이 달라질 수 있는 만큼 외화 조달 조건 관리도...",
+    "url": "https://n.news.naver.com/mnews/article/293/0000084351?sid=101",
+    "originallink": "https://www.bloter.net/news/articleView.html?idxno=661860",
+    "source": "블로터",
+    "published_at": "Mon, 11 May 2026 15:44:00 +0900",
+    "published_at_kst": "2026-05-11T15:44:00+09:00",
+    "keyword": "금리",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "가계대출은 막혔는데 '빚투'는 급증…대출 규제의 역설",
+    "description": "최근 한국은행 내부에서 기준금리 인상 가능성을 시사하는 발언이 나오면서 시장금리가 높은 수준을 유지할 수 있다는 전망이 커지고 있다. 금리가 상승할 경우 마이너스통장을 활용한 레버리지 투자의 부담도 한층...",
+    "url": "http://www.opinionnews.co.kr/news/articleView.html?idxno=138212",
+    "originallink": "http://www.opinionnews.co.kr/news/articleView.html?idxno=138212",
+    "source": "오피니언뉴스",
+    "published_at": "Mon, 11 May 2026 15:44:00 +0900",
+    "published_at_kst": "2026-05-11T15:44:00+09:00",
+    "keyword": "금리",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "현대건설, 압구정5구역에 ‘올인원 공사비’ 1.5조 제안",
+    "description": "현대건설은 사업비 대여 범위를 ‘조합이 필요로 하는 전체 사업비’로 제안하고 금리는 코픽스(COFIX)에 0.49%포인트를 더한 수준으로 제시했다. 실제 조달 금리가 이를 초과할 경우 초과분은 현대건설이 부담하는...",
+    "url": "https://www.etoday.co.kr/news/view/2583351",
+    "originallink": "https://www.etoday.co.kr/news/view/2583351",
+    "source": "이투데이",
+    "published_at": "Mon, 11 May 2026 15:44:00 +0900",
+    "published_at_kst": "2026-05-11T15:44:00+09:00",
+    "keyword": "금리",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "나랏돈 빌려 고금리 대출… 명륜진사갈비, 공정위 심판대",
+    "description": "저금리로 830억원을 대출받아 대주주 등이 소유한 14개 대부업체를 통해 가맹점주들에게 연 12∼18%의 고금리로 자금을 제공해왔다. 이런 방식으로 점주에게 내준 대출 액수는 2319억원이다. 창업한 가맹점 10곳 중 9곳이 해당...",
+    "url": "http://woman.chosun.com/news/articleView.html?idxno=125802",
+    "originallink": "http://woman.chosun.com/news/articleView.html?idxno=125802",
+    "source": "조선일보",
+    "published_at": "Mon, 11 May 2026 15:44:00 +0900",
+    "published_at_kst": "2026-05-11T15:44:00+09:00",
+    "keyword": "금리",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "미·중 경제사령탑, 정상회담 앞두고 한국서 회담",
+    "description": "14∼15일 예정된 미·중 정상회담 직전인 13일 양국 경제사령탑이 한국에서 먼저 만난다. 도널드 트럼프 대통령의 중국 방문에 동행하는 스콧 베선트 미 재무장관은 10일(현지시간) 자신의 엑스(X) 계정에 “(트럼프)대통령이...",
+    "url": "https://n.news.naver.com/mnews/article/022/0004127206?sid=104",
+    "originallink": "https://www.segye.com/newsView/20260511504543?OutUrl=naver",
+    "source": "세계일보",
+    "published_at": "Mon, 11 May 2026 09:56:00 +0900",
+    "published_at_kst": "2026-05-11T09:56:00+09:00",
+    "keyword": "한국경제",
+    "sort": "sim",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "중국 “트럼프 13~15일 방중”…한국서 먼저 고위급 경제·무역 회담",
+    "description": "중국 상무부 대변인은 10일 “중·미 양측의 협의에 따라 허리펑 중국 국무원 부총리가 12~13일 대표단을 이끌고 한국을 방문해 미국과 경제·무역 협상을 진행할 것”이라고 밝혔다. 스콧 베선트 미 재무장관도...",
+    "url": "https://n.news.naver.com/mnews/article/028/0002804498?sid=104",
+    "originallink": "https://www.hani.co.kr/arti/international/china/1258049.html",
+    "source": "한겨레",
+    "published_at": "Mon, 11 May 2026 11:18:00 +0900",
+    "published_at_kst": "2026-05-11T11:18:00+09:00",
+    "keyword": "한국경제",
+    "sort": "sim",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "빅 이벤트 '미-중 정상회담' 전세계 주목…중동전쟁 파고 넘을 수 있을...",
+    "description": "그러면서 세계 경제 활동의 40% 이상을 함께 장악하는 미국과 중국이 48시간 정상회담에서 어떤 친근한 모습을 보여줄지 몰라도, 중동 전쟁으로 심화된 마찰은 결코 감출 수 없는 갈등 요소라고 지적했다. 이어 복단대학교...",
+    "url": "https://n.news.naver.com/mnews/article/123/0002382765?sid=100",
+    "originallink": "http://www.joseilbo.com/news/news_read.php?uid=568021&class=32&grp=",
+    "source": "조세일보",
+    "published_at": "Mon, 11 May 2026 11:19:00 +0900",
+    "published_at_kst": "2026-05-11T11:19:00+09:00",
+    "keyword": "세계경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "중동 전쟁으로 인한 호르무즈 봉쇄 장기화, 글로벌 원유 시장의 동향",
+    "description": "IMF는 4월 세계경제전망(WEO)에서 2026년 세계 성장률 전망을 종전 3.3%에서 3.1%로 하향 조정하고, \"전쟁 장기화로 유가·가스 가격이 1월 대비 100~200% 급등한 상태로 2027년까지 지속될 경우 성장률은 2.0%까지...",
+    "url": "http://dream.kotra.or.kr/kotranews/cms/news/actionKotraBoardDetail.do?SITE_NO=3&MENU_ID=80&CONTENTS_NO=2&bbsGbn=242&bbsSn=242&pNttSn=240955",
+    "originallink": "http://dream.kotra.or.kr/kotranews/cms/news/actionKotraBoardDetail.do?SITE_NO=3&MENU_ID=80&CONTENTS_NO=2&bbsGbn=242&bbsSn=242&pNttSn=240955",
+    "source": "dream.kotra",
+    "published_at": "Mon, 11 May 2026 11:16:00 +0900",
+    "published_at_kst": "2026-05-11T11:16:00+09:00",
+    "keyword": "세계경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "[이슈&인사이트] 그들이 전쟁광이 된 이유",
+    "description": "민주주의를 말하면서 불평등을 심화시키고, 자유를 외치면서 감시를 확대하며, 평화를 이야기하면서 군사주의를 세계 경제의 핵심 엔진으로 삼아온 체제가 미국인 것이다. 선거철이다. 아직도 미국과 이스라엘을...",
+    "url": "https://www.ekn.kr/web/view.php?key=20260511020464924",
+    "originallink": "https://www.ekn.kr/web/view.php?key=20260511020464924",
+    "source": "ekn",
+    "published_at": "Mon, 11 May 2026 11:10:00 +0900",
+    "published_at_kst": "2026-05-11T11:10:00+09:00",
+    "keyword": "세계경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "‘나무호 폭발’ 시험대 오른 한미 관계",
+    "description": "이란은 전 세계 경제를 볼모로 잡고 버티기 작전에 들어갔다. 도널드 트럼프 미국 대통령은 ‘이란을 석기시대로 돌려놓겠다’고 말하는 등 협박에 가까운 말로 압박했다. 이스라엘은 이란 주변국에도 폭탄을 투하하는 등...",
+    "url": "https://www.ilyosisa.co.kr/news/article.html?no=255814",
+    "originallink": "https://www.ilyosisa.co.kr/news/article.html?no=255814",
+    "source": "ilyosisa",
+    "published_at": "Mon, 11 May 2026 10:58:00 +0900",
+    "published_at_kst": "2026-05-11T10:58:00+09:00",
+    "keyword": "세계경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "[아주사설 | 기본·원칙·상식] 반도체 호황이 만든 재정 여력, AI에 투자...",
+    "description": "지금 세계 경제의 중심은 빠르게 AI로 이동하고 있다. 데이터센터, 클라우드, 자율주행, 로봇 산업까지 모두 고성능 반도체를 기반으로 작동한다. 이번 반도체 호황 역시 단순한 경기 반등이 아니라 AI 확산 과정에서 나타난...",
+    "url": "https://www.ajunews.com/view/20260511103807816",
+    "originallink": "https://www.ajunews.com/view/20260511103807816",
+    "source": "아주경제",
+    "published_at": "Mon, 11 May 2026 10:44:00 +0900",
+    "published_at_kst": "2026-05-11T10:44:00+09:00",
+    "keyword": "세계경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "트럼프 美 대통령, 13~15일 中 국빈 방문 확정… 9년 만의 베이징행",
+    "description": "특히 이번 정상회담은 미-이란 간의 불안정한 휴전과 호르무즈 해협 봉쇄로 인해 에너지 가격이 폭등하고 세계 경제가 위축된 엄중한 상황 속에서 개최된다. 안나 켈리 미국 수석 부대변인은 트럼프 대통령의 이번...",
+    "url": "https://www.g-enews.com/view.php?ud=2026051110312584790c8c1c064d_1",
+    "originallink": "https://www.g-enews.com/view.php?ud=2026051110312584790c8c1c064d_1",
+    "source": "g-enews",
+    "published_at": "Mon, 11 May 2026 10:34:00 +0900",
+    "published_at_kst": "2026-05-11T10:34:00+09:00",
+    "keyword": "세계경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "기요사키 \"베이비붐 세대, 올해 무더기 실직 온다\"...방어 대책은 '비트...",
+    "description": "그는 과거에도 ‘모든 것의 버블’이 심각한 시장 붕괴를 촉발하고 세계 경제를 침체나 공황으로 밀어 넣을 수 있다고 경고해왔다. 기요사키는 은퇴 위기 경고와 함께 금, 은, 비트코인(Bitcoin, BTC), 이더리움(Ethereum...",
+    "url": "http://coinreaders.com/235661",
+    "originallink": "http://coinreaders.com/235661",
+    "source": "coinreaders",
+    "published_at": "Mon, 11 May 2026 10:14:00 +0900",
+    "published_at_kst": "2026-05-11T10:14:00+09:00",
+    "keyword": "세계경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "S2W, '온톨로지 기반 의사결정 시스템' 웨비나 개최",
+    "description": "세계경제포럼(WEF) ‘2023년 100대 기술 선도기업’으로 선정됐다. △공공·정부기관용 안보 AI 플랫폼 ‘자비스(XARVIS)’ △기업 및 기관용 보안 AI 솔루션 ‘퀘이사(QUAXAR)’ △도메인 특화 온톨로지(Ontology) 플랫폼...",
+    "url": "https://n.news.naver.com/mnews/article/092/0002422096?sid=105",
+    "originallink": "https://zdnet.co.kr/view/?no=20260511100832",
+    "source": "지디넷코리아",
+    "published_at": "Mon, 11 May 2026 10:09:00 +0900",
+    "published_at_kst": "2026-05-11T10:09:00+09:00",
+    "keyword": "세계경제",
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+>>>>>>> 6d0c4f0 (...)
   },
   {
     "title": "美재무-中부총리, 트럼프 방중 앞두고 13일 한국서 사전협상",
@@ -811,7 +1650,12 @@
     "published_at": "Mon, 11 May 2026 11:32:00 +0900",
     "published_at_kst": "2026-05-11T11:32:00+09:00",
     "keyword": "미국경제",
+<<<<<<< HEAD
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
+=======
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+>>>>>>> 6d0c4f0 (...)
   },
   {
     "title": "트럼프·시진핑, 14일 정상회담…이틀간 최소 6개 행사서 대면",
@@ -822,7 +1666,12 @@
     "published_at": "Mon, 11 May 2026 11:32:00 +0900",
     "published_at_kst": "2026-05-11T11:32:00+09:00",
     "keyword": "미국경제",
+<<<<<<< HEAD
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
+=======
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+>>>>>>> 6d0c4f0 (...)
   },
   {
     "title": "\"트럼프 경제 못한다\"…美 유권자 58% 부정 평가",
@@ -833,6 +1682,7 @@
     "published_at": "Mon, 11 May 2026 11:29:00 +0900",
     "published_at_kst": "2026-05-11T11:29:00+09:00",
     "keyword": "미국경제",
+<<<<<<< HEAD
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
   },
   {
@@ -845,6 +1695,10 @@
     "published_at_kst": "2026-05-11T11:18:00+09:00",
     "keyword": "미국경제",
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
+=======
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+>>>>>>> 6d0c4f0 (...)
   },
   {
     "title": "트럼프가 시진핑에 던질 ‘이란 카드’…한국 유가·수출까지 흔든다 [...",
@@ -855,7 +1709,12 @@
     "published_at": "Mon, 11 May 2026 11:17:00 +0900",
     "published_at_kst": "2026-05-11T11:17:00+09:00",
     "keyword": "미국경제",
+<<<<<<< HEAD
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
+=======
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+>>>>>>> 6d0c4f0 (...)
   },
   {
     "title": "미국 유권자 과반, 트럼프 경제정책 불만…\"중간선거 빨간불\"",
@@ -866,7 +1725,12 @@
     "published_at": "Mon, 11 May 2026 11:12:00 +0900",
     "published_at_kst": "2026-05-11T11:12:00+09:00",
     "keyword": "미국경제",
+<<<<<<< HEAD
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
+=======
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+>>>>>>> 6d0c4f0 (...)
   },
   {
     "title": "美 유권자 과반, 트럼프 경제정책에 불만…중간선거 '빨간불'",
@@ -877,7 +1741,12 @@
     "published_at": "Mon, 11 May 2026 11:09:00 +0900",
     "published_at_kst": "2026-05-11T11:09:00+09:00",
     "keyword": "미국경제",
+<<<<<<< HEAD
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
+=======
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+>>>>>>> 6d0c4f0 (...)
   },
   {
     "title": "\"반도체 공급망 흔들\" 암참도 '삼성 파업'에 공식 우려 표명",
@@ -888,6 +1757,7 @@
     "published_at": "Mon, 11 May 2026 11:09:00 +0900",
     "published_at_kst": "2026-05-11T11:09:00+09:00",
     "keyword": "미국경제",
+<<<<<<< HEAD
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
   },
   {
@@ -1593,5 +2463,177 @@
     "published_at_kst": "2026-05-11T14:43:00+09:00",
     "keyword": "기준금리",
     "scraped_at": "2026-05-11T15:15:26.089469+09:00"
+=======
+    "sort": "date",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "美 베선트·中 허리펑, 13일 서울서 경제·무역 회담(종합)",
+    "description": "이재우 기자, 이윤희 특파원 = 스콧 베선트 미국 재무장관과 허리펑(何立峰) 중국 공산당 중앙정치국 위원 겸 국무원 부총리가 13일 한국 서울에서 경제·무역 회담에 나선다. 베선트 장관은 10일(현지시간) 소셜미디어(SNS)...",
+    "url": "https://n.news.naver.com/mnews/article/003/0013936129?sid=104",
+    "originallink": "https://www.newsis.com/view/NISX20260511_0003623539",
+    "source": "뉴시스",
+    "published_at": "Mon, 11 May 2026 06:38:00 +0900",
+    "published_at_kst": "2026-05-11T06:38:00+09:00",
+    "keyword": "한국경제",
+    "sort": "sim",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "반도체만 훨훨, 성장 엔진 식는 韓 경제…환율도 정체",
+    "description": "일부 기업 실적에 의존하는 한국 경제의 허약한 체력이 그대로 드러나고 있는 셈이다. 이런 상황이 환율에 영향을 미치면서 미 달러화에 대한 원화 환율도 1400원대 후반에서 내려오지 않고 있다. 경제협력개발기구(OECD)...",
+    "url": "https://n.news.naver.com/mnews/article/243/0000097633?sid=101",
+    "originallink": "https://economist.co.kr/article/view/ecn202605060040",
+    "source": "이코노미스트",
+    "published_at": "Mon, 11 May 2026 06:28:00 +0900",
+    "published_at_kst": "2026-05-11T06:28:00+09:00",
+    "keyword": "한국경제",
+    "sort": "sim",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "중동 리스크에 해상운임 36% 급등…수입 축산물 가격 압박",
+    "description": "11일 한국농촌경제연구원(KREI)의 '해외 주요 축산물 수급동향'에 따르면 3월 상하이컨테이너운임지수(SCFI)는 1683으로 전년 동월 대비 36.3% 상승했다. SCFI는 글로벌 해상 물류 흐름을 보여주는 대표 지표다. 최근 중동...",
+    "url": "https://n.news.naver.com/mnews/article/003/0013936109?sid=101",
+    "originallink": "https://www.newsis.com/view/NISX20260508_0003621574",
+    "source": "뉴시스",
+    "published_at": "Mon, 11 May 2026 06:00:00 +0900",
+    "published_at_kst": "2026-05-11T06:00:00+09:00",
+    "keyword": "한국경제",
+    "sort": "sim",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "“돌봄 1조 원, 4.6조 원 소득효과로” ‘돌봄경제’ 뜬다",
+    "description": "브라보마이라이프=이준호 노인복지 전문 기자 | 국회 토론회서 돌봄 지출 경제효과 조명… “복지 지출 넘어 산업정책으로 봐야” 초고령사회에 접어든 한국에서 ‘돌봄경제’가 새로운 정책 화두로 떠올랐다. 돌봄을...",
+    "url": "https://bravo.etoday.co.kr/view/atc_view/19219",
+    "originallink": "https://bravo.etoday.co.kr/view/atc_view/19219",
+    "source": "이투데이",
+    "published_at": "Mon, 11 May 2026 06:02:00 +0900",
+    "published_at_kst": "2026-05-11T06:02:00+09:00",
+    "keyword": "한국경제",
+    "sort": "sim",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "KDI 성장률 상향하나…한국 경제 전망 발표",
+    "description": "韓 올해 성장률 수정치는…미·중 정상회담에 시선 고정 - 핵심 요약: 한국개발연구원(KDI)이 13일 ‘2026년 상반기 경제전망’을 발표한다. KDI는 올 2월 우리나라 실질 국내총생산(GDP) 성장률을 1.9%로 전망한 바...",
+    "url": "https://n.news.naver.com/mnews/article/011/0004619312?sid=101",
+    "originallink": "https://www.sedaily.com/article/20042314?ref=naver",
+    "source": "서울경제",
+    "published_at": "Mon, 11 May 2026 07:30:00 +0900",
+    "published_at_kst": "2026-05-11T07:30:00+09:00",
+    "keyword": "한국경제",
+    "sort": "sim",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "[경제브리핑]사상 처음으로 '코스피 7천 시대'",
+    "description": "이번 코스피 7,000 시대가 일시적인 열풍을 넘어 한국 경제의 체질 개선을 알리는 신호탄이 될지 시장의 이목이 집중되고 있습니다. {정은보/한국거래소 이사장/\"코스피 7,000 돌파는 우리 증시의 기초 체력이 근복적으로...",
+    "url": "https://news.knn.co.kr/news/article/187627",
+    "originallink": "https://news.knn.co.kr/news/article/187627",
+    "source": "news.knn",
+    "published_at": "Mon, 11 May 2026 07:46:00 +0900",
+    "published_at_kst": "2026-05-11T07:46:00+09:00",
+    "keyword": "한국경제",
+    "sort": "sim",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "\"금리 인상 온다\"…'채권왕' 건들락, 주식 팔고 '이것' 사라",
+    "description": "내 금리 인하는 없을 것이라고 단언하며, 주식 등 위험 자산에서 손을 떼고 현금·금·실물 자산으로 포트폴리오를 재편하라고 촉구했습니다. 건들락은 \"2026년 말까지 두세 차례 금리 인하가 이뤄질 것이라는 기대를...",
+    "url": "https://n.news.naver.com/mnews/article/374/0000509158?sid=104",
+    "originallink": "https://biz.sbs.co.kr/article_hub/20000309310?division=NAVER",
+    "source": "SBS",
+    "published_at": "Mon, 11 May 2026 04:40:00 +0900",
+    "published_at_kst": "2026-05-11T04:40:00+09:00",
+    "keyword": "금리",
+    "sort": "sim",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "[사설] 한국 경제 흔드는 삼성전자 파업 리스크",
+    "description": "삼성전자의 파업은 한 회사의 노사 갈등을 넘어 한국 경제 전체를 뒤흔들 리스크로 부상한 상황이다. 파국을 막을 사실상 마지막 기회인 만큼 노사가 상생의 해법을 찾기 위해 진지하게 협상에 임해야 한다. 삼성전자...",
+    "url": "https://n.news.naver.com/mnews/article/025/0003522237?sid=110",
+    "originallink": "https://www.joongang.co.kr/article/25427157",
+    "source": "중앙일보",
+    "published_at": "Mon, 11 May 2026 00:24:00 +0900",
+    "published_at_kst": "2026-05-11T00:24:00+09:00",
+    "keyword": "한국경제",
+    "sort": "sim",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "금리 3% 정책 자금, 가맹점에 18% 대출 못한다",
+    "description": "가맹본부 정책 자금 돈 놀이 금지 앞으로 프랜차이즈 가맹본부가 정책 자금을 싸게 빌린 뒤 그 돈을 고금리... 공정거래위원회와 금융위원회는 10일 이 같은 내용이 담긴 ‘가맹본부의 고금리 부당 대출에 대한 대응...",
+    "url": "https://n.news.naver.com/mnews/article/023/0003975632?sid=101",
+    "originallink": "https://www.chosun.com/economy/economy_general/2026/05/11/HD76DWRMJVBGXEPRX42NWB4GSA/?utm_source=naver&utm_medium=referral&utm_campaign=naver-news",
+    "source": "조선일보",
+    "published_at": "Mon, 11 May 2026 00:33:00 +0900",
+    "published_at_kst": "2026-05-11T00:33:00+09:00",
+    "keyword": "금리",
+    "sort": "sim",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "OECD, 에너지물가 1년새 8% 급등… 중동發 ‘워플레이션’ 초비상",
+    "description": "중동 전쟁에 따른 국제유가 상승 여파로 올해 3월 경제협력개발기구(OECD) 회원국의 에너지 물가가 2023년 2월 이후 가장 높은 수준으로 뛰었다. 한국은 석유 최고가격제와 유류세 인하 등으로 3월 에너지 물가...",
+    "url": "https://n.news.naver.com/mnews/article/020/0003718473?sid=101",
+    "originallink": "https://www.donga.com/news/Economy/article/all/20260510/133894042/2",
+    "source": "동아일보",
+    "published_at": "Mon, 11 May 2026 00:31:00 +0900",
+    "published_at_kst": "2026-05-11T00:31:00+09:00",
+    "keyword": "물가",
+    "sort": "sim",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "\"환율 10% 오르면 소비자물가 최대 0.5%p 올라\"",
+    "description": "현대경제연구원은 10일 '물가, 환율 상승의 누적 효과에 주의해야 한다' 보고서에서 이같이 밝히면서 \"원·달러 환율이 10% 오르면 소비자물가는 약 0.3~0.5%포인트(p) 오른다\"고 분석했다. 이 연구원은 시차 구조를 통해...",
+    "url": "https://n.news.naver.com/mnews/article/031/0001027568?sid=101",
+    "originallink": "http://www.inews24.com/view/1967162",
+    "source": "아이뉴스24",
+    "published_at": "Sun, 10 May 2026 20:13:00 +0900",
+    "published_at_kst": "2026-05-10T20:13:00+09:00",
+    "keyword": "환율",
+    "sort": "sim",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "“반도체 생산 멈추면 韓경제 휘청”… 정부, 삼성전자 파업 적극 중재",
+    "description": "현재 반도체는 한국 경제의 ‘모든 것’으로 인식되고 있다. 중동전쟁의 충격파가 관통한 지난 3월 경상수지는 반도체 수출 실적 덕분에 373억 3000만 달러를 기록하며 두 달 연속 역대 최고 기록을 세웠다. 올해 1분기...",
+    "url": "https://n.news.naver.com/mnews/article/081/0003642403?sid=101",
+    "originallink": "https://www.seoul.co.kr/news/economy/2026/05/10/20260510500096?wlog_tag3=naver",
+    "source": "서울신문",
+    "published_at": "Sun, 10 May 2026 18:03:00 +0900",
+    "published_at_kst": "2026-05-10T18:03:00+09:00",
+    "keyword": "한국경제",
+    "sort": "sim",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "해답 아니라 시대였다…파월의 8년, 세계 경제 뒤흔든 4번의 순간",
+    "description": "시장의 소방수였고 때로는 시장을 뒤흔든 충격 요인 자체이기도 했다. 월가 한 인사는 \"파월은 세계 경제가 구조적으로 불안정해진 시대에 중앙은행이 감당해야 했던 부담을 가장 집약적으로 보여준 인물\"이라고 말했다.",
+    "url": "https://n.news.naver.com/mnews/article/008/0005355319?sid=101",
+    "originallink": "https://www.mt.co.kr/world/2026/05/11/2026051011013216934",
+    "source": "머니투데이",
+    "published_at": "Sun, 10 May 2026 19:07:00 +0900",
+    "published_at_kst": "2026-05-10T19:07:00+09:00",
+    "keyword": "세계경제",
+    "sort": "sim",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+  },
+  {
+    "title": "은행권 대출금리 다시 뜀박질…금리인상론에 '빚투' 조마조마",
+    "description": "한동안 상승세가 주춤했던 은행권 가계대출 금리가 다시 오르고 있다. 중동 정세 불안으로 시장금리가 가파르게 오르고 있는 영향이다. 여기에 연내 한국은행의 금리인상 가능성까지 나오고 있어 당분간 대출금리...",
+    "url": "https://n.news.naver.com/mnews/article/003/0013935918?sid=101",
+    "originallink": "https://www.newsis.com/view/NISX20260510_0003623389",
+    "source": "뉴시스",
+    "published_at": "Sun, 10 May 2026 18:22:00 +0900",
+    "published_at_kst": "2026-05-10T18:22:00+09:00",
+    "keyword": "금리",
+    "sort": "sim",
+    "scraped_at": "2026-05-11T15:48:23.205363+09:00"
+>>>>>>> 6d0c4f0 (...)
   }
 ]

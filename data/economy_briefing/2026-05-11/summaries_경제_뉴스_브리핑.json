@@ -1,5 +1,6 @@
 [
   {
+<<<<<<< HEAD
     "title": "韓 경제 성장률 2.1%→2.8% 상향... 금융연 \"반도체 실적 주도\"",
     "summary": "한국금융연구원이 올해 한국 경제 성장률 전망치를 2.1%에서 2.8%로 상향 조정하며, 반도체 실적이 주요 요인으로 작용했다고 발표했습니다.",
     "url": "https://n.news.naver.com/mnews/article/661/0000076021?sid=101",
@@ -86,5 +87,82 @@
     "category": "기타",
     "source": "thepublic",
     "tokens_used": 300
+=======
+    "title": "금융硏, 올해 경제성장률 2.8%로 상향…“반도체·AI 수출 확대”",
+    "summary": "한국금융연구원은 올해 한국 경제성장률 전망치를 2.8%로 0.7%포인트 상향 조정하며, 반도체와 인공지능(AI) 수출 호조가 성장을 이끌 것으로 분석했다.",
+    "url": "https://n.news.naver.com/mnews/article/011/0004619523?sid=101",
+    "keyword": "한국경제",
+    "published_at": "Mon, 11 May 2026 15:28:00 +0900",
+    "importance_score": 5,
+    "category": "경제성장",
+    "source": "서울경제",
+    "tokens_used": 316
+  },
+  {
+    "title": "한국 반도체 호황에도 금리인상 압박 커진다, 골드만삭스 \"경제 양극화...",
+    "summary": "골드만삭스는 한국 경제가 반도체 중심의 수출 호조에도 불균형한 성장세를 보일 것으로 전망하며, 이로 인해 금리 인상 압박이 커질 것이라고 분석했다.",
+    "url": "https://www.businesspost.co.kr/BP?command=article_view&num=437490",
+    "keyword": "한국경제",
+    "published_at": "Mon, 11 May 2026 14:40:00 +0900",
+    "importance_score": 5,
+    "category": "경제성장",
+    "source": "비즈니스포스트",
+    "tokens_used": 297
+  },
+  {
+    "title": "삼성전자 노사 협상 돌입 “성과급 상한 폐지 요구 변화 없다”",
+    "summary": "삼성전자가 노사 협상에 들어갔으나 성과급 상한 폐지 요구는 변함이 없다. 반도체가 한국 경제의 46.3%를 차지하며, 총파업 시 경제에 큰 타격이 우려된다.",
+    "url": "https://m.skyedaily.com/news_view.html?ID=303825",
+    "keyword": "한국경제",
+    "published_at": "Mon, 11 May 2026 15:32:00 +0900",
+    "importance_score": 4,
+    "category": "기업리스크",
+    "source": "스카이데일리",
+    "tokens_used": 305
+  },
+  {
+    "title": "'인하파' 신성환 금통위원도 \"지금은 금리인하 부담\"…인상 초읽기",
+    "summary": "신성환 금통위원은 한국 경제의 양극화를 언급하며 현재 금리 인하에 대한 부담이 있다고 밝혔다. 그는 극단적인 상황에 처해 있다고 평가했다.",
+    "url": "https://www.newspim.com/news/view/20260511000957",
+    "keyword": "한국경제",
+    "published_at": "Mon, 11 May 2026 15:12:00 +0900",
+    "importance_score": 4,
+    "category": "금융정책",
+    "source": "뉴스핌",
+    "tokens_used": 295
+  },
+  {
+    "title": "OECD, 에너지물가 1년새 8% 급등… 중동發 ‘워플레이션’ 초비상",
+    "summary": "OECD에 따르면 중동 전쟁으로 인해 국제유가가 상승하면서 2023년 3월 회원국의 에너지 물가가 1년 새 8% 급등했다. 한국은 석유 최고가격제와 유류세 인하로 에너지 물가에 영향을 받고 있다.",
+    "url": "https://n.news.naver.com/mnews/article/020/0003718473?sid=101",
+    "keyword": "물가",
+    "published_at": "Mon, 11 May 2026 00:31:00 +0900",
+    "importance_score": 4,
+    "category": "물가",
+    "source": "동아일보",
+    "tokens_used": 322
+  },
+  {
+    "title": "자녀에게 물려줄 수 있는 최고의 유산, '달러보험'이라는 글로벌 경쟁력",
+    "summary": "한국 경제가 미국의 금리와 달러 흐름에 영향을 받으며, 원화 자산만으로는 미래 준비가 불안정하다는 인식이 확산되고 있다. 이 가운데 '달러보험'은 자녀에게 물려줄 수 있는 중요한 유산으로 주목받고 있다.",
+    "url": "https://www.ibabynews.com/news/articleView.html?idxno=151208",
+    "keyword": "한국경제",
+    "published_at": "Mon, 11 May 2026 15:46:00 +0900",
+    "importance_score": 3,
+    "category": "기타",
+    "source": "ibabynews",
+    "tokens_used": 307
+  },
+  {
+    "title": "나무호 외부 피격...공격 주체 신중한 정부 속사정",
+    "summary": "한국 경제는 중동 원유 의존도가 높아 이란과의 관계 악화가 치명적이며, 미국의 오인 사격이나 제재 과정에서의 무력 행사 시 상황이 더욱 복잡해질 수 있다.",
+    "url": "http://www.00news.co.kr/news/articleView.html?idxno=103703",
+    "keyword": "한국경제",
+    "published_at": "Mon, 11 May 2026 15:24:00 +0900",
+    "importance_score": 3,
+    "category": "기타",
+    "source": "00news",
+    "tokens_used": 292
+>>>>>>> 6d0c4f0 (...)
   }
 ]
