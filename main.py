@@ -25,26 +25,32 @@ import email_sender
 # 기본 설정
 # ====================================
 DEFAULT_CONFIG_PATH = "configs/company_briefing.json"
-DEFAULT_DISPLAY_PER_KEYWORD = 30
-DEFAULT_SELECT_LIMIT = 10
+
+# 네이버 뉴스 API는 1회 호출 display 최대 100개.
+# 기본값: 키워드당 date 최신순 100개 × 3페이지 = 최대 300개 조회.
+DEFAULT_DISPLAY_PER_KEYWORD = 100
+DEFAULT_PAGES_PER_KEYWORD = 3
+DEFAULT_SORTS = ["sim"]
+
+# 최근 몇 시간 이내 뉴스만 사용할지
 DEFAULT_RECENT_HOURS = 24
 
+# 시간대별 샘플링 후 AI 선별 단계로 넘길 최종 후보 최대 개수
+DEFAULT_MAX_TOTAL_NEWS = 100
 
-# ====================================
-# 디렉터리 생성
-# ====================================
-os.makedirs("logs", exist_ok=True)
-os.makedirs("data", exist_ok=True)
+# OpenAI 최종 선별 개수
+DEFAULT_SELECT_LIMIT = 10
 
 
 # ====================================
 # 로깅 설정
+# - GitHub Actions 콘솔 로그만 남김
+# - logs/scraper.log 파일 저장 안 함
 # ====================================
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler("logs/scraper.log", encoding="utf-8"),
         logging.StreamHandler()
     ]
 )
@@ -121,45 +127,39 @@ def make_safe_filename(value):
     return value
 
 
-def get_run_paths(config_path, briefing_name):
+def normalize_sorts(value):
     """
-    실행 결과 저장 경로 생성
+    설정 파일의 sorts 값을 안전하게 리스트로 변환한다.
 
-    예:
-    data/company_briefing/2026-05-08/raw_의료_뉴스_브리핑.json
+    지원:
+    - ["date"]
+    - "date"
+    - 값 없음 → DEFAULT_SORTS
     """
-    config_base_name = os.path.splitext(os.path.basename(config_path))[0]
-    today = datetime.now().strftime("%Y-%m-%d")
+    if value is None:
+        return DEFAULT_SORTS
 
-    base_dir = os.path.join(
-        "data",
-        make_safe_filename(config_base_name),
-        today
-    )
+    if isinstance(value, list):
+        cleaned = [str(item).strip() for item in value if str(item).strip()]
+        return cleaned or DEFAULT_SORTS
 
-    os.makedirs(base_dir, exist_ok=True)
+    if isinstance(value, str):
+        value = value.strip()
+        if not value:
+            return DEFAULT_SORTS
+        return [value]
 
-    return base_dir
-
-
-def save_json(data, file_path):
-    """
-    JSON 저장
-    """
-    os.makedirs(os.path.dirname(file_path), exist_ok=True)
-
-    with open(file_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
-    logger.info(f"💾 저장 완료: {file_path}")
+    return DEFAULT_SORTS
 
 
 def collect_select_and_summarize(
     section_name,
     keywords,
     topic_description,
-    output_dir,
     display_per_keyword=DEFAULT_DISPLAY_PER_KEYWORD,
+    pages_per_keyword=DEFAULT_PAGES_PER_KEYWORD,
+    sorts=None,
+    max_total_news=DEFAULT_MAX_TOTAL_NEWS,
     select_limit=DEFAULT_SELECT_LIMIT,
     recent_hours=DEFAULT_RECENT_HOURS
 ):
@@ -170,8 +170,10 @@ def collect_select_and_summarize(
         section_name: 섹션명
         keywords: 검색 키워드 리스트
         topic_description: OpenAI 선별 기준 설명
-        output_dir: 결과 저장 디렉터리
-        display_per_keyword: 키워드당 네이버 API 검색 개수
+        display_per_keyword: 키워드당 페이지별 네이버 API 검색 개수
+        pages_per_keyword: 키워드당 조회 페이지 수
+        sorts: 정렬 방식 리스트. 기본 ["date"]
+        max_total_news: AI 선별 단계로 넘길 최종 후보 최대 개수
         select_limit: 최종 선별 개수
         recent_hours: 최근 몇 시간 뉴스만 수집할지
 
@@ -180,38 +182,36 @@ def collect_select_and_summarize(
             "section_name": str,
             "summaries": list,
             "raw_count": int,
-            "selected_count": int
+            "selected_count": int,
+            "scrape_stats": dict
         }
     """
-    safe_section_name = make_safe_filename(section_name)
-
-    raw_json_path = os.path.join(output_dir, f"raw_{safe_section_name}.json")
-    selected_json_path = os.path.join(output_dir, f"selected_{safe_section_name}.json")
-    summary_json_path = os.path.join(output_dir, f"summaries_{safe_section_name}.json")
+    sorts = normalize_sorts(sorts)
 
     logger.info("\n" + "=" * 60)
     logger.info(f"📰 [{section_name}] 뉴스 수집 시작")
     logger.info("=" * 60)
     logger.info(f"키워드: {', '.join(keywords)}")
     logger.info(f"최근 뉴스 기준: {recent_hours}시간 이내")
-    logger.info(f"키워드당 조회 개수: {display_per_keyword}")
+    logger.info(f"정렬 방식: {sorts}")
+    logger.info(f"키워드당 페이지별 조회 개수: {display_per_keyword}")
+    logger.info(f"키워드당 페이지 수: {pages_per_keyword}")
+    logger.info(f"키워드당 최대 조회 개수: {display_per_keyword * pages_per_keyword}")
+    logger.info(f"AI 선별 전달 최대 후보 수: {max_total_news}")
     logger.info(f"최종 선별 개수: {select_limit}")
 
-    try:
-        news_list = naver_news_scraper.search_multiple_keywords(
-            keywords,
-            display_per_keyword=display_per_keyword,
-            recent_hours=recent_hours
-        )
-    except TypeError:
-        # naver_news_scraper.py에 recent_hours 인자를 아직 반영하지 않은 경우를 위한 임시 호환 처리
-        logger.warning("⚠️ naver_news_scraper.search_multiple_keywords()가 recent_hours 인자를 지원하지 않습니다.")
-        logger.warning("⚠️ 최근 24시간 필터를 적용하려면 naver_news_scraper.py 수정본이 필요합니다.")
+    news_list = naver_news_scraper.search_multiple_keywords(
+        keywords=keywords,
+        display_per_keyword=display_per_keyword,
+        recent_hours=recent_hours,
+        sorts=sorts,
+        pages_per_keyword=pages_per_keyword,
+        max_total_news=max_total_news
+    )
 
-        news_list = naver_news_scraper.search_multiple_keywords(
-            keywords,
-            display_per_keyword=display_per_keyword
-        )
+    # naver_news_scraper.py에서 마지막 수집 통계를 가져온다.
+    # 메일 대시보드에서 섹션별 후보/중복제외/24시간제외 등에 사용한다.
+    scrape_stats = naver_news_scraper.get_last_scrape_stats()
 
     if not news_list:
         logger.error(f"❌ [{section_name}] 수집된 뉴스가 없습니다.")
@@ -219,12 +219,11 @@ def collect_select_and_summarize(
             "section_name": section_name,
             "summaries": [],
             "raw_count": 0,
-            "selected_count": 0
+            "selected_count": 0,
+            "scrape_stats": scrape_stats
         }
 
     logger.info(f"✅ [{section_name}] 후보 뉴스 {len(news_list)}개 수집 완료")
-
-    save_json(news_list, raw_json_path)
 
     logger.info("\n" + "=" * 60)
     logger.info(f"🧠 [{section_name}] OpenAI 뉴스 선별 시작")
@@ -243,10 +242,9 @@ def collect_select_and_summarize(
             "section_name": section_name,
             "summaries": [],
             "raw_count": len(news_list),
-            "selected_count": 0
+            "selected_count": 0,
+            "scrape_stats": scrape_stats
         }
-
-    save_json(selected_news, selected_json_path)
 
     logger.info(f"✅ [{section_name}] {len(selected_news)}개 뉴스 선별 완료")
 
@@ -265,10 +263,9 @@ def collect_select_and_summarize(
             "section_name": section_name,
             "summaries": [],
             "raw_count": len(news_list),
-            "selected_count": len(selected_news)
+            "selected_count": len(selected_news),
+            "scrape_stats": scrape_stats
         }
-
-    save_json(summaries, summary_json_path)
 
     logger.info(f"✅ [{section_name}] {len(summaries)}개 뉴스 요약 완료")
 
@@ -276,7 +273,8 @@ def collect_select_and_summarize(
         "section_name": section_name,
         "summaries": summaries,
         "raw_count": len(news_list),
-        "selected_count": len(selected_news)
+        "selected_count": len(selected_news),
+        "scrape_stats": scrape_stats
     }
 
 
@@ -295,13 +293,11 @@ def main():
     receiver_env = config.get("receiver_env", "EMAIL_RECEIVER")
 
     display_per_keyword = int(config.get("display_per_keyword", DEFAULT_DISPLAY_PER_KEYWORD))
+    pages_per_keyword = int(config.get("pages_per_keyword", DEFAULT_PAGES_PER_KEYWORD))
+    sorts = normalize_sorts(config.get("sorts", DEFAULT_SORTS))
+    max_total_news = int(config.get("max_total_news", DEFAULT_MAX_TOTAL_NEWS))
     select_limit = int(config.get("select_limit", DEFAULT_SELECT_LIMIT))
     recent_hours = int(config.get("recent_hours", DEFAULT_RECENT_HOURS))
-
-    output_dir = get_run_paths(
-        config_path=config_path,
-        briefing_name=briefing_name
-    )
 
     logger.info("\n" + "=" * 60)
     logger.info("🚀 뉴스 스크래퍼 시작")
@@ -311,7 +307,12 @@ def main():
     logger.info(f"수신자 환경변수: {receiver_env}")
     logger.info(f"메일 제목 prefix: {subject_prefix}")
     logger.info(f"섹션 수: {len(sections)}개")
-    logger.info(f"결과 저장 경로: {output_dir}")
+    logger.info(f"기본 정렬 방식: {sorts}")
+    logger.info(f"기본 키워드당 페이지별 조회 개수: {display_per_keyword}")
+    logger.info(f"기본 키워드당 페이지 수: {pages_per_keyword}")
+    logger.info(f"기본 키워드당 최대 조회 개수: {display_per_keyword * pages_per_keyword}")
+    logger.info(f"기본 AI 선별 전달 최대 후보 수: {max_total_news}")
+    logger.info("결과 JSON 파일 저장: 비활성화")
     logger.info("=" * 60)
 
     section_results = []
@@ -321,30 +322,38 @@ def main():
         keywords = section["keywords"]
         topic_description = section["topic_description"]
 
+        section_display_per_keyword = int(
+            section.get("display_per_keyword", display_per_keyword)
+        )
+        section_pages_per_keyword = int(
+            section.get("pages_per_keyword", pages_per_keyword)
+        )
+        section_sorts = normalize_sorts(
+            section.get("sorts", sorts)
+        )
+        section_max_total_news = int(
+            section.get("max_total_news", max_total_news)
+        )
+        section_select_limit = int(
+            section.get("select_limit", select_limit)
+        )
+        section_recent_hours = int(
+            section.get("recent_hours", recent_hours)
+        )
+
         section_result = collect_select_and_summarize(
             section_name=section_name,
             keywords=keywords,
             topic_description=topic_description,
-            output_dir=output_dir,
-            display_per_keyword=int(section.get("display_per_keyword", display_per_keyword)),
-            select_limit=int(section.get("select_limit", select_limit)),
-            recent_hours=int(section.get("recent_hours", recent_hours))
+            display_per_keyword=section_display_per_keyword,
+            pages_per_keyword=section_pages_per_keyword,
+            sorts=section_sorts,
+            max_total_news=section_max_total_news,
+            select_limit=section_select_limit,
+            recent_hours=section_recent_hours
         )
 
         section_results.append(section_result)
-
-    # 전체 결과 저장
-    all_results_path = os.path.join(output_dir, "briefing_results.json")
-    save_json(
-        {
-            "briefing_name": briefing_name,
-            "subject_prefix": subject_prefix,
-            "config_path": config_path,
-            "created_at": datetime.now().isoformat(),
-            "sections": section_results
-        },
-        all_results_path
-    )
 
     # ====================================
     # 이메일 발송
@@ -353,7 +362,6 @@ def main():
     logger.info("📧 이메일 발송 시작")
     logger.info("=" * 60)
 
-    # 다음 단계에서 email_sender.py를 이 인자 구조에 맞게 수정해야 합니다.
     result = email_sender.send_email(
         briefing_name=briefing_name,
         subject_prefix=subject_prefix,
@@ -381,10 +389,16 @@ def main():
     for section_result in section_results:
         section_name = section_result["section_name"]
         summaries = section_result["summaries"]
+        scrape_stats = section_result.get("scrape_stats", {})
 
         raw_count = section_result["raw_count"]
         selected_count = section_result["selected_count"]
         summary_count = len(summaries)
+
+        duplicate_count = scrape_stats.get("duplicate_count", 0)
+        old_news_count = scrape_stats.get("old_news_count", 0)
+        pre_sampling_count = scrape_stats.get("pre_sampling_count", raw_count)
+        final_candidate_count = scrape_stats.get("final_candidate_count", raw_count)
 
         total_raw_count += raw_count
         total_selected_count += selected_count
@@ -394,6 +408,13 @@ def main():
         logger.info(f"📰 [{section_name}] 후보 수집: {raw_count}개")
         logger.info(f"🧠 [{section_name}] 뉴스 선별: {selected_count}개")
         logger.info(f"✨ [{section_name}] 뉴스 요약: {summary_count}개")
+        logger.info(
+            f"📊 [{section_name}] 수집 통계: "
+            f"샘플링 전 {pre_sampling_count}개 / "
+            f"최종 후보 {final_candidate_count}개 / "
+            f"중복 제외 {duplicate_count}개 / "
+            f"{scrape_stats.get('recent_hours', DEFAULT_RECENT_HOURS)}시간 초과 제외 {old_news_count}개"
+        )
 
     # 기존 코드의 비용 계산 방식 유지
     # 정확한 비용은 입력/출력 토큰 단가가 달라 별도 계산이 필요합니다.

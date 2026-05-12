@@ -5,9 +5,12 @@
 - 네이버 뉴스 검색 API로 뉴스 수집
 - 최근 N시간 이내 뉴스만 필터링
 - 언론사명 추정
-- date 최신순 + sim 정확도순 병행 수집
+- date 최신순 기준으로 키워드당 최대 300개 조회
 - URL 중복 제거
 - 시간대별 비례 샘플링으로 최신 기사 쏠림 완화
+- AI 선별 단계로 넘길 최종 후보는 기본 100개로 제한
+- 매핑되지 않은 언론사 도메인은 개별 로그 대신 파일로 누적 저장
+- 마지막 수집 통계를 main.py에서 가져갈 수 있도록 제공
 """
 
 import os
@@ -26,6 +29,7 @@ from press_map import PRESS_MAP
 load_dotenv()
 
 # 로깅 설정
+# 콘솔 출력만 사용하며, 파일 로그는 생성하지 않음
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -40,12 +44,29 @@ NAVER_SEARCH_URL = "https://openapi.naver.com/v1/search/news.json"
 # 한국 시간대
 KST = pytz.timezone("Asia/Seoul")
 
+# 매핑되지 않은 언론사 도메인 수집용
+# 개별 로그를 찍지 않고, 실행 종료 시 파일로 누적 저장한다.
+UNMAPPED_PRESS_DOMAINS = set()
+
+# 마지막 수집 통계
+# main.py에서 섹션별 대시보드 데이터로 가져간다.
+LAST_SCRAPE_STATS = {}
+
 
 def get_now_kst() -> datetime:
     """
     현재 한국 시간 반환
     """
     return datetime.now(KST)
+
+
+def get_last_scrape_stats() -> dict:
+    """
+    마지막 search_multiple_keywords 실행 통계를 반환한다.
+
+    main.py에서 섹션별 대시보드 데이터로 사용한다.
+    """
+    return dict(LAST_SCRAPE_STATS)
 
 
 def parse_naver_pubdate(pub_date: str):
@@ -68,6 +89,65 @@ def parse_naver_pubdate(pub_date: str):
         logger.warning(f"⚠️ pubDate 파싱 실패: {pub_date} / {e}")
         return None
 
+def get_news_date_range(news_list: list):
+    """
+    뉴스 목록에서 가장 최근 발행일과 가장 오래된 발행일을 반환한다.
+
+    Returns:
+        {
+            "latest": datetime | None,
+            "oldest": datetime | None
+        }
+    """
+    published_dates = []
+
+    for news in news_list or []:
+        published_dt = news.get("_published_dt")
+
+        if published_dt is None:
+            published_at_kst = news.get("published_at_kst")
+
+            if published_at_kst:
+                try:
+                    published_dt = datetime.fromisoformat(published_at_kst)
+                except Exception:
+                    published_dt = None
+
+        if published_dt is None:
+            pub_date = news.get("pubDate") or news.get("published_at")
+
+            if pub_date:
+                published_dt = parse_naver_pubdate(pub_date)
+
+        if published_dt is not None:
+            published_dates.append(published_dt)
+
+    if not published_dates:
+        return {
+            "latest": None,
+            "oldest": None
+        }
+
+    return {
+        "latest": max(published_dates),
+        "oldest": min(published_dates)
+    }
+
+
+def format_date_range_for_log(date_range: dict) -> str:
+    """
+    날짜 범위 로그 문자열 생성
+    """
+    latest = date_range.get("latest")
+    oldest = date_range.get("oldest")
+
+    if latest is None or oldest is None:
+        return "발행일 범위 확인 불가"
+
+    return (
+        f"최근 {latest.strftime('%Y-%m-%d %H:%M')} / "
+        f"가장 오래됨 {oldest.strftime('%Y-%m-%d %H:%M')}"
+    )
 
 def is_within_last_hours(pub_date: str, hours: int = 24) -> bool:
     """
@@ -132,7 +212,9 @@ def extract_press_name(item: dict) -> str:
     originallink 또는 link의 도메인을 기준으로 언론사명을 추정한다.
 
     1. PRESS_MAP에 매핑된 도메인이 있으면 한글 언론사명 반환
-    2. 매핑이 없으면 도메인 앞부분 반환
+    2. 매핑이 없으면 UNMAPPED_PRESS_DOMAINS에 저장
+    3. 매핑이 없을 때도 콘솔에 개별 출력하지 않음
+    4. 매핑이 없으면 도메인 앞부분을 임시 언론사명으로 반환
     """
     url = item.get("originallink") or item.get("link") or ""
 
@@ -154,7 +236,8 @@ def extract_press_name(item: dict) -> str:
             if domain == key or domain.endswith("." + key):
                 return name
 
-        logger.info(f"🧩 언론사 매핑 없음: {domain}")
+        # 매핑 안 된 도메인은 개별 로그를 찍지 않고 모아둔다.
+        UNMAPPED_PRESS_DOMAINS.add(domain)
 
         # 매핑 안 된 경우: 도메인에서 대표 영문명 추출
         suffixes = [
@@ -182,6 +265,54 @@ def extract_press_name(item: dict) -> str:
         return "언론사 미상"
 
 
+def save_unmapped_press_domains(filename: str = "data/unmapped_press_domains.json"):
+    """
+    매핑되지 않은 언론사 도메인을 누적 저장한다.
+
+    - 콘솔에는 개별 도메인을 찍지 않고 전체 건수만 출력
+    - 기존 파일이 있으면 기존 domains와 이번 실행 domains를 합친다
+    - 중복 도메인은 set으로 제거한다
+    """
+    if not UNMAPPED_PRESS_DOMAINS:
+        logger.info("🧩 이번 실행 언론사 미매핑 도메인: 0개")
+        return
+
+    existing_domains = set()
+
+    if os.path.exists(filename):
+        try:
+            with open(filename, "r", encoding="utf-8") as f:
+                existing_payload = json.load(f)
+
+            for domain in existing_payload.get("domains", []):
+                if domain:
+                    existing_domains.add(str(domain).strip())
+
+        except Exception as e:
+            logger.warning(f"⚠️ 기존 미매핑 도메인 파일 읽기 실패, 새로 생성합니다: {e}")
+
+    current_domains = set(UNMAPPED_PRESS_DOMAINS)
+    merged_domains = sorted(existing_domains | current_domains)
+
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+
+    payload = {
+        "updated_at": get_now_kst().isoformat(),
+        "total_count": len(merged_domains),
+        "current_run_count": len(current_domains),
+        "new_count": len(current_domains - existing_domains),
+        "domains": merged_domains
+    }
+
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+
+    logger.info(f"🧩 이번 실행 언론사 미매핑 도메인: {len(current_domains)}개")
+    logger.info(f"🧩 새로 추가된 미매핑 도메인: {len(current_domains - existing_domains)}개")
+    logger.info(f"🧩 누적 미매핑 도메인: {len(merged_domains)}개")
+    logger.info(f"🧩 미매핑 도메인 저장: {filename}")
+
+
 def search_naver_news(
     query: str,
     display: int = 100,
@@ -194,7 +325,7 @@ def search_naver_news(
     Args:
         query: 검색어 예: "EMR 전자의무기록"
         display: 결과 개수. 최대 100
-        sort: 정렬. date=최신순, sim=정확도순
+        sort: 정렬. date=최신순
         start: 검색 시작 위치. 기본 1
 
     Returns:
@@ -247,9 +378,12 @@ def search_naver_news(
             item["description"] = remove_html_tags(item.get("description", ""))
             item["source"] = extract_press_name(item)
 
+        api_date_range = get_news_date_range(items)
+
         logger.info(
-            f"✅ {len(items)}개 뉴스 수집 "
-            f"(전체 {data.get('total', 0)}개, sort={sort}, start={start})"
+            f"🕒 조회 결과 발행일 범위: "
+            f"query='{query}', sort={sort}, start={start}, display={display} | "
+            f"{format_date_range_for_log(api_date_range)}"
         )
 
         return {
@@ -282,7 +416,7 @@ def sample_news_by_time_bucket(
     시간대별 비례 샘플링
 
     목적:
-    - 최근 10분 기사에만 몰리는 현상 방지
+    - 최근 기사에만 몰리는 현상 방지
     - 뉴스가 많이 나온 시간대는 많이 남김
     - 뉴스가 적은 시간대는 최소 개수만 보장
     - 전체 후보 수는 max_total_news 이하로 제한
@@ -507,7 +641,7 @@ def search_multiple_keywords(
     display_per_keyword: int = 100,
     recent_hours: int = 24,
     sorts: list = None,
-    pages_per_keyword: int = 1,
+    pages_per_keyword: int = 3,
     enable_time_bucket_sampling: bool = True,
     bucket_hours: int = 4,
     max_total_news: int = 100,
@@ -517,18 +651,20 @@ def search_multiple_keywords(
     여러 키워드로 뉴스 검색
 
     공통 방식:
-    - 검색량이 적든 많든 같은 로직 적용
-    - date 최신순 + sim 정확도순 병행 수집
+    - date 최신순만 사용
+    - 키워드당 최대 300개 조회
+      display_per_keyword=100, pages_per_keyword=3이면 start=1, 101, 201 호출
     - 최근 recent_hours 이내 뉴스만 유지
     - URL 중복 제거
     - max_total_news 초과 시 시간대별 비례 샘플링
+    - AI 선별 단계로 넘길 최종 후보는 기본 100개 이하
 
     Args:
         keywords:
             ['EMR', '전자의무기록', ...]
 
         display_per_keyword:
-            키워드당, 정렬방식당, 페이지당 뉴스 개수.
+            키워드당, 페이지당 뉴스 개수.
             네이버 API 최대값은 100.
 
         recent_hours:
@@ -536,11 +672,14 @@ def search_multiple_keywords(
 
         sorts:
             사용할 정렬 방식 리스트.
-            기본값은 ["date", "sim"].
+            기본값은 ["date"].
+            매일 자동 브리핑에서는 sim 검색을 쓰지 않는다.
 
         pages_per_keyword:
-            키워드/정렬방식별 몇 페이지까지 가져올지.
-            display_per_keyword=100, pages_per_keyword=2이면 start=1, 101 호출.
+            키워드별 몇 페이지까지 가져올지.
+            기본 3.
+            display_per_keyword=100, pages_per_keyword=3이면
+            start=1, 101, 201로 키워드당 최대 300개 조회.
 
         enable_time_bucket_sampling:
             True이면 max_total_news 초과 시 시간대별 비례 샘플링.
@@ -573,8 +712,17 @@ def search_multiple_keywords(
             ...
         ]
     """
+    global LAST_SCRAPE_STATS
+
+    # 매일 자동 브리핑 기준: 정확도순 sim
     if sorts is None:
-        sorts = ["date", "sim"]
+        sorts = ["sim"]
+
+    # 실행마다 미매핑 도메인 목록 초기화
+    UNMAPPED_PRESS_DOMAINS.clear()
+
+    # 실행 시작 시 통계 초기화
+    LAST_SCRAPE_STATS = {}
 
     display_per_keyword = min(max(int(display_per_keyword), 1), 100)
     pages_per_keyword = max(int(pages_per_keyword), 1)
@@ -596,9 +744,11 @@ def search_multiple_keywords(
     logger.info(f"기준 현재 시각: {now_kst.strftime('%Y-%m-%d %H:%M:%S %Z')}")
     logger.info(f"저장 기준: {cutoff_dt.strftime('%Y-%m-%d %H:%M:%S %Z')} 이후 발행 뉴스")
     logger.info(f"정렬 방식: {sorts}")
-    logger.info(f"키워드/정렬별 페이지 수: {pages_per_keyword}")
+    logger.info(f"키워드당 페이지 수: {pages_per_keyword}")
+    logger.info(f"페이지당 조회 수: {display_per_keyword}")
+    logger.info(f"키워드당 최대 조회 수: {display_per_keyword * pages_per_keyword}")
     logger.info(f"시간대 비례 샘플링: {enable_time_bucket_sampling}")
-    logger.info(f"최대 후보 수: {max_total_news}")
+    logger.info(f"AI 선별 전달 최대 후보 수: {max_total_news}")
     logger.info("=" * 60)
 
     for keyword in keywords:
@@ -638,16 +788,10 @@ def search_multiple_keywords(
 
                     if published_dt is None:
                         parse_fail_or_invalid_count += 1
-                        logger.info(f"   ⏭️ 날짜 파싱 실패로 제외: {item.get('title', '')[:50]}")
                         continue
 
                     if not (cutoff_dt <= published_dt <= now_kst):
                         old_news_count += 1
-                        logger.info(
-                            f"   ⏭️ {recent_hours}시간 초과 뉴스 제외: "
-                            f"{published_dt.strftime('%Y-%m-%d %H:%M')} / "
-                            f"{item.get('title', '')[:50]}"
-                        )
                         continue
 
                     # URL 중복 제거
@@ -659,7 +803,6 @@ def search_multiple_keywords(
 
                     if any(url in seen_links for url in normalized_urls):
                         duplicate_count += 1
-                        logger.info(f"   ⏭️ 중복 링크 제외: {item.get('title', '')[:50]}")
                         continue
 
                     for url in normalized_urls:
@@ -683,14 +826,31 @@ def search_multiple_keywords(
                         }
                     )
 
+    pre_sampling_count = len(all_news)
+
     logger.info(f"\n{'=' * 60}")
     logger.info("✅ 뉴스 1차 수집 완료")
-    logger.info(f"전체 조회 기사 수: {total_seen_count}개")
-    logger.info(f"{recent_hours}시간 이내 URL 중복 제거 후 기사 수: {len(all_news)}개")
-    logger.info(f"{recent_hours}시간 초과 제외: {old_news_count}개")
-    logger.info(f"중복 제외: {duplicate_count}개")
-    logger.info(f"날짜 파싱 실패 제외: {parse_fail_or_invalid_count}개")
-    logger.info(f"검색 실패 횟수: {failed_search_count}회")
+    logger.info("-" * 60)
+
+    logger.info(f"📥 전체 검색 뉴스: {total_seen_count}개")
+
+    logger.info("🧹 제외 내역")
+    logger.info(f"   - {recent_hours}시간 초과 제외: {old_news_count}개")
+    logger.info(f"   - URL 중복 제외: {duplicate_count}개")
+    logger.info(f"   - 날짜 파싱 실패 제외: {parse_fail_or_invalid_count}개")
+    logger.info(f"   - 검색 실패 횟수: {failed_search_count}회")
+
+    logger.info("📌 필터 통과 결과")
+    logger.info(f"   - {recent_hours}시간 이내 + 중복 제거 후 후보: {pre_sampling_count}개")
+
+    logger.info(
+        f"📊 계산 확인: {total_seen_count}개 = "
+        f"{old_news_count}개(시간초과) + "
+        f"{duplicate_count}개(중복) + "
+        f"{parse_fail_or_invalid_count}개(날짜실패) + "
+        f"{pre_sampling_count}개(후보)"
+    )
+
     logger.info(f"{'=' * 60}")
 
     # 시간대별 비례 샘플링 적용
@@ -709,61 +869,67 @@ def search_multiple_keywords(
         all_news = all_news[:max_total_news]
         logger.info(f"✂️ 최종 후보 수 제한: {before_count}개 → {len(all_news)}개")
 
+    final_candidate_count = len(all_news)
+
+    final_candidate_date_range = get_news_date_range(all_news)
+
+    logger.info(
+        f"🕒 AI 선별 후보 발행일 범위: "
+        f"후보 {final_candidate_count}개 | "
+        f"{format_date_range_for_log(final_candidate_date_range)}"
+    )
+
+    # 대시보드용 마지막 수집 통계 저장
+    LAST_SCRAPE_STATS = {
+        "total_seen_count": total_seen_count,
+        "pre_sampling_count": pre_sampling_count,
+        "final_candidate_count": final_candidate_count,
+        "old_news_count": old_news_count,
+        "duplicate_count": duplicate_count,
+        "parse_fail_or_invalid_count": parse_fail_or_invalid_count,
+        "failed_search_count": failed_search_count,
+        "recent_hours": recent_hours,
+        "display_per_keyword": display_per_keyword,
+        "pages_per_keyword": pages_per_keyword,
+        "sorts": list(sorts),
+        "max_total_news": max_total_news,
+        "enable_time_bucket_sampling": enable_time_bucket_sampling,
+        "bucket_hours": bucket_hours,
+        "min_per_bucket": min_per_bucket,
+        "keyword_count": len(keywords),
+        "keywords": list(keywords),
+        "searched_at": now_kst.isoformat(),
+    }
+
     # 내부용 datetime 제거
     for news in all_news:
         news.pop("_published_dt", None)
 
     logger.info(f"\n{'=' * 60}")
     logger.info("✅ 뉴스 수집 최종 완료")
-    logger.info(f"최종 후보 뉴스 수: {len(all_news)}개")
+    logger.info(f"최종 후보 뉴스 수: {final_candidate_count}개")
     logger.info(f"{'=' * 60}")
+
+    save_unmapped_press_domains()
 
     return all_news
 
 
-def save_to_json(news_list: list, filename: str = "data/naver_news.json"):
-    """
-    JSON 파일로 저장
-    """
-    try:
-        os.makedirs(os.path.dirname(filename), exist_ok=True)
-
-        clean_news_list = []
-
-        for news in news_list:
-            clean_news = dict(news)
-            clean_news.pop("_published_dt", None)
-            clean_news_list.append(clean_news)
-
-        with open(filename, "w", encoding="utf-8") as f:
-            json.dump(clean_news_list, f, ensure_ascii=False, indent=2)
-
-        logger.info(f"💾 저장 완료: {filename}")
-
-    except Exception as e:
-        logger.error(f"❌ 저장 실패: {e}")
-
-
 # ====================================
 # 뉴스 검색만 테스트
+# 파일 저장 없이 콘솔 출력만 수행
 # ====================================
 if __name__ == "__main__":
     test_keywords = [
-        "경제",
-        "금리",
-        "환율",
-        "코스피",
-        "코스닥",
-        "부동산",
-        "주식",
+        "EMR", "의료정보시스템", "의료IT", "전자의무기록", "헬스케어"
     ]
 
     news_list = search_multiple_keywords(
         keywords=test_keywords,
         display_per_keyword=100,
         recent_hours=24,
-        sorts=["date", "sim"],
-        pages_per_keyword=1,
+        sorts=["sim"],
+        pages_per_keyword=3,
         enable_time_bucket_sampling=True,
         bucket_hours=4,
         max_total_news=100,
@@ -771,6 +937,7 @@ if __name__ == "__main__":
     )
 
     print(f"\n✅ 수집된 뉴스 수: {len(news_list)}개")
+    print(f"📊 마지막 수집 통계: {get_last_scrape_stats()}")
 
     for i, news in enumerate(news_list[:30], 1):
         print(f"\n[{i}] {news.get('title')}")
@@ -778,5 +945,3 @@ if __name__ == "__main__":
         print(f"    키워드: {news.get('keyword')}")
         print(f"    정렬: {news.get('sort')}")
         print(f"    발행일: {news.get('published_at')}")
-
-    save_to_json(news_list, "data/test_news.json")

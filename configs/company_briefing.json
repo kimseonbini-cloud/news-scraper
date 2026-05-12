@@ -1,10 +1,21 @@
 {
   "briefing_name": "사내용 뉴스 브리핑",
-  "subject_prefix": "EMR·롯데 뉴스 브리핑",
+  "subject_prefix": "IT·롯데 뉴스 브리핑",
   "receiver_env": "EMAIL_RECEIVER",
   "sections": [
     {
-      "section_name": "의료 뉴스 브리핑",
+      "section_name": "IT·테크 뉴스 브리핑",
+      "keywords": [
+        "IT산업",
+        "IT서비스",
+        "SI",
+        "정보시스템",
+        "ICT"
+      ],
+      "topic_description": "국내외 IT 산업, IT서비스, SI, 시스템통합, 정보시스템, ICT 산업 전반의 주요 기업 동향, 공공·금융·유통 분야 IT 구축 사업, 신기술 도입, 서비스 출시, 투자, 정책, 시장 변화와 직접 관련 있는 뉴스"
+    },
+    {
+      "section_name": "의료IT 뉴스 브리핑",
       "keywords": ["EMR", "의료정보시스템", "의료IT", "전자의무기록", "헬스케어"],
       "topic_description": "의료 IT, 병원 정보시스템, EMR, 전자의무기록, 디지털 헬스케어와 직접 관련 있는 뉴스"
     },

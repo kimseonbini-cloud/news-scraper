@@ -557,7 +557,7 @@ def select_important_news(
 
     # 중복 제거 후에도 최종 limit개를 확보하기 위해
     # 1차 선별에서는 limit보다 넉넉하게 뽑는다.
-    candidate_limit = min(len(candidate_pool), max(limit * 5, 50))
+    candidate_limit = min(len(candidate_pool), max(limit * 3, 30))
 
     candidate_text = _build_candidate_text(candidate_pool)
 
@@ -643,7 +643,7 @@ EMR, 병원IT, 의료AI, 디지털헬스케어, 정책·규제, 의료데이터,
                 }
             ],
             temperature=0.1,
-            max_tokens=1600
+            max_tokens=3000
         )
 
         content = response.choices[0].message.content.strip()
@@ -675,6 +675,9 @@ EMR, 병원IT, 의료AI, 디지털헬스케어, 정책·규제, 의료데이터,
                 continue
 
             if idx < 0 or idx >= len(candidate_pool):
+                continue
+
+            if idx in used_indexes:
                 continue
 
             news = candidate_pool[idx]

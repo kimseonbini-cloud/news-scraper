@@ -85,6 +85,16 @@ def safe_int(value, default=3, min_value=1, max_value=5):
     return number
 
 
+def safe_count(value, default=0):
+    """
+    대시보드 숫자 안전 변환
+    """
+    try:
+        return int(value)
+    except Exception:
+        return default
+
+
 def format_korean_datetime(date_string):
     """
     날짜 문자열을 한국식 표현으로 변환
@@ -226,6 +236,75 @@ def get_receiver_list(receiver_env_name=None):
     return receivers
 
 
+def build_section_dashboard(section_result):
+    """
+    섹션 제목 아래, 핵심요약 3줄 위에 표시할 간단 대시보드.
+
+    표시 항목:
+    - 전체검색뉴스
+    - 중복제외
+    - 24시간제외
+    - 선별수
+    """
+    if not section_result:
+        return ""
+
+    summaries = section_result.get("summaries", []) or []
+    scrape_stats = section_result.get("scrape_stats", {}) or {}
+
+    total_seen_count = safe_count(scrape_stats.get("total_seen_count", 0))
+    duplicate_count = safe_count(scrape_stats.get("duplicate_count", 0))
+    old_news_count = safe_count(scrape_stats.get("old_news_count", 0))
+    selected_count = safe_count(section_result.get("selected_count", len(summaries)))
+
+    return f"""
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+               style="border-collapse:collapse; margin:0 0 12px 0;">
+            <tr>
+                <td style="padding:0 0 10px 0; border-bottom:1px solid #dddddd;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                           style="border-collapse:collapse; width:100%;">
+                        <tr>
+                            <td width="25%" style="padding:8px 7px; border:1px solid #d4d4d4;">
+                                <div style="font-size:11px; line-height:1.3; font-weight:800; color:#737373; margin:0 0 3px 0;">
+                                    전체 뉴스 검색
+                                </div>
+                                <div style="font-size:17px; line-height:1.25; font-weight:900;">
+                                    {total_seen_count}
+                                </div>
+                            </td>
+                            <td width="25%" style="padding:8px 7px; border:1px solid #d4d4d4;">
+                                <div style="font-size:11px; line-height:1.3; font-weight:800; color:#737373; margin:0 0 3px 0;">
+                                    중복 뉴스 제외
+                                </div>
+                                <div style="font-size:17px; line-height:1.25; font-weight:900;">
+                                    {duplicate_count}
+                                </div>
+                            </td>
+                            <td width="25%" style="padding:8px 7px; border:1px solid #d4d4d4;">
+                                <div style="font-size:11px; line-height:1.3; font-weight:800; color:#737373; margin:0 0 3px 0;">
+                                    24시간 초과 뉴스 제외
+                                </div>
+                                <div style="font-size:17px; line-height:1.25; font-weight:900;">
+                                    {old_news_count}
+                                </div>
+                            </td>
+                            <td width="25%" style="padding:8px 7px; border:1px solid #d4d4d4;">
+                                <div style="font-size:11px; line-height:1.3; font-weight:800; color:#737373; margin:0 0 3px 0;">
+                                    AI 선별 기사
+                                </div>
+                                <div style="font-size:17px; line-height:1.25; font-weight:900;">
+                                    {selected_count}
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    """
+
+
 def build_section_insights(section_title, summaries):
     """
     섹션별 핵심 3줄 생성
@@ -356,12 +435,20 @@ def get_section_color(index):
     return colors[index % len(colors)]
 
 
-def build_news_section(section_title, summaries, default_keyword, section_color):
+def build_news_section(section_result, section_index):
     """
-    뉴스 섹션 HTML 생성
-    네이버메일 호환을 위해 inline style 중심으로 작성한다.
-    일반 글자색은 지정하지 않고, 메일 앱의 라이트/다크모드 기본값을 따른다.
+    뉴스 섹션 HTML 생성.
+
+    구조:
+    - 섹션 제목
+    - 섹션별 간단 대시보드
+    - 핵심요약 3줄
+    - 뉴스 목록
     """
+    section_title = section_result.get("section_name", f"뉴스 섹션 {section_index + 1}")
+    summaries = section_result.get("summaries", []) or []
+    section_color = get_section_color(section_index)
+
     html_body = f"""
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
                style="border-collapse:collapse; margin:0 0 22px 0;">
@@ -371,6 +458,8 @@ def build_news_section(section_title, summaries, default_keyword, section_color)
                         {safe_text(section_title)}
                     </div>
     """
+
+    html_body += build_section_dashboard(section_result)
 
     html_body += build_section_insights(
         section_title=section_title,
@@ -396,7 +485,7 @@ def build_news_section(section_title, summaries, default_keyword, section_color)
         summary = news.get("summary", "")
         summary_html = safe_text(summary).replace("\n", "<br>")
 
-        category = safe_text(news.get("category", default_keyword) or default_keyword)
+        category = safe_text(news.get("category", section_title) or section_title)
         source = safe_text(news.get("source", "언론사 미상") or "언론사 미상")
         importance_score = safe_int(news.get("importance_score", 3))
         stars = "★" * importance_score + "☆" * (5 - importance_score)
@@ -453,7 +542,14 @@ def normalize_section_results(section_results=None, summaries=None):
         return [
             {
                 "section_name": "뉴스 브리핑",
-                "summaries": summaries
+                "summaries": summaries,
+                "raw_count": len(summaries),
+                "selected_count": len(summaries),
+                "scrape_stats": {
+                    "total_seen_count": len(summaries),
+                    "duplicate_count": 0,
+                    "old_news_count": 0
+                }
             }
         ]
 
@@ -514,15 +610,9 @@ def create_html_email(
 """
 
     for index, section_result in enumerate(section_results):
-        section_name = section_result.get("section_name", f"뉴스 섹션 {index + 1}")
-        summaries_for_section = section_result.get("summaries", [])
-        section_color = get_section_color(index)
-
         html_body += build_news_section(
-            section_title=section_name,
-            summaries=summaries_for_section,
-            default_keyword=section_name,
-            section_color=section_color
+            section_result=section_result,
+            section_index=index
         )
 
     html_body += f"""
@@ -723,13 +813,54 @@ def send_test_email(receiver_env_name="EMAIL_RECEIVER"):
     - 뉴스 요약 안 함
     - OpenAI 호출 안 함
     - SMTP 로그인/전송/수신자 파싱만 확인
+    - 섹션별 대시보드 위치 확인 가능
     """
     today_text, _ = get_today_date_text()
 
     test_section_results = [
         {
-            "section_name": "이메일 전송 테스트",
-            "summaries": []
+            "section_name": "경제 뉴스 브리핑",
+            "summaries": [
+                {
+                    "title": "테스트 경제 뉴스 제목입니다",
+                    "summary": "경제 뉴스 요약 테스트 문장입니다.",
+                    "url": "#",
+                    "published_at": "",
+                    "importance_score": 4,
+                    "category": "경제",
+                    "source": "테스트언론"
+                }
+            ],
+            "raw_count": 100,
+            "selected_count": 10,
+            "scrape_stats": {
+                "total_seen_count": 1291,
+                "duplicate_count": 760,
+                "old_news_count": 431,
+                "final_candidate_count": 100
+            }
+        },
+        {
+            "section_name": "부동산 뉴스 브리핑",
+            "summaries": [
+                {
+                    "title": "테스트 부동산 뉴스 제목입니다",
+                    "summary": "부동산 뉴스 요약 테스트 문장입니다.",
+                    "url": "#",
+                    "published_at": "",
+                    "importance_score": 5,
+                    "category": "부동산",
+                    "source": "테스트언론"
+                }
+            ],
+            "raw_count": 100,
+            "selected_count": 10,
+            "scrape_stats": {
+                "total_seen_count": 868,
+                "duplicate_count": 688,
+                "old_news_count": 80,
+                "final_candidate_count": 100
+            }
         }
     ]
 
