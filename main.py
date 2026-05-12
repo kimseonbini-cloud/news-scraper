@@ -1,6 +1,6 @@
 """
 뉴스 스크래퍼
-설정 파일 기반 뉴스 수집 → OpenAI 뉴스 선별 → OpenAI 요약 → 이메일 발송
+설정 파일 기반 뉴스 수집 → 최근 이슈 중복 제거 → OpenAI 뉴스 선별 → OpenAI 요약 → 이메일 발송 → 이슈 히스토리 저장
 
 사용 예:
 python main.py --config configs/company_briefing.json
@@ -19,6 +19,7 @@ import naver_news_scraper
 import news_selector
 import summarizer
 import email_sender
+import issue_history
 
 
 # ====================================
@@ -27,7 +28,7 @@ import email_sender
 DEFAULT_CONFIG_PATH = "configs/company_briefing.json"
 
 # 네이버 뉴스 API는 1회 호출 display 최대 100개.
-# 기본값: 키워드당 date 최신순 100개 × 3페이지 = 최대 300개 조회.
+# 기본값: 키워드당 sim 관련도순 100개 × 3페이지 = 최대 300개 조회.
 DEFAULT_DISPLAY_PER_KEYWORD = 100
 DEFAULT_PAGES_PER_KEYWORD = 3
 DEFAULT_SORTS = ["sim"]
@@ -40,6 +41,9 @@ DEFAULT_MAX_TOTAL_NEWS = 100
 
 # OpenAI 최종 선별 개수
 DEFAULT_SELECT_LIMIT = 10
+
+# 최근 며칠간 이미 다룬 이슈를 비교할지
+DEFAULT_ISSUE_HISTORY_DAYS = 3
 
 
 # ====================================
@@ -133,7 +137,10 @@ def normalize_sorts(value):
 
     지원:
     - ["date"]
+    - ["sim"]
+    - ["sim", "date"]
     - "date"
+    - "sim"
     - 값 없음 → DEFAULT_SORTS
     """
     if value is None:
@@ -153,6 +160,8 @@ def normalize_sorts(value):
 
 
 def collect_select_and_summarize(
+    briefing_name,
+    receiver_env,
     section_name,
     keywords,
     topic_description,
@@ -161,21 +170,25 @@ def collect_select_and_summarize(
     sorts=None,
     max_total_news=DEFAULT_MAX_TOTAL_NEWS,
     select_limit=DEFAULT_SELECT_LIMIT,
-    recent_hours=DEFAULT_RECENT_HOURS
+    recent_hours=DEFAULT_RECENT_HOURS,
+    issue_history_days=DEFAULT_ISSUE_HISTORY_DAYS
 ):
     """
-    섹션별 뉴스 수집 → OpenAI 선별 → 요약 처리
+    섹션별 뉴스 수집 → 최근 반복 이슈 제거 → OpenAI 선별 → 요약 처리
 
     Args:
+        briefing_name: 브리핑명
+        receiver_env: 수신자 환경변수명. 사내용/경제/이노하스 등 히스토리 구분용
         section_name: 섹션명
         keywords: 검색 키워드 리스트
         topic_description: OpenAI 선별 기준 설명
         display_per_keyword: 키워드당 페이지별 네이버 API 검색 개수
         pages_per_keyword: 키워드당 조회 페이지 수
-        sorts: 정렬 방식 리스트. 기본 ["date"]
+        sorts: 정렬 방식 리스트
         max_total_news: AI 선별 단계로 넘길 최종 후보 최대 개수
         select_limit: 최종 선별 개수
         recent_hours: 최근 몇 시간 뉴스만 수집할지
+        issue_history_days: 최근 며칠간 이미 다룬 이슈와 비교할지
 
     Returns:
         {
@@ -191,6 +204,8 @@ def collect_select_and_summarize(
     logger.info("\n" + "=" * 60)
     logger.info(f"📰 [{section_name}] 뉴스 수집 시작")
     logger.info("=" * 60)
+    logger.info(f"브리핑 이름: {briefing_name}")
+    logger.info(f"수신자 환경변수: {receiver_env}")
     logger.info(f"키워드: {', '.join(keywords)}")
     logger.info(f"최근 뉴스 기준: {recent_hours}시간 이내")
     logger.info(f"정렬 방식: {sorts}")
@@ -199,6 +214,7 @@ def collect_select_and_summarize(
     logger.info(f"키워드당 최대 조회 개수: {display_per_keyword * pages_per_keyword}")
     logger.info(f"AI 선별 전달 최대 후보 수: {max_total_news}")
     logger.info(f"최종 선별 개수: {select_limit}")
+    logger.info(f"반복 이슈 비교 기간: 최근 {issue_history_days}일")
 
     news_list = naver_news_scraper.search_multiple_keywords(
         keywords=keywords,
@@ -225,6 +241,57 @@ def collect_select_and_summarize(
 
     logger.info(f"✅ [{section_name}] 후보 뉴스 {len(news_list)}개 수집 완료")
 
+    # ====================================
+    # 최근 N일 반복 이슈 제거
+    # ====================================
+    logger.info("\n" + "=" * 60)
+    logger.info(f"🧹 [{section_name}] 최근 {issue_history_days}일 반복 이슈 제거 시작")
+    logger.info("=" * 60)
+
+    issue_filter_result = issue_history.filter_seen_issues_with_llm(
+        briefing_name=briefing_name,
+        receiver_env=receiver_env,
+        section_name=section_name,
+        candidate_news=news_list,
+        days=issue_history_days
+    )
+
+    before_issue_filter_count = len(news_list)
+    news_list = issue_filter_result.get("filtered_news", news_list)
+    after_issue_filter_count = len(news_list)
+
+    logger.info(
+        f"🧹 [{section_name}] 반복 이슈 제거: "
+        f"후보 {before_issue_filter_count}개 중 "
+        f"{issue_filter_result.get('excluded_count', 0)}개 제외, "
+        f"{after_issue_filter_count}개 유지 "
+        f"(최근 {issue_history_days}일 이슈 {issue_filter_result.get('past_issue_count', 0)}개 비교)"
+    )
+
+    if issue_filter_result.get("message"):
+        logger.info(f"🧹 [{section_name}] 반복 이슈 필터 상태: {issue_filter_result.get('message')}")
+
+    scrape_stats["issue_filter_before_count"] = before_issue_filter_count
+    scrape_stats["issue_filter_after_count"] = after_issue_filter_count
+    scrape_stats["issue_filter_excluded_count"] = issue_filter_result.get("excluded_count", 0)
+    scrape_stats["issue_filter_past_issue_count"] = issue_filter_result.get("past_issue_count", 0)
+    scrape_stats["issue_filter_days"] = issue_history_days
+    scrape_stats["issue_filter_success"] = issue_filter_result.get("success", False)
+    scrape_stats["issue_filter_message"] = issue_filter_result.get("message", "")
+
+    if not news_list:
+        logger.error(f"❌ [{section_name}] 최근 {issue_history_days}일 반복 이슈 제거 후 남은 뉴스가 없습니다.")
+        return {
+            "section_name": section_name,
+            "summaries": [],
+            "raw_count": 0,
+            "selected_count": 0,
+            "scrape_stats": scrape_stats
+        }
+
+    # ====================================
+    # OpenAI 뉴스 선별
+    # ====================================
     logger.info("\n" + "=" * 60)
     logger.info(f"🧠 [{section_name}] OpenAI 뉴스 선별 시작")
     logger.info("=" * 60)
@@ -248,6 +315,9 @@ def collect_select_and_summarize(
 
     logger.info(f"✅ [{section_name}] {len(selected_news)}개 뉴스 선별 완료")
 
+    # ====================================
+    # OpenAI 뉴스 요약
+    # ====================================
     logger.info("\n" + "=" * 60)
     logger.info(f"🤖 [{section_name}] AI 요약 시작")
     logger.info("=" * 60)
@@ -298,6 +368,7 @@ def main():
     max_total_news = int(config.get("max_total_news", DEFAULT_MAX_TOTAL_NEWS))
     select_limit = int(config.get("select_limit", DEFAULT_SELECT_LIMIT))
     recent_hours = int(config.get("recent_hours", DEFAULT_RECENT_HOURS))
+    issue_history_days = int(config.get("issue_history_days", DEFAULT_ISSUE_HISTORY_DAYS))
 
     logger.info("\n" + "=" * 60)
     logger.info("🚀 뉴스 스크래퍼 시작")
@@ -312,6 +383,7 @@ def main():
     logger.info(f"기본 키워드당 페이지 수: {pages_per_keyword}")
     logger.info(f"기본 키워드당 최대 조회 개수: {display_per_keyword * pages_per_keyword}")
     logger.info(f"기본 AI 선별 전달 최대 후보 수: {max_total_news}")
+    logger.info(f"기본 반복 이슈 비교 기간: 최근 {issue_history_days}일")
     logger.info("결과 JSON 파일 저장: 비활성화")
     logger.info("=" * 60)
 
@@ -340,8 +412,13 @@ def main():
         section_recent_hours = int(
             section.get("recent_hours", recent_hours)
         )
+        section_issue_history_days = int(
+            section.get("issue_history_days", issue_history_days)
+        )
 
         section_result = collect_select_and_summarize(
+            briefing_name=briefing_name,
+            receiver_env=receiver_env,
             section_name=section_name,
             keywords=keywords,
             topic_description=topic_description,
@@ -350,7 +427,8 @@ def main():
             sorts=section_sorts,
             max_total_news=section_max_total_news,
             select_limit=section_select_limit,
-            recent_hours=section_recent_hours
+            recent_hours=section_recent_hours,
+            issue_history_days=section_issue_history_days
         )
 
         section_results.append(section_result)
@@ -371,6 +449,22 @@ def main():
 
     if result["success"]:
         logger.info(f"✅ {result['message']}")
+
+        history_result = issue_history.append_sent_issues(
+            briefing_name=briefing_name,
+            subject_prefix=subject_prefix,
+            receiver_env=receiver_env,
+            section_results=section_results
+        )
+
+        logger.info(
+            f"🗂️ 이슈 히스토리 저장 완료: "
+            f"신규 {history_result['saved_count']}개 / "
+            f"오래된 이슈 삭제 {history_result.get('pruned_count', 0)}개 / "
+            f"누적 {history_result['total_count']}개 / "
+            f"{history_result['file_path']}"
+        )
+
     else:
         logger.error(f"❌ {result['message']}")
 
@@ -400,6 +494,11 @@ def main():
         pre_sampling_count = scrape_stats.get("pre_sampling_count", raw_count)
         final_candidate_count = scrape_stats.get("final_candidate_count", raw_count)
 
+        issue_filter_before_count = scrape_stats.get("issue_filter_before_count", final_candidate_count)
+        issue_filter_after_count = scrape_stats.get("issue_filter_after_count", raw_count)
+        issue_filter_excluded_count = scrape_stats.get("issue_filter_excluded_count", 0)
+        issue_filter_past_issue_count = scrape_stats.get("issue_filter_past_issue_count", 0)
+
         total_raw_count += raw_count
         total_selected_count += selected_count
         total_summary_count += summary_count
@@ -414,6 +513,12 @@ def main():
             f"최종 후보 {final_candidate_count}개 / "
             f"중복 제외 {duplicate_count}개 / "
             f"{scrape_stats.get('recent_hours', DEFAULT_RECENT_HOURS)}시간 초과 제외 {old_news_count}개"
+        )
+        logger.info(
+            f"🧹 [{section_name}] 반복 이슈 필터: "
+            f"{issue_filter_before_count}개 → {issue_filter_after_count}개 / "
+            f"제외 {issue_filter_excluded_count}개 / "
+            f"비교 이슈 {issue_filter_past_issue_count}개"
         )
 
     # 기존 코드의 비용 계산 방식 유지
