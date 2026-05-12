@@ -446,39 +446,69 @@ def _supplement_after_dedup(
 ) -> List[Dict]:
     """
     사건 중복 제거 후 뉴스 수가 limit보다 적을 경우,
-    1차 후보군에서 아직 사용하지 않은 뉴스를 순서대로 보충한다.
+    후보군에서 아직 사용하지 않은 뉴스를 반복적으로 보충한다.
 
-    보충 후에도 다시 LLM 사건 중복 제거를 한 번 더 수행한다.
+    핵심:
+    - 한 번만 보충하지 않는다.
+    - 보충 후 다시 사건 그룹화한다.
+    - 그래도 부족하면 다음 후보 묶음을 또 보충한다.
+    - limit에 도달하거나 후보가 소진될 때까지 반복한다.
     """
     if len(selected_news) >= limit:
         return selected_news[:limit]
 
-    supplemented_news = list(selected_news)
+    final_news = list(selected_news)
+    batch_size = max(limit * 2, 20)
 
-    for idx, news in enumerate(candidate_pool):
-        if len(supplemented_news) >= limit * 2:
+    while len(final_news) < limit:
+        supplement_batch = []
+
+        for idx, news in enumerate(candidate_pool):
+            if idx in used_indexes:
+                continue
+
+            used_indexes.add(idx)
+
+            prepared_news = _prepare_selected_news(
+                news=news,
+                importance_score=news.get("importance_score", 3),
+                category=news.get("category") or "기타"
+            )
+
+            supplement_batch.append(prepared_news)
+
+            if len(supplement_batch) >= batch_size:
+                break
+
+        if not supplement_batch:
+            logger.warning("⚠️ 보충 가능한 후보가 더 이상 없습니다.")
             break
 
-        if idx in used_indexes:
-            continue
+        before_count = len(final_news)
 
-        supplemented_news.append(news)
-        used_indexes.add(idx)
+        combined_news = final_news + supplement_batch
 
-    if len(supplemented_news) == len(selected_news):
-        return selected_news[:limit]
+        logger.info(
+            f"➕ 부족분 반복 보충: 현재 {len(final_news)}개, "
+            f"추가 후보 {len(supplement_batch)}개"
+        )
 
-    logger.info(
-        f"➕ 중복 제거 후 부족분 보충: "
-        f"{len(selected_news)}개 → {len(supplemented_news)}개 후보"
-    )
+        final_news = _deduplicate_by_llm_event_group(
+            combined_news,
+            limit=limit
+        )
 
-    deduped_news = _deduplicate_by_llm_event_group(
-        supplemented_news,
-        limit=limit
-    )
+        after_count = len(final_news)
 
-    return deduped_news[:limit]
+        logger.info(
+            f"🔁 보충 후 사건 중복 제거 결과: "
+            f"{before_count}개 → {after_count}개"
+        )
+
+        # 보충했는데도 개수가 전혀 늘지 않았고, 아직 후보가 남아있을 수 있으므로 계속 돈다.
+        # 단, candidate_pool을 다 소진하면 위 supplement_batch가 비어서 종료된다.
+
+    return final_news[:limit]
 
 
 def select_important_news(
@@ -527,7 +557,7 @@ def select_important_news(
 
     # 중복 제거 후에도 최종 limit개를 확보하기 위해
     # 1차 선별에서는 limit보다 넉넉하게 뽑는다.
-    candidate_limit = min(len(candidate_pool), max(limit * 2, limit))
+    candidate_limit = min(len(candidate_pool), max(limit * 5, 50))
 
     candidate_text = _build_candidate_text(candidate_pool)
 
@@ -548,8 +578,9 @@ def select_important_news(
 2. 기업 전략, 실적, 투자, 제휴, 정책, 규제, 기술 도입, 산업 변화에 영향이 큰 뉴스를 우선 선택하세요.
 3. 홍보성 기사, 단순 행사 안내, 단순 제품 소개성 기사는 제외하세요.
 4. 같은 사건처럼 보이는 기사가 여러 개 있어도, 이 단계에서는 판단이 애매하면 후보에 포함해도 됩니다.
-5. 최종 후보로 {candidate_limit}개 이하를 선택하세요.
-6. 선택할 뉴스가 부족하면 억지로 {candidate_limit}개를 채우지 말고, 주제에 맞는 것만 선택하세요.
+5. 최종 후보로 최대 {candidate_limit}개까지 선택하세요.
+6. 가능하면 서로 다른 사건, 서로 다른 기업, 서로 다른 정책, 서로 다른 기술 이슈가 골고루 포함되도록 선택하세요.
+7. 명백히 주제와 무관한 기사는 제외하되, 주제 관련성이 어느 정도 있으면 후보에 포함하세요.
 7. 이후 시스템이 같은 사건 중복을 한 번 더 제거합니다.
 
 [중요도 점수 기준]
