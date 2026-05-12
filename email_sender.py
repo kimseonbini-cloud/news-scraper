@@ -241,10 +241,16 @@ def build_section_dashboard(section_result):
     섹션 제목 아래, 핵심요약 3줄 위에 표시할 간단 대시보드.
 
     표시 항목:
-    - 전체검색뉴스
-    - 중복제외
-    - 24시간제외
-    - 선별수
+    - 전체 뉴스 검색
+    - URL 중복 제외
+    - 반복 이슈 제외
+    - 24시간 초과 제외
+    - AI 선별 기사
+
+    주의:
+    duplicate_count는 수집 단계의 URL 중복 제거 수이고,
+    issue_filter_excluded_count는 최근 N일 반복 이슈/의미 중복 제거 수이다.
+    두 값을 분리해서 보여줘야 실제로 무엇이 제외됐는지 확인할 수 있다.
     """
     if not section_result:
         return ""
@@ -253,7 +259,8 @@ def build_section_dashboard(section_result):
     scrape_stats = section_result.get("scrape_stats", {}) or {}
 
     total_seen_count = safe_count(scrape_stats.get("total_seen_count", 0))
-    duplicate_count = safe_count(scrape_stats.get("duplicate_count", 0))
+    url_duplicate_count = safe_count(scrape_stats.get("duplicate_count", 0))
+    issue_filter_excluded_count = safe_count(scrape_stats.get("issue_filter_excluded_count", 0))
     old_news_count = safe_count(scrape_stats.get("old_news_count", 0))
     selected_count = safe_count(section_result.get("selected_count", len(summaries)))
 
@@ -265,7 +272,7 @@ def build_section_dashboard(section_result):
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
                            style="border-collapse:collapse; width:100%;">
                         <tr>
-                            <td width="25%" style="padding:8px 7px; border:1px solid #d4d4d4;">
+                            <td width="20%" style="padding:8px 7px; border:1px solid #d4d4d4;">
                                 <div style="font-size:11px; line-height:1.3; font-weight:800; color:#737373; margin:0 0 3px 0;">
                                     전체 뉴스 검색
                                 </div>
@@ -273,23 +280,31 @@ def build_section_dashboard(section_result):
                                     {total_seen_count}
                                 </div>
                             </td>
-                            <td width="25%" style="padding:8px 7px; border:1px solid #d4d4d4;">
+                            <td width="20%" style="padding:8px 7px; border:1px solid #d4d4d4;">
                                 <div style="font-size:11px; line-height:1.3; font-weight:800; color:#737373; margin:0 0 3px 0;">
-                                    중복 뉴스 제외
+                                    URL 중복 제외
                                 </div>
                                 <div style="font-size:17px; line-height:1.25; font-weight:900;">
-                                    {duplicate_count}
+                                    {url_duplicate_count}
                                 </div>
                             </td>
-                            <td width="25%" style="padding:8px 7px; border:1px solid #d4d4d4;">
+                            <td width="20%" style="padding:8px 7px; border:1px solid #d4d4d4;">
                                 <div style="font-size:11px; line-height:1.3; font-weight:800; color:#737373; margin:0 0 3px 0;">
-                                    24시간 초과 뉴스 제외
+                                    반복 이슈 제외
+                                </div>
+                                <div style="font-size:17px; line-height:1.25; font-weight:900;">
+                                    {issue_filter_excluded_count}
+                                </div>
+                            </td>
+                            <td width="20%" style="padding:8px 7px; border:1px solid #d4d4d4;">
+                                <div style="font-size:11px; line-height:1.3; font-weight:800; color:#737373; margin:0 0 3px 0;">
+                                    24시간 초과 제외
                                 </div>
                                 <div style="font-size:17px; line-height:1.25; font-weight:900;">
                                     {old_news_count}
                                 </div>
                             </td>
-                            <td width="25%" style="padding:8px 7px; border:1px solid #d4d4d4;">
+                            <td width="20%" style="padding:8px 7px; border:1px solid #d4d4d4;">
                                 <div style="font-size:11px; line-height:1.3; font-weight:800; color:#737373; margin:0 0 3px 0;">
                                     AI 선별 기사
                                 </div>
@@ -304,8 +319,7 @@ def build_section_dashboard(section_result):
         </table>
     """
 
-
-def build_section_insights(section_title, summaries):
+def build_section_insights(section_title, summaries, scrape_stats=None):
     """
     섹션별 핵심 3줄 생성
     """
@@ -380,6 +394,10 @@ def build_section_insights(section_title, summaries):
         )
 
         insight_text = response.choices[0].message.content.strip()
+        insight_tokens = response.usage.total_tokens if response.usage else 0
+        if isinstance(scrape_stats, dict):
+            scrape_stats["insight_tokens"] = safe_count(scrape_stats.get("insight_tokens", 0)) + insight_tokens
+        logger.info(f"🧾 [{section_title}] 메일 핵심 3줄 토큰 사용량: {insight_tokens}")
         lines = [line.strip() for line in insight_text.split("\n") if line.strip()]
         lines = lines[:3]
 
@@ -463,7 +481,8 @@ def build_news_section(section_result, section_index):
 
     html_body += build_section_insights(
         section_title=section_title,
-        summaries=summaries
+        summaries=summaries,
+        scrape_stats=section_result.get("scrape_stats", {})
     )
 
     if not summaries:

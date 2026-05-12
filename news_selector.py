@@ -15,7 +15,10 @@ import logging
 from typing import List, Dict, Any
 from urllib.parse import urlparse
 
-from openai import OpenAI
+try:
+    from openai import OpenAI
+except Exception:
+    OpenAI = None
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -23,10 +26,40 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+if OpenAI is not None and OPENAI_API_KEY:
+    client = OpenAI(api_key=OPENAI_API_KEY)
+else:
+    client = None
 
 # 뉴스 선별 모델
 MODEL = "gpt-4o-mini"
+
+LAST_SELECTION_STATS = {
+    "selection_tokens": 0,
+    "event_group_tokens": 0,
+}
+
+
+def reset_selection_stats():
+    global LAST_SELECTION_STATS
+    LAST_SELECTION_STATS = {
+        "selection_tokens": 0,
+        "event_group_tokens": 0,
+    }
+
+
+def add_selection_tokens(key: str, value: int):
+    try:
+        token_count = int(value or 0)
+    except Exception:
+        token_count = 0
+    LAST_SELECTION_STATS[key] = int(LAST_SELECTION_STATS.get(key, 0)) + token_count
+
+
+def get_last_selection_stats() -> Dict[str, int]:
+    return dict(LAST_SELECTION_STATS)
 
 
 def _safe_text(value: Any) -> str:
@@ -54,6 +87,16 @@ def _safe_int(value: Any, default: int = 3, min_value: int = 1, max_value: int =
         return max_value
 
     return number
+
+
+def _clip_text(value: Any, limit: int = 180) -> str:
+    """
+    LLM 입력 토큰 절감을 위해 긴 설명을 적정 길이로 자른다.
+    """
+    text = _safe_text(value)
+    if len(text) <= limit:
+        return text
+    return text[:limit].rstrip() + "..."
 
 
 def _normalize_url(url: Any) -> str:
@@ -140,13 +183,12 @@ def _build_candidate_text(news_list: List[Dict]) -> str:
     lines = []
 
     for idx, news in enumerate(news_list, 1):
-        title = _safe_text(news.get("title"))
-        description = _safe_text(news.get("description"))
-        keyword = _safe_text(news.get("keyword"))
-        source = _safe_text(news.get("source"))
+        title = _clip_text(news.get("title"), 120)
+        description = _clip_text(news.get("description"), 180)
+        keyword = _clip_text(news.get("keyword"), 80)
+        source = _clip_text(news.get("source"), 40)
         date = _safe_text(news.get("date"))
         published_at = _safe_text(news.get("published_at"))
-        url = _safe_text(news.get("url"))
 
         lines.append(
             f"""
@@ -156,7 +198,6 @@ def _build_candidate_text(news_list: List[Dict]) -> str:
 제목: {title}
 설명: {description}
 날짜: {published_at or date}
-URL: {url}
 """.strip()
         )
 
@@ -170,17 +211,17 @@ def _build_event_dedup_text(news_list: List[Dict]) -> str:
     lines = []
 
     for idx, news in enumerate(news_list, 1):
-        source = _safe_text(news.get("source"))
-        category = _safe_text(news.get("category"))
+        source = _clip_text(news.get("source"), 40)
+        category = _clip_text(news.get("category"), 40)
         importance_score = _safe_text(news.get("importance_score"))
-        title = _safe_text(news.get("title"))
-        description = _safe_text(
+        title = _clip_text(news.get("title"), 120)
+        description = _clip_text(
             news.get("description")
             or news.get("summary")
-            or news.get("content")
+            or news.get("content"),
+            160
         )
         published_at = _safe_text(news.get("published_at"))
-        url = _safe_text(news.get("url"))
 
         lines.append(
             f"""
@@ -191,7 +232,6 @@ def _build_event_dedup_text(news_list: List[Dict]) -> str:
 제목: {title}
 설명: {description}
 발행일: {published_at}
-URL: {url}
 """.strip()
         )
 
@@ -263,6 +303,10 @@ def _deduplicate_by_llm_event_group(
         return []
 
     if len(news_list) <= 1:
+        return news_list[:limit]
+
+    if client is None:
+        logger.warning("⚠️ OpenAI 클라이언트가 없어 LLM 사건 그룹화를 건너뜁니다.")
         return news_list[:limit]
 
     news_text = _build_event_dedup_text(news_list)
@@ -345,12 +389,14 @@ def _deduplicate_by_llm_event_group(
                 }
             ],
             temperature=0.0,
-            max_tokens=2000
+            max_tokens=1200
         )
 
         content = response.choices[0].message.content.strip()
+        event_group_tokens = response.usage.total_tokens if response.usage else 0
+        add_selection_tokens("event_group_tokens", event_group_tokens)
 
-        logger.info("🧩 LLM 사건 그룹화 응답 수신")
+        logger.info(f"🧩 LLM 사건 그룹화 응답 수신 (토큰: {event_group_tokens})")
 
         try:
             result = _extract_json(content)
@@ -458,7 +504,7 @@ def _supplement_after_dedup(
         return selected_news[:limit]
 
     final_news = list(selected_news)
-    batch_size = max(limit * 2, 20)
+    batch_size = max(limit, 10)
 
     while len(final_news) < limit:
         supplement_batch = []
@@ -533,6 +579,8 @@ def select_important_news(
         - category: 자동 분류 카테고리
         - content: summarizer.py에서 사용할 요약 대상 본문
     """
+    reset_selection_stats()
+
     if not news_list:
         logger.warning("선택할 뉴스 후보가 없습니다.")
         return []
@@ -555,9 +603,15 @@ def select_important_news(
 
     logger.info(f"OpenAI 전달 후보 뉴스 수: {len(candidate_pool)}개")
 
+    if client is None:
+        logger.warning("⚠️ OpenAI 클라이언트가 없어 fallback 선별을 사용합니다.")
+        return _fallback_select(candidate_pool, limit)
+
     # 중복 제거 후에도 최종 limit개를 확보하기 위해
     # 1차 선별에서는 limit보다 넉넉하게 뽑는다.
-    candidate_limit = min(len(candidate_pool), max(limit * 3, 30))
+    # 비용 절감을 위해 1차 선별 후보를 과하게 넓히지 않는다.
+    # 부족분은 아래 보충 로직에서 처리한다.
+    candidate_limit = min(len(candidate_pool), max(limit * 2, 20))
 
     candidate_text = _build_candidate_text(candidate_pool)
 
@@ -581,7 +635,7 @@ def select_important_news(
 5. 최종 후보로 최대 {candidate_limit}개까지 선택하세요.
 6. 가능하면 서로 다른 사건, 서로 다른 기업, 서로 다른 정책, 서로 다른 기술 이슈가 골고루 포함되도록 선택하세요.
 7. 명백히 주제와 무관한 기사는 제외하되, 주제 관련성이 어느 정도 있으면 후보에 포함하세요.
-7. 이후 시스템이 같은 사건 중복을 한 번 더 제거합니다.
+8. 이후 시스템이 같은 사건 중복을 한 번 더 제거합니다.
 
 [중요도 점수 기준]
 5점: 기업 전략, 대형 투자, 실적, 규제, 산업 변화에 직접 영향
@@ -643,11 +697,12 @@ EMR, 병원IT, 의료AI, 디지털헬스케어, 정책·규제, 의료데이터,
                 }
             ],
             temperature=0.1,
-            max_tokens=3000
+            max_tokens=1800
         )
 
         content = response.choices[0].message.content.strip()
         tokens_used = response.usage.total_tokens if response.usage else 0
+        add_selection_tokens("selection_tokens", tokens_used)
 
         logger.info(f"🧾 뉴스 1차 선별 토큰 사용량: {tokens_used}")
 

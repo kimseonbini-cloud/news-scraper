@@ -28,7 +28,8 @@ import issue_history
 DEFAULT_CONFIG_PATH = "configs/company_briefing.json"
 
 # 네이버 뉴스 API는 1회 호출 display 최대 100개.
-# 기본값: 키워드당 sim 관련도순 100개 × 3페이지 = 최대 300개 조회.
+# 기본값: 키워드당 관련도순(sim) 100개 × 3페이지 = 최대 300개 조회.
+# 최신성 비중을 높이고 싶으면 설정 파일에서 sorts를 ["date", "sim"] 또는 ["date"]로 지정한다.
 DEFAULT_DISPLAY_PER_KEYWORD = 100
 DEFAULT_PAGES_PER_KEYWORD = 3
 DEFAULT_SORTS = ["sim"]
@@ -216,18 +217,23 @@ def collect_select_and_summarize(
     logger.info(f"최종 선별 개수: {select_limit}")
     logger.info(f"반복 이슈 비교 기간: 최근 {issue_history_days}일")
 
+    # 1) 먼저 시간대 샘플링 없이 넓게 수집한다.
+    # 반복/내부중복 제거를 먼저 하고, 그 다음 max_total_news 제한을 적용해야
+    # 중복 기사들이 100개 후보 슬롯을 차지했다가 나중에 버려지는 손실을 막을 수 있다.
     news_list = naver_news_scraper.search_multiple_keywords(
         keywords=keywords,
         display_per_keyword=display_per_keyword,
         recent_hours=recent_hours,
         sorts=sorts,
         pages_per_keyword=pages_per_keyword,
+        enable_time_bucket_sampling=False,
         max_total_news=max_total_news
     )
 
     # naver_news_scraper.py에서 마지막 수집 통계를 가져온다.
-    # 메일 대시보드에서 섹션별 후보/중복제외/24시간제외 등에 사용한다.
+    # 이 시점의 news_list는 URL/시간 필터까지만 거친 전체 후보다.
     scrape_stats = naver_news_scraper.get_last_scrape_stats()
+    scrape_stats["pre_issue_filter_candidate_count"] = len(news_list)
 
     if not news_list:
         logger.error(f"❌ [{section_name}] 수집된 뉴스가 없습니다.")
@@ -278,6 +284,63 @@ def collect_select_and_summarize(
     scrape_stats["issue_filter_days"] = issue_history_days
     scrape_stats["issue_filter_success"] = issue_filter_result.get("success", False)
     scrape_stats["issue_filter_message"] = issue_filter_result.get("message", "")
+    scrape_stats["issue_filter_url_excluded_count"] = issue_filter_result.get("url_excluded_count", 0)
+    scrape_stats["issue_filter_title_excluded_count"] = issue_filter_result.get("title_excluded_count", 0)
+    # issue_history.py는 이제 LLM/issue_key를 쓰지 않고 규칙 기반 fingerprint 비교만 수행한다.
+    scrape_stats["issue_filter_core_key_excluded_count"] = issue_filter_result.get("core_key_excluded_count", 0)
+    scrape_stats["issue_filter_llm_excluded_count"] = issue_filter_result.get("llm_excluded_count", 0)
+    scrape_stats["issue_filter_internal_duplicate_count"] = issue_filter_result.get("internal_duplicate_count", 0)
+    scrape_stats["issue_filter_text_excluded_count"] = issue_filter_result.get("text_excluded_count", 0)
+    scrape_stats["issue_filter_token_overlap_excluded_count"] = issue_filter_result.get("token_overlap_excluded_count", 0)
+    scrape_stats["issue_filter_simhash_excluded_count"] = issue_filter_result.get("simhash_excluded_count", 0)
+
+    issue_token_stats = issue_filter_result.get("token_stats", {}) or {}
+    scrape_stats["issue_key_tokens"] = issue_token_stats.get("issue_key_tokens", 0)
+    scrape_stats["issue_duplicate_tokens"] = issue_token_stats.get("llm_duplicate_tokens", 0)
+
+    # 2) 반복/내부중복 제거가 끝난 뒤에 시간대별 샘플링으로 최종 후보 수를 제한한다.
+    # 이렇게 해야 AI 선별 후보가 중복 제거 후에도 최대한 max_total_news에 가깝게 유지된다.
+    before_sampling_after_filter_count = len(news_list)
+    news_list = naver_news_scraper.sample_news_by_time_bucket(
+        news_list=news_list,
+        bucket_hours=4,
+        max_total_news=max_total_news,
+        min_per_bucket=0,
+        recent_hours=recent_hours
+    )
+    after_sampling_count = len(news_list)
+
+    naver_news_scraper.update_post_issue_filter_sampling_stats(
+        before_issue_filter_count=before_issue_filter_count,
+        after_issue_filter_count=after_issue_filter_count,
+        before_sampling_count=before_sampling_after_filter_count,
+        after_sampling_count=after_sampling_count,
+    )
+
+    scrape_stats = naver_news_scraper.get_last_scrape_stats()
+
+    # issue_history 결과 통계는 update_post_issue_filter_sampling_stats 이후에도 보존되도록 다시 반영한다.
+    scrape_stats["issue_filter_excluded_count"] = issue_filter_result.get("excluded_count", 0)
+    scrape_stats["issue_filter_past_issue_count"] = issue_filter_result.get("past_issue_count", 0)
+    scrape_stats["issue_filter_days"] = issue_history_days
+    scrape_stats["issue_filter_success"] = issue_filter_result.get("success", False)
+    scrape_stats["issue_filter_message"] = issue_filter_result.get("message", "")
+    scrape_stats["issue_filter_url_excluded_count"] = issue_filter_result.get("url_excluded_count", 0)
+    scrape_stats["issue_filter_title_excluded_count"] = issue_filter_result.get("title_excluded_count", 0)
+    scrape_stats["issue_filter_core_key_excluded_count"] = issue_filter_result.get("core_key_excluded_count", 0)
+    scrape_stats["issue_filter_llm_excluded_count"] = issue_filter_result.get("llm_excluded_count", 0)
+    scrape_stats["issue_filter_internal_duplicate_count"] = issue_filter_result.get("internal_duplicate_count", 0)
+    scrape_stats["issue_filter_text_excluded_count"] = issue_filter_result.get("text_excluded_count", 0)
+    scrape_stats["issue_filter_token_overlap_excluded_count"] = issue_filter_result.get("token_overlap_excluded_count", 0)
+    scrape_stats["issue_filter_simhash_excluded_count"] = issue_filter_result.get("simhash_excluded_count", 0)
+    scrape_stats["issue_key_tokens"] = issue_token_stats.get("issue_key_tokens", 0)
+    scrape_stats["issue_duplicate_tokens"] = issue_token_stats.get("llm_duplicate_tokens", 0)
+
+    logger.info(
+        f"🧺 [{section_name}] 필터 후 시간대 샘플링: "
+        f"{before_sampling_after_filter_count}개 → {after_sampling_count}개 "
+        f"(max_total_news={max_total_news})"
+    )
 
     if not news_list:
         logger.error(f"❌ [{section_name}] 최근 {issue_history_days}일 반복 이슈 제거 후 남은 뉴스가 없습니다.")
@@ -303,6 +366,10 @@ def collect_select_and_summarize(
         limit=select_limit
     )
 
+    selection_stats = news_selector.get_last_selection_stats()
+    scrape_stats["selection_tokens"] = selection_stats.get("selection_tokens", 0)
+    scrape_stats["event_group_tokens"] = selection_stats.get("event_group_tokens", 0)
+
     if not selected_news:
         logger.error(f"❌ [{section_name}] 선별된 뉴스가 없습니다.")
         return {
@@ -326,6 +393,7 @@ def collect_select_and_summarize(
         news["content"] = news.get("description", "")
 
     summaries = summarizer.summarize_batch(selected_news)
+    scrape_stats["summary_tokens"] = sum(summary.get("tokens_used", 0) for summary in summaries or [])
 
     if not summaries:
         logger.error(f"❌ [{section_name}] 요약 생성 실패")
@@ -479,6 +547,12 @@ def main():
     total_selected_count = 0
     total_summary_count = 0
     total_tokens = 0
+    total_issue_key_tokens = 0
+    total_issue_duplicate_tokens = 0
+    total_selection_tokens = 0
+    total_event_group_tokens = 0
+    total_summary_tokens = 0
+    total_insight_tokens = 0
 
     for section_result in section_results:
         section_name = section_result["section_name"]
@@ -502,16 +576,45 @@ def main():
         total_raw_count += raw_count
         total_selected_count += selected_count
         total_summary_count += summary_count
-        total_tokens += sum(summary.get("tokens_used", 0) for summary in summaries)
+        issue_key_tokens = scrape_stats.get("issue_key_tokens", 0)
+        issue_duplicate_tokens = scrape_stats.get("issue_duplicate_tokens", 0)
+        selection_tokens = scrape_stats.get("selection_tokens", 0)
+        event_group_tokens = scrape_stats.get("event_group_tokens", 0)
+        summary_tokens = scrape_stats.get("summary_tokens", sum(summary.get("tokens_used", 0) for summary in summaries))
+        insight_tokens = scrape_stats.get("insight_tokens", 0)
+
+        section_total_tokens = (
+            issue_key_tokens
+            + issue_duplicate_tokens
+            + selection_tokens
+            + event_group_tokens
+            + summary_tokens
+            + insight_tokens
+        )
+
+        total_issue_key_tokens += issue_key_tokens
+        total_issue_duplicate_tokens += issue_duplicate_tokens
+        total_selection_tokens += selection_tokens
+        total_event_group_tokens += event_group_tokens
+        total_summary_tokens += summary_tokens
+        total_insight_tokens += insight_tokens
+        total_tokens += section_total_tokens
 
         logger.info(f"📰 [{section_name}] 후보 수집: {raw_count}개")
         logger.info(f"🧠 [{section_name}] 뉴스 선별: {selected_count}개")
         logger.info(f"✨ [{section_name}] 뉴스 요약: {summary_count}개")
+        after_issue_filter_before_sampling_count = scrape_stats.get(
+            "after_issue_filter_before_sampling_count", issue_filter_after_count
+        )
+        after_issue_filter_after_sampling_count = scrape_stats.get(
+            "after_issue_filter_after_sampling_count", final_candidate_count
+        )
         logger.info(
             f"📊 [{section_name}] 수집 통계: "
-            f"샘플링 전 {pre_sampling_count}개 / "
-            f"최종 후보 {final_candidate_count}개 / "
-            f"중복 제외 {duplicate_count}개 / "
+            f"URL/시간 필터 후 {pre_sampling_count}개 / "
+            f"스크래퍼 내부 샘플링 "
+            f"{'적용' if scrape_stats.get('scraper_sampling_applied') else '없음'} / "
+            f"URL 중복 제외 {duplicate_count}개 / "
             f"{scrape_stats.get('recent_hours', DEFAULT_RECENT_HOURS)}시간 초과 제외 {old_news_count}개"
         )
         logger.info(
@@ -520,17 +623,48 @@ def main():
             f"제외 {issue_filter_excluded_count}개 / "
             f"비교 이슈 {issue_filter_past_issue_count}개"
         )
+        logger.info(
+            f"🧺 [{section_name}] 필터 후 시간대 샘플링: "
+            f"{after_issue_filter_before_sampling_count}개 → "
+            f"{after_issue_filter_after_sampling_count}개 / "
+            f"AI 선별 후보 {final_candidate_count}개"
+        )
+        logger.info(
+            f"🧹 [{section_name}] 반복 이슈 제외 상세: "
+            f"URL {scrape_stats.get('issue_filter_url_excluded_count', 0)}개 / "
+            f"제목 {scrape_stats.get('issue_filter_title_excluded_count', 0)}개 / "
+            f"본문유사 {scrape_stats.get('issue_filter_text_excluded_count', 0)}개 / "
+            f"토큰겹침 {scrape_stats.get('issue_filter_token_overlap_excluded_count', 0)}개 / "
+            f"SimHash {scrape_stats.get('issue_filter_simhash_excluded_count', 0)}개 / "
+            f"LLM {scrape_stats.get('issue_filter_llm_excluded_count', 0)}개 / "
+            f"오늘 후보 내부 {scrape_stats.get('issue_filter_internal_duplicate_count', 0)}개"
+        )
+        logger.info(
+            f"🧾 [{section_name}] 토큰 사용량: "
+            f"issue_key {issue_key_tokens:,}(사용 안 함) / "
+            f"반복판단LLM {issue_duplicate_tokens:,}(사용 안 함) / "
+            f"선별 {selection_tokens:,} / "
+            f"사건그룹 {event_group_tokens:,} / "
+            f"요약 {summary_tokens:,} / "
+            f"메일3줄 {insight_tokens:,} / "
+            f"합계 {section_total_tokens:,}"
+        )
 
-    # 기존 코드의 비용 계산 방식 유지
-    # 정확한 비용은 입력/출력 토큰 단가가 달라 별도 계산이 필요합니다.
+    # 단순 추정 비용. 실제 비용은 모델별 입력/출력 토큰 단가에 따라 달라질 수 있다.
     rough_cost = total_tokens * 0.00015
 
     logger.info("-" * 60)
     logger.info(f"📰 전체 후보 수집: {total_raw_count}개")
     logger.info(f"🧠 전체 뉴스 선별: {total_selected_count}개")
     logger.info(f"✨ 전체 뉴스 요약: {total_summary_count}개")
-    logger.info(f"🧾 요약 토큰 합계: {total_tokens:,}")
-    logger.info(f"💰 기존 방식 기준 예상 비용: ${rough_cost:.4f} USD")
+    logger.info(f"🧾 issue_key 생성 토큰 합계: {total_issue_key_tokens:,} (사용 안 함)")
+    logger.info(f"🧾 반복 이슈 LLM 판단 토큰 합계: {total_issue_duplicate_tokens:,} (사용 안 함)")
+    logger.info(f"🧾 뉴스 선별 토큰 합계: {total_selection_tokens:,}")
+    logger.info(f"🧾 사건 그룹화 토큰 합계: {total_event_group_tokens:,}")
+    logger.info(f"🧾 뉴스 요약 토큰 합계: {total_summary_tokens:,}")
+    logger.info(f"🧾 메일 핵심 3줄 토큰 합계: {total_insight_tokens:,}")
+    logger.info(f"🧾 전체 추적 토큰 합계: {total_tokens:,}")
+    logger.info(f"💰 단순 추정 예상 비용: ${rough_cost:.4f} USD")
     logger.info(f"📧 발송: {result['success']}")
 
     logger.info("\n" + "=" * 60)

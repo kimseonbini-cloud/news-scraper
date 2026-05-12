@@ -5,8 +5,9 @@
 - 네이버 뉴스 검색 API로 뉴스 수집
 - 최근 N시간 이내 뉴스만 필터링
 - 언론사명 추정
-- date 최신순 기준으로 키워드당 최대 300개 조회
+- 설정된 정렬 방식(date/sim)에 따라 키워드당 최대 display_per_keyword × pages_per_keyword개 조회
 - URL 중복 제거
+- 의미 중복/최근 반복 이슈 제거는 issue_history.py에서 별도로 수행
 - 시간대별 비례 샘플링으로 최신 기사 쏠림 완화
 - AI 선별 단계로 넘길 최종 후보는 기본 100개로 제한
 - 매핑되지 않은 언론사 도메인은 개별 로그 대신 파일로 누적 저장
@@ -656,6 +657,7 @@ def search_multiple_keywords(
       display_per_keyword=100, pages_per_keyword=3이면 start=1, 101, 201 호출
     - 최근 recent_hours 이내 뉴스만 유지
     - URL 중복 제거
+- 의미 중복/최근 반복 이슈 제거는 issue_history.py에서 별도로 수행
     - max_total_news 초과 시 시간대별 비례 샘플링
     - AI 선별 단계로 넘길 최종 후보는 기본 100개 이하
 
@@ -794,7 +796,8 @@ def search_multiple_keywords(
                         old_news_count += 1
                         continue
 
-                    # URL 중복 제거
+                    # URL 완전 중복 제거
+                    # 의미상 같은 사건인지 여부는 issue_history.py와 news_selector.py에서 별도로 판단한다.
                     normalized_urls = [
                         normalize_news_url(link),
                         normalize_news_url(original_link),
@@ -854,7 +857,13 @@ def search_multiple_keywords(
     logger.info(f"{'=' * 60}")
 
     # 시간대별 비례 샘플링 적용
+    # 주의: enable_time_bucket_sampling=False이면 여기서는 max_total_news 제한도 걸지 않는다.
+    # main.py가 규칙 기반 반복/내부중복 제거 후 sample_news_by_time_bucket()을 호출해
+    # 최종 후보 100개 제한을 적용한다.
+    scraper_sampling_applied = False
+
     if enable_time_bucket_sampling and max_total_news is not None and max_total_news > 0:
+        before_sampling_count = len(all_news)
         all_news = sample_news_by_time_bucket(
             all_news,
             bucket_hours=bucket_hours,
@@ -862,12 +871,12 @@ def search_multiple_keywords(
             min_per_bucket=min_per_bucket,
             recent_hours=recent_hours
         )
-
-    # 샘플링을 꺼둔 경우에도 max_total_news가 있으면 최종 제한만 적용
-    elif max_total_news is not None and max_total_news > 0:
-        before_count = len(all_news)
-        all_news = all_news[:max_total_news]
-        logger.info(f"✂️ 최종 후보 수 제한: {before_count}개 → {len(all_news)}개")
+        scraper_sampling_applied = before_sampling_count > len(all_news)
+    else:
+        logger.info(
+            "🧺 스크래퍼 내부 시간대 샘플링 비활성화: "
+            "반복 이슈 필터 후 main.py에서 최종 후보 수를 제한합니다."
+        )
 
     final_candidate_count = len(all_news)
 
@@ -886,6 +895,7 @@ def search_multiple_keywords(
         "final_candidate_count": final_candidate_count,
         "old_news_count": old_news_count,
         "duplicate_count": duplicate_count,
+        "url_duplicate_count": duplicate_count,
         "parse_fail_or_invalid_count": parse_fail_or_invalid_count,
         "failed_search_count": failed_search_count,
         "recent_hours": recent_hours,
@@ -894,6 +904,9 @@ def search_multiple_keywords(
         "sorts": list(sorts),
         "max_total_news": max_total_news,
         "enable_time_bucket_sampling": enable_time_bucket_sampling,
+        "scraper_sampling_enabled": enable_time_bucket_sampling,
+        "scraper_sampling_applied": scraper_sampling_applied,
+        "scraper_return_count": final_candidate_count,
         "bucket_hours": bucket_hours,
         "min_per_bucket": min_per_bucket,
         "keyword_count": len(keywords),
@@ -913,6 +926,30 @@ def search_multiple_keywords(
     save_unmapped_press_domains()
 
     return all_news
+def update_post_issue_filter_sampling_stats(
+    before_issue_filter_count: int,
+    after_issue_filter_count: int,
+    before_sampling_count: int,
+    after_sampling_count: int,
+):
+    """
+    main.py에서 반복 이슈 필터 후 시간대 샘플링을 적용한 결과를
+    마지막 수집 통계에 반영한다.
+
+    search_multiple_keywords(enable_time_bucket_sampling=False)로 넓게 수집한 뒤,
+    규칙 기반 중복 제거를 먼저 수행하고, 마지막에 max_total_news 제한을 적용하는
+    구조를 로그와 메일 대시보드에 정확히 보여주기 위한 함수다.
+    """
+    global LAST_SCRAPE_STATS
+
+    LAST_SCRAPE_STATS["issue_filter_before_count"] = int(before_issue_filter_count or 0)
+    LAST_SCRAPE_STATS["issue_filter_after_count"] = int(after_issue_filter_count or 0)
+    LAST_SCRAPE_STATS["after_issue_filter_before_sampling_count"] = int(before_sampling_count or 0)
+    LAST_SCRAPE_STATS["after_issue_filter_after_sampling_count"] = int(after_sampling_count or 0)
+    LAST_SCRAPE_STATS["post_issue_filter_sampling_applied"] = int(before_sampling_count or 0) > int(after_sampling_count or 0)
+    LAST_SCRAPE_STATS["final_candidate_count"] = int(after_sampling_count or 0)
+    LAST_SCRAPE_STATS["scraper_return_count"] = int(before_issue_filter_count or 0)
+
 
 
 # ====================================
