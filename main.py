@@ -17,6 +17,7 @@ from datetime import datetime
 # 모듈 임포트
 import naver_news_scraper
 import news_selector
+import news_grouper
 import summarizer
 import email_sender
 import issue_history
@@ -194,6 +195,63 @@ def normalize_sorts(value):
     return DEFAULT_SORTS
 
 
+
+
+def normalize_exclude_keywords(value):
+    """
+    설정 파일의 exclude_keywords 값을 안전하게 리스트로 변환한다.
+    """
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if isinstance(value, str):
+        return [item.strip() for item in value.split(",") if item.strip()]
+    return []
+
+
+def apply_exclude_keywords(news_list, exclude_keywords, section_name):
+    """
+    AI 선별 전에 명백히 제외할 키워드를 포함한 뉴스를 제거한다.
+    제목/설명/언론사/키워드 필드에서 단순 포함 여부만 본다.
+    """
+    exclude_keywords = normalize_exclude_keywords(exclude_keywords)
+    if not exclude_keywords:
+        return news_list, 0
+
+    filtered = []
+    excluded_count = 0
+
+    for news in news_list or []:
+        haystack = " ".join([
+            str(news.get("title") or ""),
+            str(news.get("description") or ""),
+            str(news.get("source") or ""),
+            str(news.get("keyword") or ""),
+        ]).lower()
+
+        matched_keyword = None
+        for keyword in exclude_keywords:
+            if keyword.lower() in haystack:
+                matched_keyword = keyword
+                break
+
+        if matched_keyword:
+            excluded_count += 1
+            logger.info(
+                f"⏭️ [{section_name}] 제외 키워드 필터: "
+                f"'{matched_keyword}' | {str(news.get('title') or '')[:80]}"
+            )
+            continue
+
+        filtered.append(news)
+
+    logger.info(
+        f"🧹 [{section_name}] 제외 키워드 필터 완료: "
+        f"{len(news_list or [])}개 → {len(filtered)}개 / 제외 {excluded_count}개"
+    )
+    return filtered, excluded_count
+
 def collect_select_and_summarize(
     briefing_name,
     receiver_env,
@@ -208,7 +266,10 @@ def collect_select_and_summarize(
     recent_hours=DEFAULT_RECENT_HOURS,
     issue_history_days=DEFAULT_ISSUE_HISTORY_DAYS,
     issue_history_file_path=issue_history.HISTORY_FILE_PATH,
-    unmapped_press_domains_file_path=None
+    unmapped_press_domains_file_path=None,
+    exclude_keywords=None,
+    grouping_max_groups=None,
+    grouping_exclude_low_quality=True
 ):
     """
     섹션별 뉴스 수집 → 최근 반복 이슈 제거 → OpenAI 선별 → 요약 처리
@@ -228,6 +289,9 @@ def collect_select_and_summarize(
         issue_history_days: 최근 며칠간 이미 다룬 이슈와 비교할지
         issue_history_file_path: 설정 파일별로 분리된 이슈 히스토리 파일 경로
         unmapped_press_domains_file_path: 설정 파일별로 분리된 미매핑 언론사 도메인 파일 경로
+        exclude_keywords: 섹션별 제외 키워드 리스트
+        grouping_max_groups: 그룹화 후 OpenAI 선별에 넘길 최대 그룹 수
+        grouping_exclude_low_quality: 사진/저품질 그룹을 선별 후보에서 제외할지 여부
 
     Returns:
         {
@@ -256,6 +320,7 @@ def collect_select_and_summarize(
     logger.info(f"반복 이슈 비교 기간: 최근 {issue_history_days}일")
     logger.info(f"반복 이슈 히스토리 파일: {issue_history_file_path}")
     logger.info(f"미매핑 언론사 도메인 파일: {unmapped_press_domains_file_path}")
+    logger.info(f"제외 키워드: {', '.join(normalize_exclude_keywords(exclude_keywords)) if normalize_exclude_keywords(exclude_keywords) else '없음'}")
 
     # 1) 먼저 시간대 샘플링 없이 넓게 수집한다.
     # 반복/내부중복 제거를 먼저 하고, 그 다음 max_total_news 제한을 적용해야
@@ -340,17 +405,106 @@ def collect_select_and_summarize(
     scrape_stats["issue_key_tokens"] = issue_token_stats.get("issue_key_tokens", 0)
     scrape_stats["issue_duplicate_tokens"] = issue_token_stats.get("llm_duplicate_tokens", 0)
 
-    # 2) 반복/내부중복 제거가 끝난 뒤에 시간대별 샘플링으로 최종 후보 수를 제한한다.
-    # 이렇게 해야 AI 선별 후보가 중복 제거 후에도 최대한 max_total_news에 가깝게 유지된다.
-    before_sampling_after_filter_count = len(news_list)
-    news_list = naver_news_scraper.sample_news_by_time_bucket(
+    # ====================================
+    # 섹션별 제외 키워드 필터
+    # ====================================
+    before_exclude_keyword_count = len(news_list)
+    news_list, exclude_keyword_count = apply_exclude_keywords(
         news_list=news_list,
-        bucket_hours=4,
-        max_total_news=max_total_news,
-        min_per_bucket=0,
-        recent_hours=recent_hours
+        exclude_keywords=exclude_keywords,
+        section_name=section_name,
     )
-    after_sampling_count = len(news_list)
+    after_exclude_keyword_count = len(news_list)
+
+    scrape_stats["exclude_keyword_before_count"] = before_exclude_keyword_count
+    scrape_stats["exclude_keyword_after_count"] = after_exclude_keyword_count
+    scrape_stats["exclude_keyword_excluded_count"] = exclude_keyword_count
+
+    if not news_list:
+        logger.error(f"❌ [{section_name}] 제외 키워드 필터 후 남은 뉴스가 없습니다.")
+        return {
+            "section_name": section_name,
+            "summaries": [],
+            "raw_count": 0,
+            "selected_count": 0,
+            "scrape_stats": scrape_stats
+        }
+
+    # ====================================
+    # Python 규칙 기반 사건 그룹화
+    # ====================================
+    grouping_max_groups = int(grouping_max_groups or max_total_news)
+
+    logger.info("\n" + "=" * 60)
+    logger.info(f"🧩 [{section_name}] Python 사건 그룹화 시작")
+    logger.info("=" * 60)
+
+    grouping_result = news_grouper.build_grouping_result(
+        news_list=news_list,
+        max_groups=grouping_max_groups,
+        exclude_low_quality=bool(grouping_exclude_low_quality),
+    )
+
+    grouped_representative_news = grouping_result.get("representative_news", [])
+
+    grouping_news_count = int(grouping_result.get("news_count", len(news_list)) or 0)
+    grouping_group_count = int(grouping_result.get("group_count", 0) or 0)
+    grouping_low_quality_group_count = int(grouping_result.get("low_quality_group_count", 0) or 0)
+    grouping_low_quality_article_count = int(grouping_result.get("low_quality_article_count", 0) or 0)
+    grouping_duplicate_article_count = int(grouping_result.get("duplicate_article_count", 0) or 0)
+    grouping_selection_group_count = int(grouping_result.get("selection_group_count", 0) or 0)
+    grouping_selection_article_count = int(grouping_result.get("selection_article_count", 0) or 0)
+
+    scrape_stats["grouping_news_count"] = grouping_news_count
+    scrape_stats["grouping_group_count"] = grouping_group_count
+    scrape_stats["grouping_multi_article_group_count"] = grouping_result.get("multi_article_group_count", 0)
+    scrape_stats["grouping_low_quality_group_count"] = grouping_low_quality_group_count
+    scrape_stats["grouping_low_quality_article_count"] = grouping_low_quality_article_count
+    scrape_stats["grouping_duplicate_article_count"] = grouping_duplicate_article_count
+    scrape_stats["grouping_selection_group_count"] = grouping_selection_group_count
+    scrape_stats["grouping_selection_article_count"] = grouping_selection_article_count
+    scrape_stats["grouping_exclude_low_quality"] = bool(grouping_exclude_low_quality)
+
+    # 메일 대시보드용 집계
+    # - 전체검색수: total_seen_count
+    # - 24시간초과제외: old_news_count
+    # - 코드규칙제외: URL 중복, 최근 발송 이슈, 제외 키워드, 저품질/사진성 그룹 제외
+    # - AI중복제외: AI가 고른 최종 후보 안에서 코드 규칙으로 다시 제거한 중복 기사 수
+    #   그룹화로 대표 1건만 남기며 빠진 기사 수는 grouping_duplicate_excluded_count로 따로 보관한다.
+    code_rule_excluded_count = (
+        int(scrape_stats.get("duplicate_count", 0) or 0)
+        + int(scrape_stats.get("issue_filter_excluded_count", 0) or 0)
+        + int(scrape_stats.get("exclude_keyword_excluded_count", 0) or 0)
+        + grouping_low_quality_article_count
+    )
+    scrape_stats["grouping_duplicate_excluded_count"] = grouping_duplicate_article_count
+    scrape_stats["code_rule_excluded_count"] = code_rule_excluded_count
+    scrape_stats["ai_duplicate_excluded_count"] = 0
+
+    logger.info(
+        f"🧩 [{section_name}] 그룹화 결과: "
+        f"기사 {grouping_result.get('news_count', len(news_list))}개 → "
+        f"그룹 {grouping_result.get('group_count', 0)}개 / "
+        f"2건 이상 그룹 {grouping_result.get('multi_article_group_count', 0)}개 / "
+        f"중복 대표화 제외 {grouping_result.get('duplicate_article_count', 0)}개 / "
+        f"저품질 제외 {grouping_result.get('low_quality_group_count', 0)}그룹·{grouping_result.get('low_quality_article_count', 0)}기사 / "
+        f"AI 선별 후보 그룹 {grouping_result.get('selection_group_count', 0)}개"
+    )
+
+    if not grouped_representative_news:
+        logger.warning(f"⚠️ [{section_name}] 그룹화 후 AI 후보가 없어 원본 후보에서 시간대 샘플링 fallback을 사용합니다.")
+        before_sampling_after_filter_count = len(news_list)
+        grouped_representative_news = naver_news_scraper.sample_news_by_time_bucket(
+            news_list=news_list,
+            bucket_hours=4,
+            max_total_news=max_total_news,
+            min_per_bucket=0,
+            recent_hours=recent_hours,
+        )
+        after_sampling_count = len(grouped_representative_news)
+    else:
+        before_sampling_after_filter_count = len(news_list)
+        after_sampling_count = len(grouped_representative_news)
 
     naver_news_scraper.update_post_issue_filter_sampling_stats(
         before_issue_filter_count=before_issue_filter_count,
@@ -359,33 +513,19 @@ def collect_select_and_summarize(
         after_sampling_count=after_sampling_count,
     )
 
-    scrape_stats = naver_news_scraper.get_last_scrape_stats()
-
-    # issue_history 결과 통계는 update_post_issue_filter_sampling_stats 이후에도 보존되도록 다시 반영한다.
-    scrape_stats["issue_filter_excluded_count"] = issue_filter_result.get("excluded_count", 0)
-    scrape_stats["issue_filter_past_issue_count"] = issue_filter_result.get("past_issue_count", 0)
-    scrape_stats["issue_filter_days"] = issue_history_days
-    scrape_stats["issue_filter_success"] = issue_filter_result.get("success", False)
-    scrape_stats["issue_filter_message"] = issue_filter_result.get("message", "")
-    scrape_stats["issue_filter_url_excluded_count"] = issue_filter_result.get("url_excluded_count", 0)
-    scrape_stats["issue_filter_title_excluded_count"] = issue_filter_result.get("title_excluded_count", 0)
-    scrape_stats["issue_filter_core_key_excluded_count"] = issue_filter_result.get("core_key_excluded_count", 0)
-    scrape_stats["issue_filter_llm_excluded_count"] = issue_filter_result.get("llm_excluded_count", 0)
-    scrape_stats["issue_filter_internal_duplicate_count"] = issue_filter_result.get("internal_duplicate_count", 0)
-    scrape_stats["issue_filter_text_excluded_count"] = issue_filter_result.get("text_excluded_count", 0)
-    scrape_stats["issue_filter_token_overlap_excluded_count"] = issue_filter_result.get("token_overlap_excluded_count", 0)
-    scrape_stats["issue_filter_simhash_excluded_count"] = issue_filter_result.get("simhash_excluded_count", 0)
-    scrape_stats["issue_key_tokens"] = issue_token_stats.get("issue_key_tokens", 0)
-    scrape_stats["issue_duplicate_tokens"] = issue_token_stats.get("llm_duplicate_tokens", 0)
+    updated_scrape_stats = naver_news_scraper.get_last_scrape_stats()
+    updated_scrape_stats.update(scrape_stats)
+    scrape_stats = updated_scrape_stats
 
     logger.info(
-        f"🧺 [{section_name}] 필터 후 시간대 샘플링: "
-        f"{before_sampling_after_filter_count}개 → {after_sampling_count}개 "
+        f"🧺 [{section_name}] AI 선별 후보 준비: "
+        f"반복이슈/제외어 필터 후 {before_sampling_after_filter_count}개 → "
+        f"그룹 대표 후보 {after_sampling_count}개 "
         f"(max_total_news={max_total_news})"
     )
 
-    if not news_list:
-        logger.error(f"❌ [{section_name}] 최근 {issue_history_days}일 반복 이슈 제거 후 남은 뉴스가 없습니다.")
+    if not grouped_representative_news:
+        logger.error(f"❌ [{section_name}] 그룹화/샘플링 후 남은 뉴스가 없습니다.")
         return {
             "section_name": section_name,
             "summaries": [],
@@ -401,8 +541,9 @@ def collect_select_and_summarize(
     logger.info(f"🧠 [{section_name}] OpenAI 뉴스 선별 시작")
     logger.info("=" * 60)
 
-    selected_news = news_selector.select_important_news(
-        news_list=news_list,
+    selected_news = news_selector.select_important_news_groups(
+        group_list=grouping_result.get("selection_groups", []),
+        fallback_news_list=grouped_representative_news,
         topic_name=section_name,
         topic_description=topic_description,
         limit=select_limit
@@ -411,6 +552,9 @@ def collect_select_and_summarize(
     selection_stats = news_selector.get_last_selection_stats()
     scrape_stats["selection_tokens"] = selection_stats.get("selection_tokens", 0)
     scrape_stats["event_group_tokens"] = selection_stats.get("event_group_tokens", 0)
+    scrape_stats["ai_selected_before_final_dedup_count"] = selection_stats.get("selected_before_final_dedup_count", len(selected_news or []))
+    scrape_stats["ai_duplicate_excluded_count"] = selection_stats.get("final_duplicate_excluded_count", 0)
+    scrape_stats["ai_selected_after_final_dedup_count"] = selection_stats.get("selected_after_final_dedup_count", len(selected_news or []))
 
     if not selected_news:
         logger.error(f"❌ [{section_name}] 선별된 뉴스가 없습니다.")
@@ -491,6 +635,8 @@ def main():
     logger.info(f"상태 파일 디렉터리: {state_paths['state_dir']}")
     logger.info(f"이슈 히스토리 파일: {issue_history_file_path}")
     logger.info(f"미매핑 언론사 도메인 파일: {unmapped_press_domains_file_path}")
+    config_exclude_keywords = normalize_exclude_keywords(config.get("exclude_keywords", []))
+    logger.info(f"기본 제외 키워드: {', '.join(config_exclude_keywords) if config_exclude_keywords else '없음'}")
     logger.info(f"브리핑 이름: {briefing_name}")
     logger.info(f"수신자 환경변수: {receiver_env}")
     logger.info(f"메일 제목 prefix: {subject_prefix}")
@@ -532,6 +678,15 @@ def main():
         section_issue_history_days = int(
             section.get("issue_history_days", issue_history_days)
         )
+        section_exclude_keywords = normalize_exclude_keywords(
+            section.get("exclude_keywords", config.get("exclude_keywords", []))
+        )
+        section_grouping_max_groups = int(
+            section.get("grouping_max_groups", config.get("grouping_max_groups", section_max_total_news))
+        )
+        section_grouping_exclude_low_quality = bool(
+            section.get("grouping_exclude_low_quality", config.get("grouping_exclude_low_quality", True))
+        )
 
         section_result = collect_select_and_summarize(
             briefing_name=briefing_name,
@@ -547,7 +702,10 @@ def main():
             recent_hours=section_recent_hours,
             issue_history_days=section_issue_history_days,
             issue_history_file_path=issue_history_file_path,
-            unmapped_press_domains_file_path=unmapped_press_domains_file_path
+            unmapped_press_domains_file_path=unmapped_press_domains_file_path,
+            exclude_keywords=section_exclude_keywords,
+            grouping_max_groups=section_grouping_max_groups,
+            grouping_exclude_low_quality=section_grouping_exclude_low_quality
         )
 
         section_results.append(section_result)

@@ -1,12 +1,14 @@
 {
-  "updated_at": "2026-05-13T10:46:35.215701+09:00",
-  "total_count": 6,
-  "current_run_count": 4,
-  "new_count": 4,
+  "updated_at": "2026-05-13T14:50:47.738177+09:00",
+  "total_count": 8,
+  "current_run_count": 1,
+  "new_count": 0,
   "domains": [
     "dailynk.com",
     "ferrotimes.com",
+    "gobalnews.com",
     "koscaj.com",
+    "taxwatch.co.kr",
     "thegolftimes.co.kr",
     "usmbc.co.kr",
     "web.ubc.co.kr"

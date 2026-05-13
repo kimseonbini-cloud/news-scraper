@@ -95,7 +95,10 @@ def _build_summary_result(article: Dict, summary: str, tokens_used: int = 0, err
     title = _safe_text(article.get("title", "제목 없음"))
     url = _safe_text(article.get("url", "#"))
     keyword = _safe_text(article.get("keyword", ""))
-    published_at = _safe_text(article.get("published_at", ""))
+    # 수집/그룹화 단계에 따라 published_at 또는 published_at_kst 중 하나만 있을 수 있다.
+    # 메일에서 발생시간이 사라지지 않도록 둘 다 보존한다.
+    published_at = _safe_text(article.get("published_at") or article.get("published_at_kst") or "")
+    published_at_kst = _safe_text(article.get("published_at_kst") or article.get("published_at") or "")
     importance_score = _safe_int(article.get("importance_score", 3))
     category = _safe_text(article.get("category")) or "기타"
     source = (
@@ -112,6 +115,7 @@ def _build_summary_result(article: Dict, summary: str, tokens_used: int = 0, err
         "url": url,
         "keyword": keyword,
         "published_at": published_at,
+        "published_at_kst": published_at_kst,
         "importance_score": importance_score,
         "category": category,
         "source": source,

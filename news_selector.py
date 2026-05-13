@@ -12,6 +12,9 @@ OpenAI API를 사용한 뉴스 선별 모듈
 import os
 import json
 import logging
+import re
+import hashlib
+from difflib import SequenceMatcher
 from typing import List, Dict, Any
 from urllib.parse import urlparse
 
@@ -39,6 +42,9 @@ MODEL = "gpt-4o-mini"
 LAST_SELECTION_STATS = {
     "selection_tokens": 0,
     "event_group_tokens": 0,
+    "final_duplicate_excluded_count": 0,
+    "selected_before_final_dedup_count": 0,
+    "selected_after_final_dedup_count": 0,
 }
 
 
@@ -47,6 +53,9 @@ def reset_selection_stats():
     LAST_SELECTION_STATS = {
         "selection_tokens": 0,
         "event_group_tokens": 0,
+        "final_duplicate_excluded_count": 0,
+        "selected_before_final_dedup_count": 0,
+        "selected_after_final_dedup_count": 0,
     }
 
 
@@ -794,3 +803,590 @@ EMR, 병원IT, 의료AI, 디지털헬스케어, 정책·규제, 의료데이터,
         logger.error(f"❌ OpenAI 뉴스 선별 실패: {e}")
         logger.warning(f"⚠️ 실패 시 URL 중복 제거 후 후보 뉴스 앞에서 {limit}개 사용")
         return _fallback_select(news_list, limit)
+
+
+# ====================================
+# 최종 AI 선별 결과 중복 제거 유틸
+# ====================================
+_FINAL_DEDUP_STOPWORDS = {
+    "기자", "뉴스", "단독", "종합", "속보", "오늘", "내일", "오전", "오후",
+    "관련", "통해", "대해", "대한", "위해", "이번", "지난", "올해", "내년",
+    "밝혔다", "전했다", "설명했다", "말했다", "따르면", "제공", "진행",
+    "발표", "공개", "추진", "운영", "지원", "확대", "강화", "개최",
+    "서비스", "사업", "기업", "업계", "시장", "정부", "기관", "서울",
+}
+
+
+def _normalize_final_dedup_text(value: Any) -> str:
+    text = _safe_text(value).lower()
+    text = re.sub(r"<.*?>", " ", text)
+    text = text.replace("&quot;", '"').replace("&amp;", "&")
+    text = text.replace("&lt;", "<").replace("&gt;", ">")
+    text = text.replace("&#39;", "'")
+    text = text.replace("美", "미국").replace("韓", "한국").replace("中", "중국")
+    text = text.replace("日", "일본").replace("李", "이").replace("金", "김")
+    text = re.sub(r"\[[^\]]*\]|【[^】]*】", " ", text)
+    text = re.sub(r"[\u201c\u201d\u2018\u2019\"'`~!@#$%^&*()_+=\[\]{};:,.<>/?\\|《》〈〉·ㆍ-]", " ", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
+
+def _normalize_final_dedup_title(value: Any) -> str:
+    text = _normalize_final_dedup_text(value)
+    text = re.sub(r"\s+", "", text)
+    text = re.sub(r"[^0-9a-z가-힣]", "", text)
+    return text.strip()
+
+
+def _extract_final_dedup_tokens(news: Dict[str, Any], max_tokens: int = 90) -> List[str]:
+    title = _safe_text(news.get("title"))
+    description = _safe_text(news.get("description") or news.get("summary") or news.get("content"))
+    text = _normalize_final_dedup_text(f"{title} {description}")
+    raw_tokens = re.findall(r"[가-힣a-zA-Z0-9]{2,}", text)
+
+    tokens = []
+    seen = set()
+    for token in raw_tokens:
+        token = _normalize_final_token(token)
+        if not token or token in _FINAL_DEDUP_STOPWORDS:
+            continue
+        if token.isdigit():
+            continue
+        if token in seen:
+            continue
+        seen.add(token)
+        tokens.append(token)
+        if len(tokens) >= max_tokens:
+            break
+    return tokens
+
+
+def _final_token_overlap(tokens_a: List[str], tokens_b: List[str]):
+    set_a = set(tokens_a or [])
+    set_b = set(tokens_b or [])
+    if not set_a or not set_b:
+        return 0.0, 0
+    common = set_a & set_b
+    denominator = max(1, min(len(set_a), len(set_b)))
+    return len(common) / denominator, len(common)
+
+
+def _stable_final_token_hash(token: str) -> int:
+    digest = hashlib.md5(token.encode("utf-8")).hexdigest()
+    return int(digest[:16], 16)
+
+
+def _make_final_simhash(tokens: List[str]) -> str:
+    if not tokens:
+        return ""
+    vector = [0] * 64
+    for token in tokens:
+        value = _stable_final_token_hash(token)
+        for bit in range(64):
+            if value & (1 << bit):
+                vector[bit] += 1
+            else:
+                vector[bit] -= 1
+    fingerprint = 0
+    for bit, score in enumerate(vector):
+        if score >= 0:
+            fingerprint |= (1 << bit)
+    return f"{fingerprint:016x}"
+
+
+def _final_simhash_distance(a: str, b: str):
+    if not a or not b:
+        return None
+    try:
+        return (int(a, 16) ^ int(b, 16)).bit_count()
+    except Exception:
+        return None
+
+
+
+
+def _normalize_final_token(token: str) -> str:
+    """
+    외부 형태소 분석기 없이 조사/어미 차이만 가볍게 줄인다.
+    특정 주제 단어가 아니라 한국어 문장 공통 형태를 다루는 규칙이다.
+    """
+    token = _safe_text(token).lower().strip()
+    if not token:
+        return ""
+
+    # 흔한 한자 약칭을 앞단에서 이미 바꿨지만, 토큰 단위에서도 한 번 더 방어한다.
+    token = token.replace("美", "미국").replace("韓", "한국").replace("中", "중국")
+    token = token.replace("日", "일본").replace("李", "이").replace("金", "김")
+
+    # 한국어 조사/어미 일부 제거: 발언/발언에, 코스피/코스피는, 김용범/김용범의 등을 맞춘다.
+    suffixes = [
+        "으로부터", "로부터", "에서는", "에게서", "까지", "부터", "처럼", "보다",
+        "으로", "라고", "하고", "에서", "에게", "에도", "에는", "만큼",
+        "은", "는", "이", "가", "을", "를", "의", "에", "와", "과", "도", "만", "로",
+    ]
+    for suffix in suffixes:
+        if len(token) > len(suffix) + 1 and token.endswith(suffix):
+            token = token[: -len(suffix)]
+            break
+
+    return token.strip()
+
+def _extract_final_title_tokens(title: Any) -> List[str]:
+    normalized = _normalize_final_dedup_text(title)
+    tokens = []
+    seen = set()
+    for token in re.findall(r"[가-힣a-zA-Z0-9]{2,}", normalized):
+        token = _normalize_final_token(token)
+        if not token or token in _FINAL_DEDUP_STOPWORDS or token.isdigit():
+            continue
+        if token in seen:
+            continue
+        seen.add(token)
+        tokens.append(token)
+    return tokens
+
+
+def _extract_final_anchor_tokens(tokens: List[str]) -> List[str]:
+    """
+    최종 선별 후 중복 제거용 핵심 토큰.
+
+    특정 브리핑 주제 단어를 코드에 박지 않고, 길이와 형태만으로 정보량이 큰 토큰을 고른다.
+    - 영문 약어/혼합 토큰: KDI, AI, EMR 같은 기관·기술명 후보
+    - 3자 이상 한글/영문 토큰: 사건을 구분할 가능성이 높은 단어
+    """
+    anchors = []
+    for token in tokens or []:
+        token = _safe_text(token).lower()
+        if not token or token in _FINAL_DEDUP_STOPWORDS:
+            continue
+        has_alpha = bool(re.search(r"[a-zA-Z]", token))
+        has_korean = bool(re.search(r"[가-힣]", token))
+        if has_alpha or len(token) >= 3 or (has_korean and len(token) >= 3):
+            anchors.append(token)
+    return anchors
+
+
+def _build_final_dedup_payload(news: Dict[str, Any]) -> Dict[str, Any]:
+    title = _safe_text(news.get("title"))
+    description = _safe_text(news.get("description") or news.get("summary") or news.get("content"))
+    normalized_title = _normalize_final_dedup_title(title)
+    normalized_text = _normalize_final_dedup_text(f"{title} {description}")
+    compact_text = re.sub(r"\s+", "", normalized_text)
+    tokens = _extract_final_dedup_tokens(news)
+    title_tokens = _extract_final_title_tokens(title)
+    anchor_tokens = _extract_final_anchor_tokens(title_tokens or tokens)
+    return {
+        "title": title,
+        "normalized_title": normalized_title,
+        "normalized_text": compact_text,
+        "tokens": tokens,
+        "title_tokens": title_tokens,
+        "anchor_tokens": anchor_tokens,
+        "simhash": _make_final_simhash(tokens),
+    }
+
+
+def _has_shared_final_anchor(cand_payload: Dict[str, Any], kept_payload: Dict[str, Any]) -> bool:
+    cand_anchors = set(cand_payload.get("anchor_tokens") or [])
+    kept_anchors = set(kept_payload.get("anchor_tokens") or [])
+    if not cand_anchors or not kept_anchors:
+        return False
+    return bool(cand_anchors & kept_anchors)
+
+
+def _is_final_duplicate_news(candidate: Dict[str, Any], kept: Dict[str, Any]):
+    cand_payload = candidate.get("_final_dedup_payload") or _build_final_dedup_payload(candidate)
+    kept_payload = kept.get("_final_dedup_payload") or _build_final_dedup_payload(kept)
+
+    cand_title = cand_payload.get("normalized_title") or ""
+    kept_title = kept_payload.get("normalized_title") or ""
+
+    if cand_title and kept_title and cand_title == kept_title:
+        return True, "title_exact", 1.0
+
+    # 한쪽 제목이 다른 쪽 제목을 대부분 포함하면 같은 사건으로 본다.
+    # 예: 제목 뒤에 '(종합)', 부제, 수치 설명이 붙은 변형 기사.
+    if cand_title and kept_title and min(len(cand_title), len(kept_title)) >= 10:
+        shorter, longer = sorted([cand_title, kept_title], key=len)
+        if shorter in longer:
+            return True, "title_contains", len(shorter) / max(1, len(longer))
+
+    title_similarity = 0.0
+    if cand_title and kept_title:
+        title_similarity = SequenceMatcher(None, cand_title, kept_title).ratio()
+        # 기존 0.82는 너무 보수적이라 같은 사건의 제목 변형을 많이 놓쳤다.
+        if title_similarity >= 0.72:
+            return True, "title_similarity", title_similarity
+
+    title_overlap, title_common_count = _final_token_overlap(
+        cand_payload.get("title_tokens", []),
+        kept_payload.get("title_tokens", []),
+    )
+    if title_overlap >= 0.45 and title_common_count >= 3:
+        return True, f"title_token_overlap_common_{title_common_count}", title_overlap
+
+    # 최종 10개 안에서는 제목 핵심어 3개 이상이 겹치고 anchor도 공유하면
+    # 표현이 달라도 같은 사건일 가능성이 높다.
+    if title_common_count >= 3 and _has_shared_final_anchor(cand_payload, kept_payload):
+        return True, f"title_common_anchor_{title_common_count}", title_overlap
+
+    cand_text = cand_payload.get("normalized_text") or ""
+    kept_text = kept_payload.get("normalized_text") or ""
+    text_similarity = 0.0
+    if cand_text and kept_text:
+        text_similarity = SequenceMatcher(None, cand_text, kept_text).ratio()
+        if text_similarity >= 0.68:
+            return True, "text_similarity", text_similarity
+
+    overlap, common_count = _final_token_overlap(
+        cand_payload.get("tokens", []),
+        kept_payload.get("tokens", []),
+    )
+    shared_anchor = _has_shared_final_anchor(cand_payload, kept_payload)
+
+    # 최종 후보는 이미 AI가 고른 10개 안쪽이므로, 여기서는 중복 제거를 조금 더 적극적으로 적용한다.
+    # 단, 단순히 흔한 단어만 겹쳐서 지워지는 것을 막기 위해 공통 토큰 수와 anchor 공유를 함께 본다.
+    if overlap >= 0.48 and common_count >= 4 and shared_anchor:
+        return True, f"token_overlap_common_{common_count}", overlap
+
+    if overlap >= 0.62 and common_count >= 4:
+        return True, f"strong_token_overlap_common_{common_count}", overlap
+
+    distance = _final_simhash_distance(cand_payload.get("simhash"), kept_payload.get("simhash"))
+    if distance is not None and distance <= 8 and common_count >= 4 and shared_anchor:
+        return True, f"simhash_distance_{distance}", 1.0 - (distance / 64)
+
+    return False, "", max(title_similarity, text_similarity, overlap, title_overlap)
+
+
+def _deduplicate_final_selected_news(news_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    OpenAI가 고른 최종 후보 안에서만 코드 규칙으로 중복을 제거한다.
+
+    의도:
+    - AI가 10개를 골랐더라도 같은 사건이 섞이면 제거한다.
+    - 제거 후 8개, 9개, 1개가 남아도 억지로 보충하지 않는다.
+    - 제거 수는 LAST_SELECTION_STATS["final_duplicate_excluded_count"]에 저장해
+      이메일 대시보드의 "AI 중복제외"에 표시한다.
+    """
+    kept_news = []
+    excluded_count = 0
+
+    for news in news_list or []:
+        candidate = dict(news)
+        candidate["_final_dedup_payload"] = _build_final_dedup_payload(candidate)
+
+        duplicate_info = None
+        for kept in kept_news:
+            is_duplicate, method, score = _is_final_duplicate_news(candidate, kept)
+            if is_duplicate:
+                duplicate_info = {
+                    "method": method,
+                    "score": score,
+                    "kept_title": kept.get("title", ""),
+                }
+                break
+
+        if duplicate_info:
+            excluded_count += 1
+            logger.info(
+                "⏭️ AI 선별 후 중복 제외: "
+                f"{candidate.get('title', '')[:70]} | "
+                f"기준={duplicate_info['method']} {duplicate_info['score']:.2f} | "
+                f"남긴 기사={duplicate_info['kept_title'][:70]}"
+            )
+            continue
+
+        candidate.pop("_final_dedup_payload", None)
+        kept_news.append(candidate)
+
+    LAST_SELECTION_STATS["selected_before_final_dedup_count"] = len(news_list or [])
+    LAST_SELECTION_STATS["final_duplicate_excluded_count"] = excluded_count
+    LAST_SELECTION_STATS["selected_after_final_dedup_count"] = len(kept_news)
+
+    logger.info(
+        f"🧹 AI 선별 후 최종 중복 제거 완료: "
+        f"{len(news_list or [])}개 → {len(kept_news)}개 "
+        f"(중복 제외 {excluded_count}개, 보충 없음)"
+    )
+
+    return kept_news
+
+
+def _build_group_candidate_text(group_list: List[Dict[str, Any]]) -> str:
+    """
+    Python 그룹화 결과를 OpenAI가 읽기 쉬운 짧은 후보 목록으로 변환한다.
+    기사 원문 전체가 아니라 그룹 대표 정보와 그룹 통계만 전달해 토큰을 줄인다.
+    """
+    lines = []
+    for idx, group in enumerate(group_list or [], 1):
+        rep = group.get("representative") or {}
+        group_id = _safe_text(group.get("group_id") or f"G{idx:03d}")
+        title = _clip_text(rep.get("title"), 120)
+        description = _clip_text(rep.get("description"), 180)
+        source = _clip_text(rep.get("source"), 40)
+        sources = ", ".join(group.get("sources") or [])[:120]
+        keywords = ", ".join(group.get("keywords") or [])[:100]
+        published_at = _safe_text(rep.get("published_at_kst") or rep.get("published_at"))
+        article_count = int(group.get("article_count") or 1)
+        source_count = int(group.get("source_count") or 1)
+        priority_score = _safe_text(group.get("priority_score"))
+        quality_flags = ", ".join(group.get("quality_flags") or [])
+
+        lines.append(
+            f"""
+[{idx}]
+group_id: {group_id}
+기사수: {article_count}
+언론사수: {source_count}
+언론사: {sources or source}
+키워드: {keywords}
+대표제목: {title}
+대표설명: {description}
+발행시각: {published_at}
+로컬점수: {priority_score}
+품질플래그: {quality_flags or '없음'}
+""".strip()
+        )
+    return "\n\n".join(lines)
+
+
+def _representative_news_from_group(group: Dict[str, Any]) -> Dict[str, Any]:
+    rep = dict(group.get("representative") or {})
+
+    # 그룹화 결과의 대표 기사에는 published_at_kst만 있는 경우가 있다.
+    # 이후 요약/메일 단계는 published_at을 우선 사용하므로 여기서 호환 필드를 보강한다.
+    if not rep.get("published_at") and rep.get("published_at_kst"):
+        rep["published_at"] = rep.get("published_at_kst")
+    if not rep.get("published_at_kst") and rep.get("published_at"):
+        rep["published_at_kst"] = rep.get("published_at")
+
+    rep["group_id"] = group.get("group_id")
+    rep["group_article_count"] = group.get("article_count", 1)
+    rep["group_source_count"] = group.get("source_count", 1)
+    rep["group_sources"] = group.get("sources", [])
+    rep["group_keywords"] = group.get("keywords", [])
+    rep["group_quality_flags"] = group.get("quality_flags", [])
+    rep["group_priority_score"] = group.get("priority_score", 0)
+    rep["content"] = rep.get("description", "")
+    return rep
+
+
+def _fallback_select_groups(
+    group_list: List[Dict[str, Any]],
+    fallback_news_list: List[Dict[str, Any]],
+    limit: int
+) -> List[Dict[str, Any]]:
+    """
+    그룹 단위 OpenAI 선별 실패 시 로컬 우선순위 순서대로 대표 기사 사용.
+    """
+    selected_news = []
+
+    if group_list:
+        sorted_groups = sorted(
+            group_list,
+            key=lambda group: (
+                float(group.get("priority_score") or 0),
+                int(group.get("source_count") or 0),
+                int(group.get("article_count") or 0),
+                _safe_text((group.get("representative") or {}).get("published_at_kst")),
+            ),
+            reverse=True,
+        )
+        for group in sorted_groups[:limit]:
+            news = _representative_news_from_group(group)
+            _prepare_selected_news(news, importance_score=3, category="기타")
+            selected_news.append(news)
+        return _deduplicate_final_selected_news(selected_news)
+
+    for news in (fallback_news_list or [])[:limit]:
+        news = dict(news)
+        _prepare_selected_news(news, importance_score=news.get("importance_score", 3), category=news.get("category") or "기타")
+        selected_news.append(news)
+    return _deduplicate_final_selected_news(selected_news)
+
+
+def select_important_news_groups(
+    group_list: List[Dict[str, Any]],
+    fallback_news_list: List[Dict[str, Any]],
+    topic_name: str,
+    topic_description: str,
+    limit: int = 10
+) -> List[Dict]:
+    """
+    Python 규칙 기반으로 묶인 사건 그룹 중 OpenAI가 중요한 그룹만 선택한다.
+
+    기존 기사 단위 선별과 달리:
+    - 입력은 기사 전체가 아니라 사건 그룹 대표 정보다.
+    - 같은 사건 중복 제거는 이미 Python 그룹화 단계에서 수행한다.
+    - 출력은 group_id 기준으로 받는다.
+    """
+    reset_selection_stats()
+
+    if not group_list and not fallback_news_list:
+        logger.warning("선택할 뉴스 그룹 후보가 없습니다.")
+        return []
+
+    logger.info(f"\n{'=' * 60}")
+    logger.info(f"🧠 OpenAI 그룹 단위 뉴스 선별 시작: {topic_name}")
+    logger.info(f"그룹 후보 수: {len(group_list or [])}개")
+    logger.info(f"최종 선택 목표: {limit}개")
+    logger.info(f"{'=' * 60}")
+
+    if client is None:
+        logger.warning("⚠️ OpenAI 클라이언트가 없어 그룹 fallback 선별을 사용합니다.")
+        return _fallback_select_groups(group_list, fallback_news_list, limit)
+
+    # 이미 Python에서 max_total_news 수준으로 줄였으므로 전체 그룹을 넣되,
+    # 너무 많을 때는 로컬 우선순위 상위 100개로 제한한다.
+    prepared_groups = sorted(
+        group_list or [],
+        key=lambda group: (
+            float(group.get("priority_score") or 0),
+            int(group.get("source_count") or 0),
+            int(group.get("article_count") or 0),
+            _safe_text((group.get("representative") or {}).get("published_at_kst")),
+        ),
+        reverse=True,
+    )[:100]
+
+    if not prepared_groups:
+        logger.warning("⚠️ OpenAI에 전달할 그룹이 없어 fallback 선별을 사용합니다.")
+        return _fallback_select_groups(group_list, fallback_news_list, limit)
+
+    group_text = _build_group_candidate_text(prepared_groups)
+    selection_limit = min(len(prepared_groups), max(limit, 1))
+
+    prompt = f"""
+아래는 뉴스 기사들을 Python 규칙 기반으로 같은 사건끼리 묶은 '사건 그룹' 목록입니다.
+
+당신의 역할은 뉴스 편집자입니다.
+아래 기준으로 최종 뉴스 그룹 {selection_limit}개 이하를 선택하세요.
+
+[브리핑 이름]
+{topic_name}
+
+[선택해야 하는 뉴스 주제]
+{topic_description}
+
+[중요한 원칙]
+1. 이미 같은 사건으로 묶인 그룹 목록입니다. 같은 사건을 중복 선택하지 마세요.
+2. group_id 기준으로만 선택하세요.
+3. 주제와 직접 관련 있는 그룹만 선택하세요.
+4. 여러 언론사가 다룬 그룹, 산업/정책/시장 영향이 큰 그룹을 우선하세요.
+5. 단순 사진기사, 단순 속보, 단순 홍보성 그룹은 제외하세요.
+6. 품질플래그가 photo_like_representative, low_representative_score, overgroup_risk_token_time_span이면 특별한 이유가 없는 한 제외하세요.
+7. 서로 다른 사건, 서로 다른 이슈가 골고루 포함되도록 선택하세요.
+
+[중요도 점수 기준]
+5점: 선택해야 하는 뉴스 주제와 직접 관련 있고, 정책·규제·실적·투자·시장 변화·산업 구조 변화처럼 영향이 큰 이슈
+4점: 주요 기업·기관·시장 참여자의 전략, 서비스, 제도, 수급, 기술, 유통, 투자 변화와 관련 있는 이슈
+3점: 주제와 관련성이 있고 참고할 만한 일반 뉴스
+2점: 관련성은 있으나 영향도나 구체성이 낮은 뉴스
+1점: 키워드는 있으나 주제 적합성 또는 중요도가 낮은 뉴스
+
+[출력 형식]
+반드시 JSON만 출력하세요.
+설명 문장, 마크다운, 코드블록은 쓰지 마세요.
+
+형식:
+{{
+  "selected": [
+    {{
+      "group_id": "G001",
+      "importance_score": 5,
+      "category": "주제에 맞는 간단한 분류명"
+    }}
+  ]
+}}
+
+[뉴스 그룹 후보 목록]
+{group_text}
+"""
+
+    try:
+        response = client.chat.completions.create(
+            model=MODEL,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "당신은 사건 그룹 단위로 중요한 뉴스만 선별하는 편집자입니다. "
+                        "반드시 JSON만 출력합니다. "
+                        "선택한 각 항목에는 group_id, importance_score, category만 포함합니다."
+                    )
+                },
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.1,
+            max_tokens=1200
+        )
+
+        content = response.choices[0].message.content.strip()
+        tokens_used = response.usage.total_tokens if response.usage else 0
+        add_selection_tokens("selection_tokens", tokens_used)
+        logger.info(f"🧾 그룹 단위 뉴스 선별 토큰 사용량: {tokens_used}")
+
+        try:
+            result = _extract_json(content)
+        except Exception:
+            logger.error("❌ OpenAI 그룹 선별 응답 JSON 파싱 실패")
+            logger.error(content)
+            return _fallback_select_groups(group_list, fallback_news_list, limit)
+
+        selected_items = result.get("selected", [])
+        if not selected_items:
+            logger.warning("⚠️ OpenAI가 선택한 그룹이 없습니다. fallback을 사용합니다.")
+            return _fallback_select_groups(group_list, fallback_news_list, limit)
+
+        group_by_id = {str(group.get("group_id")): group for group in prepared_groups}
+        selected_news = []
+        used_group_ids = set()
+
+        for item in selected_items:
+            group_id = _safe_text(item.get("group_id"))
+            if not group_id or group_id in used_group_ids:
+                continue
+
+            group = group_by_id.get(group_id)
+            if not group:
+                continue
+
+            news = _representative_news_from_group(group)
+            _prepare_selected_news(
+                news=news,
+                importance_score=item.get("importance_score", 3),
+                category=item.get("category") or "기타",
+            )
+            selected_news.append(news)
+            used_group_ids.add(group_id)
+
+            if len(selected_news) >= limit:
+                break
+
+        if not selected_news:
+            logger.warning("⚠️ 유효하게 선택된 그룹이 없습니다. fallback을 사용합니다.")
+            return _fallback_select_groups(group_list, fallback_news_list, limit)
+
+        before_final_dedup_count = len(selected_news)
+        selected_news = _deduplicate_final_selected_news(selected_news)
+
+        logger.info(
+            f"✅ 그룹 단위 뉴스 선별 완료: "
+            f"AI 선택 {before_final_dedup_count}개 → 최종 {len(selected_news)}개 "
+            f"(중복 제외 {LAST_SELECTION_STATS.get('final_duplicate_excluded_count', 0)}개)"
+        )
+        for i, news in enumerate(selected_news, 1):
+            logger.info(
+                f"   [{i}] 중요도 {news.get('importance_score', 3)} | "
+                f"{news.get('category', '기타')} | "
+                f"그룹 {news.get('group_id')} | "
+                f"기사 {news.get('group_article_count', 1)}개/언론사 {news.get('group_source_count', 1)}곳 | "
+                f"{news.get('source', '언론사 미상')} | {news.get('title', '')[:60]}"
+            )
+
+        return selected_news
+
+    except Exception as e:
+        logger.error(f"❌ OpenAI 그룹 단위 뉴스 선별 실패: {e}")
+        return _fallback_select_groups(group_list, fallback_news_list, limit)

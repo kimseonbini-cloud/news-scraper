@@ -31,7 +31,7 @@ EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 # 기본 사내용 수신자
 EMAIL_RECEIVER = os.getenv("EMAIL_RECEIVER")
 
-# 개인 경제 브리핑용 수신자
+# 추가 브리핑 수신자 예시. 실제 사용 여부는 config의 receiver_env가 결정한다.
 EMAIL_RECEIVER_ECONOMY = os.getenv("EMAIL_RECEIVER_ECONOMY")
 
 SMTP_SERVER = "smtp.gmail.com"
@@ -97,12 +97,28 @@ def safe_count(value, default=0):
 
 def format_korean_datetime(date_string):
     """
-    날짜 문자열을 한국식 표현으로 변환
+    날짜 문자열을 한국식 표현으로 변환한다.
+
+    지원 형식:
+    - 네이버 pubDate: Tue, 13 May 2026 09:01:00 +0900
+    - ISO/KST: 2026-05-13T09:01:00+09:00
     """
+    raw_value = str(date_string or "").strip()
+
+    if not raw_value:
+        return ""
+
     try:
-        dt = parsedate_to_datetime(date_string)
+        try:
+            dt = parsedate_to_datetime(raw_value)
+        except Exception:
+            dt = datetime.fromisoformat(raw_value.replace("Z", "+00:00"))
 
         kst = pytz.timezone("Asia/Seoul")
+
+        if dt.tzinfo is None:
+            dt = kst.localize(dt)
+
         dt_kst = dt.astimezone(kst)
 
         weekdays = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]
@@ -122,7 +138,7 @@ def format_korean_datetime(date_string):
         )
 
     except Exception:
-        return safe_text(date_string)
+        return safe_text(raw_value)
 
 
 def get_today_date_text():
@@ -148,31 +164,15 @@ def determine_receiver_env_name(
     receiver_env_name=None
 ):
     """
-    브리핑 종류에 따라 사용할 수신자 환경변수명 결정
+    사용할 수신자 환경변수명 결정.
 
-    우선순위:
-    1. send_email에서 receiver_env_name을 직접 넘긴 경우
-    2. briefing_name / subject_prefix / section_name에 경제·부동산·증권 키워드가 있으면 EMAIL_RECEIVER_ECONOMY
-    3. 기본 EMAIL_RECEIVER
+    원칙:
+    - 브리핑 종류를 코드에서 특정 단어로 추정하지 않는다.
+    - config의 receiver_env 값이 main.py를 통해 receiver_env_name으로 전달되면 그 값을 그대로 사용한다.
+    - 별도 지정이 없을 때만 기본 EMAIL_RECEIVER를 사용한다.
     """
     if receiver_env_name:
         return receiver_env_name
-
-    text_parts = [
-        str(briefing_name or ""),
-        str(subject_prefix or "")
-    ]
-
-    if section_results:
-        for section in section_results:
-            text_parts.append(str(section.get("section_name", "")))
-
-    combined_text = " ".join(text_parts)
-
-    economy_keywords = ["경제", "부동산", "증권", "코스피", "코스닥", "환율", "금리"]
-
-    if any(keyword in combined_text for keyword in economy_keywords):
-        return "EMAIL_RECEIVER_ECONOMY"
 
     return "EMAIL_RECEIVER"
 
@@ -241,16 +241,13 @@ def build_section_dashboard(section_result):
     섹션 제목 아래, 핵심요약 3줄 위에 표시할 간단 대시보드.
 
     표시 항목:
-    - 전체 뉴스 검색
-    - URL 중복 제외
-    - 반복 이슈 제외
-    - 24시간 초과 제외
-    - AI 선별 기사
-
-    주의:
-    duplicate_count는 수집 단계의 URL 중복 제거 수이고,
-    issue_filter_excluded_count는 최근 N일 반복 이슈/의미 중복 제거 수이다.
-    두 값을 분리해서 보여줘야 실제로 무엇이 제외됐는지 확인할 수 있다.
+    - 전체검색수: 네이버 API 검색 결과로 확인한 전체 기사 수
+    - 24시간초과제외: recent_hours 기준을 벗어나 제외된 기사 수
+    - 코드규칙제외: URL 중복, 최근 발송 이슈, 제외 키워드, 저품질/사진성 그룹 등
+      AI 호출 전에 코드 규칙으로 제외한 기사 수
+    - AI 중복제외: AI가 고른 최종 후보 안에서 코드 규칙으로 다시 제거한 중복 기사 수
+      예: AI가 10개를 골랐고 최종 중복 제거로 2개가 빠지면 2로 표시한다.
+    - AI선별: 최종 중복 제거 후 실제 메일 요약 대상으로 남은 기사 수
     """
     if not section_result:
         return ""
@@ -259,9 +256,21 @@ def build_section_dashboard(section_result):
     scrape_stats = section_result.get("scrape_stats", {}) or {}
 
     total_seen_count = safe_count(scrape_stats.get("total_seen_count", 0))
-    url_duplicate_count = safe_count(scrape_stats.get("duplicate_count", 0))
-    issue_filter_excluded_count = safe_count(scrape_stats.get("issue_filter_excluded_count", 0))
     old_news_count = safe_count(scrape_stats.get("old_news_count", 0))
+
+    code_rule_excluded_count = safe_count(scrape_stats.get("code_rule_excluded_count", None), None)
+    if code_rule_excluded_count is None:
+        code_rule_excluded_count = (
+            safe_count(scrape_stats.get("duplicate_count", 0))
+            + safe_count(scrape_stats.get("issue_filter_excluded_count", 0))
+            + safe_count(scrape_stats.get("exclude_keyword_excluded_count", 0))
+            + safe_count(scrape_stats.get("grouping_low_quality_article_count", 0))
+        )
+
+    ai_duplicate_excluded_count = safe_count(scrape_stats.get("ai_duplicate_excluded_count", None), None)
+    if ai_duplicate_excluded_count is None:
+        ai_duplicate_excluded_count = 0
+
     selected_count = safe_count(section_result.get("selected_count", len(summaries)))
 
     return f"""
@@ -274,7 +283,7 @@ def build_section_dashboard(section_result):
                         <tr>
                             <td width="20%" style="padding:8px 7px; border:1px solid #d4d4d4;">
                                 <div style="font-size:11px; line-height:1.3; font-weight:800; color:#737373; margin:0 0 3px 0;">
-                                    전체 뉴스 검색
+                                    전체검색수
                                 </div>
                                 <div style="font-size:17px; line-height:1.25; font-weight:900;">
                                     {total_seen_count}
@@ -282,23 +291,7 @@ def build_section_dashboard(section_result):
                             </td>
                             <td width="20%" style="padding:8px 7px; border:1px solid #d4d4d4;">
                                 <div style="font-size:11px; line-height:1.3; font-weight:800; color:#737373; margin:0 0 3px 0;">
-                                    URL 중복 제외
-                                </div>
-                                <div style="font-size:17px; line-height:1.25; font-weight:900;">
-                                    {url_duplicate_count}
-                                </div>
-                            </td>
-                            <td width="20%" style="padding:8px 7px; border:1px solid #d4d4d4;">
-                                <div style="font-size:11px; line-height:1.3; font-weight:800; color:#737373; margin:0 0 3px 0;">
-                                    반복 이슈 제외
-                                </div>
-                                <div style="font-size:17px; line-height:1.25; font-weight:900;">
-                                    {issue_filter_excluded_count}
-                                </div>
-                            </td>
-                            <td width="20%" style="padding:8px 7px; border:1px solid #d4d4d4;">
-                                <div style="font-size:11px; line-height:1.3; font-weight:800; color:#737373; margin:0 0 3px 0;">
-                                    24시간 초과 제외
+                                    24시간초과제외
                                 </div>
                                 <div style="font-size:17px; line-height:1.25; font-weight:900;">
                                     {old_news_count}
@@ -306,7 +299,23 @@ def build_section_dashboard(section_result):
                             </td>
                             <td width="20%" style="padding:8px 7px; border:1px solid #d4d4d4;">
                                 <div style="font-size:11px; line-height:1.3; font-weight:800; color:#737373; margin:0 0 3px 0;">
-                                    AI 선별 기사
+                                    코드규칙제외
+                                </div>
+                                <div style="font-size:17px; line-height:1.25; font-weight:900;">
+                                    {code_rule_excluded_count}
+                                </div>
+                            </td>
+                            <td width="20%" style="padding:8px 7px; border:1px solid #d4d4d4;">
+                                <div style="font-size:11px; line-height:1.3; font-weight:800; color:#737373; margin:0 0 3px 0;">
+                                    AI 중복제외
+                                </div>
+                                <div style="font-size:17px; line-height:1.25; font-weight:900;">
+                                    {ai_duplicate_excluded_count}
+                                </div>
+                            </td>
+                            <td width="20%" style="padding:8px 7px; border:1px solid #d4d4d4;">
+                                <div style="font-size:11px; line-height:1.3; font-weight:800; color:#737373; margin:0 0 3px 0;">
+                                    AI선별
                                 </div>
                                 <div style="font-size:17px; line-height:1.25; font-weight:900;">
                                     {selected_count}
@@ -497,7 +506,9 @@ def build_news_section(section_result, section_index):
         return html_body
 
     for i, news in enumerate(summaries, 1):
-        published_date = format_korean_datetime(news.get("published_at", ""))
+        published_date = format_korean_datetime(
+            news.get("published_at") or news.get("published_at_kst") or ""
+        )
 
         title = safe_text(news.get("title", "제목 없음"))
         url = safe_url(news.get("url", "#"))
@@ -856,6 +867,12 @@ def send_test_email(receiver_env_name="EMAIL_RECEIVER"):
                 "total_seen_count": 1291,
                 "duplicate_count": 760,
                 "old_news_count": 431,
+                "issue_filter_excluded_count": 12,
+                "exclude_keyword_excluded_count": 8,
+                "grouping_low_quality_article_count": 5,
+                "grouping_duplicate_article_count": 38,
+                "code_rule_excluded_count": 785,
+                "ai_duplicate_excluded_count": 38,
                 "final_candidate_count": 100
             }
         },
@@ -878,6 +895,12 @@ def send_test_email(receiver_env_name="EMAIL_RECEIVER"):
                 "total_seen_count": 868,
                 "duplicate_count": 688,
                 "old_news_count": 80,
+                "issue_filter_excluded_count": 4,
+                "exclude_keyword_excluded_count": 18,
+                "grouping_low_quality_article_count": 3,
+                "grouping_duplicate_article_count": 14,
+                "code_rule_excluded_count": 713,
+                "ai_duplicate_excluded_count": 14,
                 "final_candidate_count": 100
             }
         }
