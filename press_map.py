@@ -703,4 +703,12 @@ PRESS_MAP = {
     "ytn.co.kr": "YTN",
     "zdnet.co.kr": "지디넷코리아",
     "ziksir.com": "직썰",
+    "busanmbc.co.kr": "부산MBC",
+    "cio.com": "CIO Korea",
+    "epj.co.kr": "일렉트릭파워",
+    "jtv.co.kr": "JTV전주방송",
+    "maniareport.com": "마니아타임즈",
+    "newswell.co.kr": "뉴스웰",
+    "seouland.com": "서울앤",
+    "stnsports.co.kr": "STN스포츠",
 }

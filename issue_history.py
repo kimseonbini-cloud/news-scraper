@@ -307,7 +307,9 @@ def load_issue_history(file_path=HISTORY_FILE_PATH):
 
 
 def save_issue_history(data, file_path=HISTORY_FILE_PATH):
-    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    dirname = os.path.dirname(file_path)
+    if dirname:
+        os.makedirs(dirname, exist_ok=True)
     with open(file_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 

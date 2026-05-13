@@ -132,6 +132,40 @@ def make_safe_filename(value):
     return value
 
 
+def get_config_slug(config_path):
+    """
+    설정 파일 경로에서 상태 파일 구분용 slug를 생성한다.
+
+    예:
+    - configs/company_briefing.json -> company_briefing
+    - configs/economy_briefing.json -> economy_briefing
+    - configs/inohas_briefing.json -> inohas_briefing
+
+    config 파일이 추가되어도 파일명 기준으로 자동 분리된다.
+    """
+    config_base_name = os.path.splitext(os.path.basename(config_path))[0]
+    return make_safe_filename(config_base_name)
+
+
+def get_state_file_paths(config_path):
+    """
+    설정 파일 기준으로 상태 파일 경로를 동적으로 생성한다.
+
+    같은 저장소에서 여러 브리핑 workflow가 실행되더라도
+    브리핑별 상태 파일을 따로 사용해 Git 충돌 가능성을 낮춘다.
+    """
+    config_slug = get_config_slug(config_path)
+    state_dir = os.path.join("data", "state", config_slug)
+    os.makedirs(state_dir, exist_ok=True)
+
+    return {
+        "config_slug": config_slug,
+        "state_dir": state_dir,
+        "issue_history_file_path": os.path.join(state_dir, "seen_issues.json"),
+        "unmapped_press_domains_file_path": os.path.join(state_dir, "unmapped_press_domains.json"),
+    }
+
+
 def normalize_sorts(value):
     """
     설정 파일의 sorts 값을 안전하게 리스트로 변환한다.
@@ -172,7 +206,9 @@ def collect_select_and_summarize(
     max_total_news=DEFAULT_MAX_TOTAL_NEWS,
     select_limit=DEFAULT_SELECT_LIMIT,
     recent_hours=DEFAULT_RECENT_HOURS,
-    issue_history_days=DEFAULT_ISSUE_HISTORY_DAYS
+    issue_history_days=DEFAULT_ISSUE_HISTORY_DAYS,
+    issue_history_file_path=issue_history.HISTORY_FILE_PATH,
+    unmapped_press_domains_file_path=None
 ):
     """
     섹션별 뉴스 수집 → 최근 반복 이슈 제거 → OpenAI 선별 → 요약 처리
@@ -190,6 +226,8 @@ def collect_select_and_summarize(
         select_limit: 최종 선별 개수
         recent_hours: 최근 몇 시간 뉴스만 수집할지
         issue_history_days: 최근 며칠간 이미 다룬 이슈와 비교할지
+        issue_history_file_path: 설정 파일별로 분리된 이슈 히스토리 파일 경로
+        unmapped_press_domains_file_path: 설정 파일별로 분리된 미매핑 언론사 도메인 파일 경로
 
     Returns:
         {
@@ -216,6 +254,8 @@ def collect_select_and_summarize(
     logger.info(f"AI 선별 전달 최대 후보 수: {max_total_news}")
     logger.info(f"최종 선별 개수: {select_limit}")
     logger.info(f"반복 이슈 비교 기간: 최근 {issue_history_days}일")
+    logger.info(f"반복 이슈 히스토리 파일: {issue_history_file_path}")
+    logger.info(f"미매핑 언론사 도메인 파일: {unmapped_press_domains_file_path}")
 
     # 1) 먼저 시간대 샘플링 없이 넓게 수집한다.
     # 반복/내부중복 제거를 먼저 하고, 그 다음 max_total_news 제한을 적용해야
@@ -227,7 +267,8 @@ def collect_select_and_summarize(
         sorts=sorts,
         pages_per_keyword=pages_per_keyword,
         enable_time_bucket_sampling=False,
-        max_total_news=max_total_news
+        max_total_news=max_total_news,
+        unmapped_press_domains_file_path=unmapped_press_domains_file_path
     )
 
     # naver_news_scraper.py에서 마지막 수집 통계를 가져온다.
@@ -259,7 +300,8 @@ def collect_select_and_summarize(
         receiver_env=receiver_env,
         section_name=section_name,
         candidate_news=news_list,
-        days=issue_history_days
+        days=issue_history_days,
+        file_path=issue_history_file_path
     )
 
     before_issue_filter_count = len(news_list)
@@ -424,6 +466,9 @@ def main():
 
     config_path = args.config
     config = load_config(config_path)
+    state_paths = get_state_file_paths(config_path)
+    issue_history_file_path = state_paths["issue_history_file_path"]
+    unmapped_press_domains_file_path = state_paths["unmapped_press_domains_file_path"]
 
     briefing_name = config["briefing_name"]
     subject_prefix = config["subject_prefix"]
@@ -442,6 +487,10 @@ def main():
     logger.info("🚀 뉴스 스크래퍼 시작")
     logger.info(f"⏰ {datetime.now().strftime('%Y년 %m월 %d일 %H:%M:%S')}")
     logger.info(f"설정 파일: {config_path}")
+    logger.info(f"상태 파일 구분값: {state_paths['config_slug']}")
+    logger.info(f"상태 파일 디렉터리: {state_paths['state_dir']}")
+    logger.info(f"이슈 히스토리 파일: {issue_history_file_path}")
+    logger.info(f"미매핑 언론사 도메인 파일: {unmapped_press_domains_file_path}")
     logger.info(f"브리핑 이름: {briefing_name}")
     logger.info(f"수신자 환경변수: {receiver_env}")
     logger.info(f"메일 제목 prefix: {subject_prefix}")
@@ -496,7 +545,9 @@ def main():
             max_total_news=section_max_total_news,
             select_limit=section_select_limit,
             recent_hours=section_recent_hours,
-            issue_history_days=section_issue_history_days
+            issue_history_days=section_issue_history_days,
+            issue_history_file_path=issue_history_file_path,
+            unmapped_press_domains_file_path=unmapped_press_domains_file_path
         )
 
         section_results.append(section_result)
@@ -522,7 +573,9 @@ def main():
             briefing_name=briefing_name,
             subject_prefix=subject_prefix,
             receiver_env=receiver_env,
-            section_results=section_results
+            section_results=section_results,
+            file_path=issue_history_file_path,
+            keep_days=issue_history_days
         )
 
         logger.info(
@@ -535,6 +588,20 @@ def main():
 
     else:
         logger.error(f"❌ {result['message']}")
+
+    # ====================================
+    # 미매핑 언론사 도메인 저장
+    # ====================================
+    if hasattr(naver_news_scraper, "save_unmapped_press_domains"):
+        try:
+            naver_news_scraper.save_unmapped_press_domains(
+                filename=unmapped_press_domains_file_path
+            )
+            logger.info(f"🗂️ 미매핑 언론사 도메인 저장 완료: {unmapped_press_domains_file_path}")
+        except Exception as e:
+            logger.warning(f"⚠️ 미매핑 언론사 도메인 저장 실패: {e}")
+    else:
+        logger.info("미매핑 언론사 도메인 저장 함수 없음: 건너뜀")
 
     # ====================================
     # 최종 결과

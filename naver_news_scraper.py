@@ -48,6 +48,7 @@ KST = pytz.timezone("Asia/Seoul")
 # 매핑되지 않은 언론사 도메인 수집용
 # 개별 로그를 찍지 않고, 실행 종료 시 파일로 누적 저장한다.
 UNMAPPED_PRESS_DOMAINS = set()
+DEFAULT_UNMAPPED_PRESS_DOMAINS_FILE_PATH = "data/unmapped_press_domains.json"
 
 # 마지막 수집 통계
 # main.py에서 섹션별 대시보드 데이터로 가져간다.
@@ -266,7 +267,7 @@ def extract_press_name(item: dict) -> str:
         return "언론사 미상"
 
 
-def save_unmapped_press_domains(filename: str = "data/unmapped_press_domains.json"):
+def save_unmapped_press_domains(filename: str = DEFAULT_UNMAPPED_PRESS_DOMAINS_FILE_PATH):
     """
     매핑되지 않은 언론사 도메인을 누적 저장한다.
 
@@ -295,7 +296,9 @@ def save_unmapped_press_domains(filename: str = "data/unmapped_press_domains.jso
     current_domains = set(UNMAPPED_PRESS_DOMAINS)
     merged_domains = sorted(existing_domains | current_domains)
 
-    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    dirname = os.path.dirname(filename)
+    if dirname:
+        os.makedirs(dirname, exist_ok=True)
 
     payload = {
         "updated_at": get_now_kst().isoformat(),
@@ -647,6 +650,8 @@ def search_multiple_keywords(
     bucket_hours: int = 4,
     max_total_news: int = 100,
     min_per_bucket: int = 0,
+    unmapped_press_domains_file_path: str = None,
+    save_unmapped_domains_at_end: bool = True,
 ) -> list:
     """
     여러 키워드로 뉴스 검색
@@ -696,6 +701,13 @@ def search_multiple_keywords(
 
         min_per_bucket:
             각 시간대 최소 보장 개수.
+
+        unmapped_press_domains_file_path:
+            매핑되지 않은 언론사 도메인을 저장할 파일 경로.
+            main.py에서 설정 파일명 기준으로 동적 생성한 경로를 넘긴다.
+
+        save_unmapped_domains_at_end:
+            True이면 search_multiple_keywords 실행 종료 시 미매핑 도메인을 저장한다.
 
     Returns:
         [
@@ -923,9 +935,14 @@ def search_multiple_keywords(
     logger.info(f"최종 후보 뉴스 수: {final_candidate_count}개")
     logger.info(f"{'=' * 60}")
 
-    save_unmapped_press_domains()
+    if save_unmapped_domains_at_end:
+        save_unmapped_press_domains(
+            filename=unmapped_press_domains_file_path or DEFAULT_UNMAPPED_PRESS_DOMAINS_FILE_PATH
+        )
 
     return all_news
+
+
 def update_post_issue_filter_sampling_stats(
     before_issue_filter_count: int,
     after_issue_filter_count: int,
