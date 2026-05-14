@@ -21,6 +21,7 @@ import news_grouper
 import summarizer
 import email_sender
 import issue_history
+from openai_usage import reset_openai_usage_totals, log_openai_usage_summary
 
 
 # ====================================
@@ -607,6 +608,7 @@ def main():
     메인 실행 함수
     """
     args = parse_args()
+    reset_openai_usage_totals()
 
     config_path = args.config
     config = load_config(config_path)
@@ -640,6 +642,10 @@ def main():
     logger.info(f"브리핑 이름: {briefing_name}")
     logger.info(f"수신자 환경변수: {receiver_env}")
     logger.info(f"메일 제목 prefix: {subject_prefix}")
+    logger.info(f"OpenAI 기본 모델 env OPENAI_MODEL: {os.getenv('OPENAI_MODEL') or '미설정'}")
+    logger.info(f"OpenAI 최종선별 모델 env OPENAI_SELECTOR_MODEL: {os.getenv('OPENAI_SELECTOR_MODEL') or '미설정'}")
+    logger.info(f"현재 news_selector.MODEL: {getattr(news_selector, 'MODEL', '확인불가')}")
+    logger.info(f"현재 news_selector.SELECTOR_MODEL: {getattr(news_selector, 'SELECTOR_MODEL', '확인불가')}")
     logger.info(f"섹션 수: {len(sections)}개")
     logger.info(f"기본 정렬 방식: {sorts}")
     logger.info(f"기본 키워드당 페이지별 조회 개수: {display_per_keyword}")
@@ -875,9 +881,6 @@ def main():
             f"합계 {section_total_tokens:,}"
         )
 
-    # 단순 추정 비용. 실제 비용은 모델별 입력/출력 토큰 단가에 따라 달라질 수 있다.
-    rough_cost = total_tokens * 0.00015
-
     logger.info("-" * 60)
     logger.info(f"📰 전체 후보 수집: {total_raw_count}개")
     logger.info(f"🧠 전체 뉴스 선별: {total_selected_count}개")
@@ -889,7 +892,7 @@ def main():
     logger.info(f"🧾 뉴스 요약 토큰 합계: {total_summary_tokens:,}")
     logger.info(f"🧾 메일 핵심 3줄 토큰 합계: {total_insight_tokens:,}")
     logger.info(f"🧾 전체 추적 토큰 합계: {total_tokens:,}")
-    logger.info(f"💰 단순 추정 예상 비용: ${rough_cost:.4f} USD")
+    log_openai_usage_summary(logger)
     logger.info(f"📧 발송: {result['success']}")
 
     logger.info("\n" + "=" * 60)

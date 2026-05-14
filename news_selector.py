@@ -23,6 +23,7 @@ try:
 except Exception:
     OpenAI = None
 from dotenv import load_dotenv
+from openai_usage import record_openai_usage
 
 load_dotenv()
 
@@ -37,7 +38,14 @@ else:
     client = None
 
 # 뉴스 선별 모델
-MODEL = "gpt-4o-mini"
+# - MODEL: 일반 1차 선별/사건 그룹화용
+# - SELECTOR_MODEL: 그룹 후보 100개 중 최종 10개를 고르는 그룹 단위 선별용
+#
+# 중요:
+# OPENAI_SELECTOR_MODEL 환경변수가 비어 있거나 로드되지 않더라도
+# 그룹 단위 최종 선별은 기본적으로 gpt-5.4-mini를 사용한다.
+MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+SELECTOR_MODEL = os.getenv("OPENAI_SELECTOR_MODEL", "gpt-5.4-mini")
 
 LAST_SELECTION_STATS = {
     "selection_tokens": 0,
@@ -106,6 +114,24 @@ def _clip_text(value: Any, limit: int = 180) -> str:
     if len(text) <= limit:
         return text
     return text[:limit].rstrip() + "..."
+
+
+
+
+def _openai_token_limit_kwargs(model: str, limit: int) -> Dict[str, int]:
+    """
+    모델별 출력 토큰 제한 파라미터를 반환한다.
+
+    GPT-5 계열은 Chat Completions에서 max_tokens를 지원하지 않고
+    max_completion_tokens를 요구한다.
+    기존 GPT-4o 계열은 max_tokens를 그대로 사용한다.
+    """
+    model_name = _safe_text(model).lower()
+
+    if model_name.startswith("gpt-5"):
+        return {"max_completion_tokens": int(limit)}
+
+    return {"max_tokens": int(limit)}
 
 
 def _normalize_url(url: Any) -> str:
@@ -398,11 +424,17 @@ def _deduplicate_by_llm_event_group(
                 }
             ],
             temperature=0.0,
-            max_tokens=1200
+            **_openai_token_limit_kwargs(MODEL, 1200)
         )
 
         content = response.choices[0].message.content.strip()
-        event_group_tokens = response.usage.total_tokens if response.usage else 0
+        usage_info = record_openai_usage(
+            logger,
+            "LLM 사건 그룹화",
+            MODEL,
+            response.usage,
+        )
+        event_group_tokens = usage_info["total_tokens"]
         add_selection_tokens("event_group_tokens", event_group_tokens)
 
         logger.info(f"🧩 LLM 사건 그룹화 응답 수신 (토큰: {event_group_tokens})")
@@ -706,11 +738,17 @@ EMR, 병원IT, 의료AI, 디지털헬스케어, 정책·규제, 의료데이터,
                 }
             ],
             temperature=0.1,
-            max_tokens=1800
+            **_openai_token_limit_kwargs(MODEL, 1800)
         )
 
         content = response.choices[0].message.content.strip()
-        tokens_used = response.usage.total_tokens if response.usage else 0
+        usage_info = record_openai_usage(
+            logger,
+            "뉴스 1차 선별",
+            MODEL,
+            response.usage,
+        )
+        tokens_used = usage_info["total_tokens"]
         add_selection_tokens("selection_tokens", tokens_used)
 
         logger.info(f"🧾 뉴스 1차 선별 토큰 사용량: {tokens_used}")
@@ -1305,8 +1343,14 @@ def select_important_news_groups(
 """
 
     try:
+        logger.info(
+            "🤖 그룹 단위 뉴스 선별 모델: %s | OPENAI_SELECTOR_MODEL env=%s | OPENAI_MODEL env=%s",
+            SELECTOR_MODEL,
+            os.getenv("OPENAI_SELECTOR_MODEL") or "미설정",
+            os.getenv("OPENAI_MODEL") or "미설정",
+        )
         response = client.chat.completions.create(
-            model=MODEL,
+            model=SELECTOR_MODEL,
             messages=[
                 {
                     "role": "system",
@@ -1319,11 +1363,17 @@ def select_important_news_groups(
                 {"role": "user", "content": prompt}
             ],
             temperature=0.1,
-            max_tokens=1200
+            **_openai_token_limit_kwargs(SELECTOR_MODEL, 1200)
         )
 
         content = response.choices[0].message.content.strip()
-        tokens_used = response.usage.total_tokens if response.usage else 0
+        usage_info = record_openai_usage(
+            logger,
+            "그룹 단위 뉴스 선별",
+            SELECTOR_MODEL,
+            response.usage,
+        )
+        tokens_used = usage_info["total_tokens"]
         add_selection_tokens("selection_tokens", tokens_used)
         logger.info(f"🧾 그룹 단위 뉴스 선별 토큰 사용량: {tokens_used}")
 

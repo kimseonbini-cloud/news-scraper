@@ -9,6 +9,7 @@ from email.mime.multipart import MIMEMultipart
 from email.utils import parsedate_to_datetime, formataddr
 from datetime import datetime
 from dotenv import load_dotenv
+from openai_usage import record_openai_usage
 import logging
 import pytz
 
@@ -40,7 +41,7 @@ SMTP_PORT = 587
 # ====================================
 # OpenAI 설정
 # ====================================
-MODEL = "gpt-4o-mini"
+MODEL = os.getenv("EMAIL_INSIGHT_MODEL", os.getenv("OPENAI_MODEL", "gpt-4o-mini"))
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 if OpenAI is not None and OPENAI_API_KEY:
@@ -403,7 +404,13 @@ def build_section_insights(section_title, summaries, scrape_stats=None):
         )
 
         insight_text = response.choices[0].message.content.strip()
-        insight_tokens = response.usage.total_tokens if response.usage else 0
+        usage_info = record_openai_usage(
+            logger,
+            f"[{section_title}] 메일 핵심 3줄",
+            MODEL,
+            response.usage,
+        )
+        insight_tokens = usage_info["total_tokens"]
         if isinstance(scrape_stats, dict):
             scrape_stats["insight_tokens"] = safe_count(scrape_stats.get("insight_tokens", 0)) + insight_tokens
         logger.info(f"🧾 [{section_title}] 메일 핵심 3줄 토큰 사용량: {insight_tokens}")

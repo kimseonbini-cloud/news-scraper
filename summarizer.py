@@ -19,6 +19,7 @@ except Exception:
     OpenAI = None
 
 from dotenv import load_dotenv
+from openai_usage import record_openai_usage
 
 load_dotenv()
 
@@ -185,7 +186,13 @@ def summarize_article(article: Dict, max_length: int = 220) -> Dict:
         )
 
         summary = response.choices[0].message.content.strip()
-        tokens_used = response.usage.total_tokens if response.usage else 0
+        usage_info = record_openai_usage(
+            logger,
+            "단건 뉴스 요약",
+            MODEL,
+            response.usage,
+        )
+        tokens_used = usage_info["total_tokens"]
 
         logger.info(f"✅ 요약 완료: {len(summary)}자 (토큰: {tokens_used})")
 
@@ -288,7 +295,13 @@ def summarize_batch_with_llm(articles: List[Dict], max_length: int = 220) -> Lis
     )
 
     content = response.choices[0].message.content.strip()
-    tokens_used = response.usage.total_tokens if response.usage else 0
+    usage_info = record_openai_usage(
+        logger,
+        "배치 뉴스 요약",
+        MODEL,
+        response.usage,
+    )
+    tokens_used = usage_info["total_tokens"]
     parsed = _extract_json(content)
 
     by_index = {}
@@ -346,7 +359,7 @@ def summarize_batch(articles: List[Dict], delay: float = 1.0) -> List[Dict]:
             summaries = summarize_batch_with_llm(articles)
             total_tokens = sum(summary.get("tokens_used", 0) for summary in summaries)
             logger.info(f"총 토큰: {total_tokens:,}")
-            logger.info(f"예상 비용: ${total_tokens * 0.00015:.4f} USD")
+            logger.info("예상 비용은 OpenAI 응답 usage 기준 모델별 로그를 확인하세요.")
             return summaries
         except Exception as e:
             logger.error(f"❌ 배치 요약 실패, 단건 요약으로 전환: {e}")
@@ -368,7 +381,7 @@ def summarize_batch(articles: List[Dict], delay: float = 1.0) -> List[Dict]:
     logger.info(f"\n{'=' * 60}")
     logger.info("✅ 요약 완료")
     logger.info(f"총 토큰: {total_tokens:,}")
-    logger.info(f"예상 비용: ${total_tokens * 0.00015:.4f} USD")
+    logger.info("예상 비용은 OpenAI 응답 usage 기준 모델별 로그를 확인하세요.")
     logger.info(f"{'=' * 60}\n")
 
     return summaries

@@ -1,0 +1,338 @@
+"""
+OpenAI 사용량/비용 로깅 유틸리티
+
+목적:
+- OpenAI 응답 usage에서 입력/출력/캐시 입력/총 토큰을 분리한다.
+- 모델별 100만 토큰당 단가를 적용해 예상 비용을 계산한다.
+- 실행 전체의 모델별 사용량과 비용을 누적해 main.py에서 요약 로그로 표시한다.
+
+주의:
+- 실제 청구 금액은 OpenAI 대시보드가 최종 기준이다.
+- 여기의 비용은 response.usage 기준 추정값이다.
+- 단가는 환경변수로 언제든 덮어쓸 수 있다.
+"""
+
+from __future__ import annotations
+
+import logging
+import os
+import re
+from copy import deepcopy
+from typing import Any, Dict, Optional
+
+logger = logging.getLogger(__name__)
+
+# 기본 단가: USD / 1M tokens
+# 필요하면 환경변수로 덮어쓴다.
+DEFAULT_MODEL_PRICES: Dict[str, Dict[str, float]] = {
+    "gpt-4o-mini": {
+        "input_per_1m": 0.15,
+        "cached_input_per_1m": 0.075,
+        "output_per_1m": 0.60,
+    },
+    "gpt-4o-mini-2024-07-18": {
+        "input_per_1m": 0.15,
+        "cached_input_per_1m": 0.075,
+        "output_per_1m": 0.60,
+    },
+    "gpt-5.4-mini": {
+        "input_per_1m": 0.75,
+        "cached_input_per_1m": 0.075,
+        "output_per_1m": 4.50,
+    },
+}
+
+# 모델별 누적 사용량
+USAGE_TOTALS_BY_MODEL: Dict[str, Dict[str, float]] = {}
+
+
+def normalize_model_env_key(model: str) -> str:
+    """
+    환경변수 키에 사용할 수 있도록 모델명을 정규화한다.
+
+    예:
+    - gpt-4o-mini -> GPT_4O_MINI
+    - gpt-5.4-mini -> GPT_5_4_MINI
+    """
+    value = str(model or "unknown").upper()
+    value = re.sub(r"[^A-Z0-9]+", "_", value)
+    value = re.sub(r"_+", "_", value).strip("_")
+    return value or "UNKNOWN"
+
+
+def _to_float(value: Any, default: float) -> float:
+    try:
+        if value is None or str(value).strip() == "":
+            return default
+        return float(value)
+    except Exception:
+        return default
+
+
+def _get_attr_or_key(obj: Any, name: str, default: Any = 0) -> Any:
+    if obj is None:
+        return default
+    if isinstance(obj, dict):
+        return obj.get(name, default)
+    return getattr(obj, name, default)
+
+
+def _base_model_name(model: str) -> str:
+    """
+    날짜 스냅샷 모델명을 기본 모델명으로 변환한다.
+    예: gpt-4o-mini-2024-07-18 -> gpt-4o-mini
+    """
+    model = str(model or "").strip()
+    return re.sub(r"-\d{4}-\d{2}-\d{2}$", "", model)
+
+
+def get_model_prices(model: str) -> Dict[str, float]:
+    """
+    모델별 단가를 반환한다.
+
+    환경변수 우선순위:
+    1. OPENAI_PRICE_{MODEL_KEY}_INPUT_PER_1M
+       OPENAI_PRICE_{MODEL_KEY}_CACHED_INPUT_PER_1M
+       OPENAI_PRICE_{MODEL_KEY}_OUTPUT_PER_1M
+    2. OPENAI_PRICE_{BASE_MODEL_KEY}_INPUT_PER_1M ...
+    3. DEFAULT_MODEL_PRICES
+    4. 알 수 없는 모델이면 OPENAI_DEFAULT_* 또는 0
+    """
+    model = str(model or "unknown").strip() or "unknown"
+    base_model = _base_model_name(model)
+
+    default = (
+        DEFAULT_MODEL_PRICES.get(model)
+        or DEFAULT_MODEL_PRICES.get(base_model)
+        or {
+            "input_per_1m": _to_float(os.getenv("OPENAI_DEFAULT_INPUT_PRICE_PER_1M"), 0.0),
+            "cached_input_per_1m": _to_float(os.getenv("OPENAI_DEFAULT_CACHED_INPUT_PRICE_PER_1M"), 0.0),
+            "output_per_1m": _to_float(os.getenv("OPENAI_DEFAULT_OUTPUT_PRICE_PER_1M"), 0.0),
+        }
+    )
+
+    model_key = normalize_model_env_key(model)
+    base_key = normalize_model_env_key(base_model)
+
+    input_price = _to_float(
+        os.getenv(f"OPENAI_PRICE_{model_key}_INPUT_PER_1M"),
+        _to_float(os.getenv(f"OPENAI_PRICE_{base_key}_INPUT_PER_1M"), default["input_per_1m"]),
+    )
+    cached_input_price = _to_float(
+        os.getenv(f"OPENAI_PRICE_{model_key}_CACHED_INPUT_PER_1M"),
+        _to_float(
+            os.getenv(f"OPENAI_PRICE_{base_key}_CACHED_INPUT_PER_1M"),
+            default.get("cached_input_per_1m", input_price),
+        ),
+    )
+    output_price = _to_float(
+        os.getenv(f"OPENAI_PRICE_{model_key}_OUTPUT_PER_1M"),
+        _to_float(os.getenv(f"OPENAI_PRICE_{base_key}_OUTPUT_PER_1M"), default["output_per_1m"]),
+    )
+
+    return {
+        "input_per_1m": input_price,
+        "cached_input_per_1m": cached_input_price,
+        "output_per_1m": output_price,
+    }
+
+
+def extract_usage(usage: Any) -> Dict[str, int]:
+    """
+    OpenAI response.usage에서 입력/출력/총 토큰을 안전하게 추출한다.
+    """
+    if usage is None:
+        return {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "cached_prompt_tokens": 0,
+            "total_tokens": 0,
+        }
+
+    prompt_tokens = int(_get_attr_or_key(usage, "prompt_tokens", 0) or 0)
+    completion_tokens = int(_get_attr_or_key(usage, "completion_tokens", 0) or 0)
+    total_tokens = int(_get_attr_or_key(usage, "total_tokens", prompt_tokens + completion_tokens) or 0)
+
+    prompt_details = _get_attr_or_key(usage, "prompt_tokens_details", None)
+    cached_prompt_tokens = int(_get_attr_or_key(prompt_details, "cached_tokens", 0) or 0)
+
+    # 일부 SDK/응답에서는 total만 있고 prompt/completion이 비어 있을 수 있다.
+    if total_tokens and not prompt_tokens and not completion_tokens:
+        prompt_tokens = total_tokens
+
+    if not total_tokens:
+        total_tokens = prompt_tokens + completion_tokens
+
+    cached_prompt_tokens = max(0, min(cached_prompt_tokens, prompt_tokens))
+
+    return {
+        "prompt_tokens": prompt_tokens,
+        "completion_tokens": completion_tokens,
+        "cached_prompt_tokens": cached_prompt_tokens,
+        "total_tokens": total_tokens,
+    }
+
+
+def calculate_cost(model: str, usage_info: Dict[str, int]) -> Dict[str, float]:
+    prices = get_model_prices(model)
+
+    prompt_tokens = int(usage_info.get("prompt_tokens", 0) or 0)
+    completion_tokens = int(usage_info.get("completion_tokens", 0) or 0)
+    cached_prompt_tokens = int(usage_info.get("cached_prompt_tokens", 0) or 0)
+    non_cached_prompt_tokens = max(prompt_tokens - cached_prompt_tokens, 0)
+
+    input_cost = non_cached_prompt_tokens / 1_000_000 * prices["input_per_1m"]
+    cached_input_cost = cached_prompt_tokens / 1_000_000 * prices["cached_input_per_1m"]
+    output_cost = completion_tokens / 1_000_000 * prices["output_per_1m"]
+    total_cost = input_cost + cached_input_cost + output_cost
+
+    return {
+        "input_cost_usd": input_cost,
+        "cached_input_cost_usd": cached_input_cost,
+        "output_cost_usd": output_cost,
+        "total_cost_usd": total_cost,
+        "input_price_per_1m": prices["input_per_1m"],
+        "cached_input_price_per_1m": prices["cached_input_per_1m"],
+        "output_price_per_1m": prices["output_per_1m"],
+    }
+
+
+def reset_openai_usage_totals() -> None:
+    USAGE_TOTALS_BY_MODEL.clear()
+
+
+def add_openai_usage(model: str, usage_info: Dict[str, int], cost_info: Dict[str, float]) -> None:
+    model = str(model or "unknown").strip() or "unknown"
+    if model not in USAGE_TOTALS_BY_MODEL:
+        USAGE_TOTALS_BY_MODEL[model] = {
+            "requests": 0,
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "cached_prompt_tokens": 0,
+            "total_tokens": 0,
+            "input_cost_usd": 0.0,
+            "cached_input_cost_usd": 0.0,
+            "output_cost_usd": 0.0,
+            "total_cost_usd": 0.0,
+        }
+
+    item = USAGE_TOTALS_BY_MODEL[model]
+    item["requests"] += 1
+    item["prompt_tokens"] += int(usage_info.get("prompt_tokens", 0) or 0)
+    item["completion_tokens"] += int(usage_info.get("completion_tokens", 0) or 0)
+    item["cached_prompt_tokens"] += int(usage_info.get("cached_prompt_tokens", 0) or 0)
+    item["total_tokens"] += int(usage_info.get("total_tokens", 0) or 0)
+    item["input_cost_usd"] += float(cost_info.get("input_cost_usd", 0.0) or 0.0)
+    item["cached_input_cost_usd"] += float(cost_info.get("cached_input_cost_usd", 0.0) or 0.0)
+    item["output_cost_usd"] += float(cost_info.get("output_cost_usd", 0.0) or 0.0)
+    item["total_cost_usd"] += float(cost_info.get("total_cost_usd", 0.0) or 0.0)
+
+
+def get_openai_usage_totals() -> Dict[str, Any]:
+    by_model = deepcopy(USAGE_TOTALS_BY_MODEL)
+    grand_total = {
+        "requests": 0,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "cached_prompt_tokens": 0,
+        "total_tokens": 0,
+        "input_cost_usd": 0.0,
+        "cached_input_cost_usd": 0.0,
+        "output_cost_usd": 0.0,
+        "total_cost_usd": 0.0,
+    }
+
+    for item in by_model.values():
+        for key in grand_total:
+            grand_total[key] += item.get(key, 0)
+
+    return {
+        "by_model": by_model,
+        "grand_total": grand_total,
+    }
+
+
+def record_openai_usage(
+    log: Optional[logging.Logger],
+    label: str,
+    model: str,
+    usage: Any,
+) -> Dict[str, Any]:
+    """
+    사용량 추출 → 비용 계산 → 누적 → 로그 출력을 한 번에 수행한다.
+    """
+    usage_info = extract_usage(usage)
+    cost_info = calculate_cost(model, usage_info)
+    add_openai_usage(model, usage_info, cost_info)
+
+    if log is None:
+        log = logger
+
+    log.info(
+        "🧾 %s 토큰/비용 | model=%s | input=%s | cached_input=%s | output=%s | total=%s | "
+        "input_cost=$%.6f | cached_input_cost=$%.6f | output_cost=$%.6f | total_cost=$%.6f",
+        label,
+        model,
+        f"{usage_info['prompt_tokens']:,}",
+        f"{usage_info['cached_prompt_tokens']:,}",
+        f"{usage_info['completion_tokens']:,}",
+        f"{usage_info['total_tokens']:,}",
+        cost_info["input_cost_usd"],
+        cost_info["cached_input_cost_usd"],
+        cost_info["output_cost_usd"],
+        cost_info["total_cost_usd"],
+    )
+
+    return {
+        **usage_info,
+        **cost_info,
+        "model": model,
+    }
+
+
+def log_openai_usage_summary(log: Optional[logging.Logger] = None) -> Dict[str, Any]:
+    if log is None:
+        log = logger
+
+    totals = get_openai_usage_totals()
+    by_model = totals["by_model"]
+    grand_total = totals["grand_total"]
+
+    if not by_model:
+        log.info("🧾 OpenAI 사용량 상세: 기록된 호출 없음")
+        return totals
+
+    log.info("-" * 60)
+    log.info("💰 OpenAI 모델별 사용량/예상 비용")
+
+    for model, item in sorted(by_model.items()):
+        log.info(
+            "💰 model=%s | requests=%s | input=%s | cached_input=%s | output=%s | total=%s | "
+            "input_cost=$%.6f | cached_input_cost=$%.6f | output_cost=$%.6f | total_cost=$%.6f",
+            model,
+            int(item.get("requests", 0)),
+            f"{int(item.get('prompt_tokens', 0)):,}",
+            f"{int(item.get('cached_prompt_tokens', 0)):,}",
+            f"{int(item.get('completion_tokens', 0)):,}",
+            f"{int(item.get('total_tokens', 0)):,}",
+            float(item.get("input_cost_usd", 0.0)),
+            float(item.get("cached_input_cost_usd", 0.0)),
+            float(item.get("output_cost_usd", 0.0)),
+            float(item.get("total_cost_usd", 0.0)),
+        )
+
+    log.info(
+        "💰 OpenAI 전체 예상 비용 | requests=%s | input=%s | cached_input=%s | output=%s | total=%s | "
+        "input_cost=$%.6f | cached_input_cost=$%.6f | output_cost=$%.6f | total_cost=$%.6f",
+        int(grand_total.get("requests", 0)),
+        f"{int(grand_total.get('prompt_tokens', 0)):,}",
+        f"{int(grand_total.get('cached_prompt_tokens', 0)):,}",
+        f"{int(grand_total.get('completion_tokens', 0)):,}",
+        f"{int(grand_total.get('total_tokens', 0)):,}",
+        float(grand_total.get("input_cost_usd", 0.0)),
+        float(grand_total.get("cached_input_cost_usd", 0.0)),
+        float(grand_total.get("output_cost_usd", 0.0)),
+        float(grand_total.get("total_cost_usd", 0.0)),
+    )
+
+    return totals
