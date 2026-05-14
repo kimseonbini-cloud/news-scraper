@@ -239,10 +239,6 @@ def apply_exclude_keywords(news_list, exclude_keywords, section_name):
 
         if matched_keyword:
             excluded_count += 1
-            logger.info(
-                f"⏭️ [{section_name}] 제외 키워드 필터: "
-                f"'{matched_keyword}' | {str(news.get('title') or '')[:80]}"
-            )
             continue
 
         filtered.append(news)
@@ -469,17 +465,19 @@ def collect_select_and_summarize(
     # 메일 대시보드용 집계
     # - 전체검색수: total_seen_count
     # - 24시간초과제외: old_news_count
-    # - 코드규칙제외: URL 중복, 최근 발송 이슈, 제외 키워드, 저품질/사진성 그룹 제외
-    # - AI중복제외: AI가 고른 최종 후보 안에서 코드 규칙으로 다시 제거한 중복 기사 수
-    #   그룹화로 대표 1건만 남기며 빠진 기사 수는 grouping_duplicate_excluded_count로 따로 보관한다.
-    code_rule_excluded_count = (
+    # - 반복이슈제외(3일): issue_filter_excluded_count
+    # - 규칙기반제외: URL 중복, 제외 키워드, 그룹화 중복 대표화, 저품질/사진성 그룹 제외
+    #   반복이슈제외는 별도 표시하므로 규칙기반제외에 중복 집계하지 않는다.
+    rule_based_excluded_count = (
         int(scrape_stats.get("duplicate_count", 0) or 0)
-        + int(scrape_stats.get("issue_filter_excluded_count", 0) or 0)
         + int(scrape_stats.get("exclude_keyword_excluded_count", 0) or 0)
+        + grouping_duplicate_article_count
         + grouping_low_quality_article_count
     )
     scrape_stats["grouping_duplicate_excluded_count"] = grouping_duplicate_article_count
-    scrape_stats["code_rule_excluded_count"] = code_rule_excluded_count
+    scrape_stats["rule_based_excluded_count"] = rule_based_excluded_count
+    # 기존 요약/로그 호환용 키. 이제 반복이슈제외는 포함하지 않는다.
+    scrape_stats["code_rule_excluded_count"] = rule_based_excluded_count
     scrape_stats["ai_duplicate_excluded_count"] = 0
 
     logger.info(

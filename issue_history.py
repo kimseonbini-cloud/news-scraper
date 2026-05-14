@@ -379,7 +379,6 @@ def build_issue_record(
 ):
     title = get_news_title(news)
     summary = get_news_summary_or_description(news)
-    category = str(news.get("category") or "").strip()
     source = str(news.get("source") or "").strip()
     url = get_news_url(news)
     published_at = str(news.get("published_at") or "").strip()
@@ -408,7 +407,6 @@ def build_issue_record(
         "section_name": section_name,
         "title": title,
         "summary": summary,
-        "category": category,
         "source": source,
         "url": url,
         "normalized_url": normalized_url,

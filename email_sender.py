@@ -9,7 +9,13 @@ from email.mime.multipart import MIMEMultipart
 from email.utils import parsedate_to_datetime, formataddr
 from datetime import datetime
 from dotenv import load_dotenv
-from openai_usage import record_openai_usage
+from openai_usage import (
+    record_openai_usage,
+    openai_token_limit_kwargs,
+    openai_temperature_kwargs,
+    openai_reasoning_effort_kwargs,
+    is_gpt5_model,
+)
 import logging
 import pytz
 
@@ -41,7 +47,7 @@ SMTP_PORT = 587
 # ====================================
 # OpenAI 설정
 # ====================================
-MODEL = os.getenv("EMAIL_INSIGHT_MODEL", os.getenv("OPENAI_MODEL", "gpt-4o-mini"))
+MODEL = os.getenv("EMAIL_INSIGHT_MODEL", os.getenv("OPENAI_MODEL", "gpt-5-nano"))
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 if OpenAI is not None and OPENAI_API_KEY:
@@ -244,10 +250,9 @@ def build_section_dashboard(section_result):
     표시 항목:
     - 전체검색수: 네이버 API 검색 결과로 확인한 전체 기사 수
     - 24시간초과제외: recent_hours 기준을 벗어나 제외된 기사 수
-    - 코드규칙제외: URL 중복, 최근 발송 이슈, 제외 키워드, 저품질/사진성 그룹 등
+    - 반복이슈제외(3일): 최근 N일간 이미 발송된 이슈와 겹쳐 제외된 기사 수
+    - 규칙기반제외: URL 중복, 제외 키워드, 그룹화 중복 대표화, 저품질/사진성 그룹 등
       AI 호출 전에 코드 규칙으로 제외한 기사 수
-    - AI 중복제외: AI가 고른 최종 후보 안에서 코드 규칙으로 다시 제거한 중복 기사 수
-      예: AI가 10개를 골랐고 최종 중복 제거로 2개가 빠지면 2로 표시한다.
     - AI선별: 최종 중복 제거 후 실제 메일 요약 대상으로 남은 기사 수
     """
     if not section_result:
@@ -259,18 +264,23 @@ def build_section_dashboard(section_result):
     total_seen_count = safe_count(scrape_stats.get("total_seen_count", 0))
     old_news_count = safe_count(scrape_stats.get("old_news_count", 0))
 
-    code_rule_excluded_count = safe_count(scrape_stats.get("code_rule_excluded_count", None), None)
-    if code_rule_excluded_count is None:
-        code_rule_excluded_count = (
-            safe_count(scrape_stats.get("duplicate_count", 0))
-            + safe_count(scrape_stats.get("issue_filter_excluded_count", 0))
-            + safe_count(scrape_stats.get("exclude_keyword_excluded_count", 0))
-            + safe_count(scrape_stats.get("grouping_low_quality_article_count", 0))
-        )
+    issue_filter_days = safe_count(scrape_stats.get("issue_filter_days", 3), 3)
+    issue_filter_excluded_count = safe_count(scrape_stats.get("issue_filter_excluded_count", 0))
 
-    ai_duplicate_excluded_count = safe_count(scrape_stats.get("ai_duplicate_excluded_count", None), None)
-    if ai_duplicate_excluded_count is None:
-        ai_duplicate_excluded_count = 0
+    rule_based_excluded_count = safe_count(scrape_stats.get("rule_based_excluded_count", None), None)
+    if rule_based_excluded_count is None:
+        # 반복이슈제외는 별도 표시하므로 규칙기반제외에서 제외한다.
+        # 규칙기반제외에는 URL 중복, 제외 키워드, 그룹화 중복 대표화, 저품질/사진성 제외만 포함한다.
+        code_rule_excluded_count = safe_count(scrape_stats.get("code_rule_excluded_count", None), None)
+        if code_rule_excluded_count is not None:
+            rule_based_excluded_count = max(0, code_rule_excluded_count - issue_filter_excluded_count)
+        else:
+            rule_based_excluded_count = (
+                safe_count(scrape_stats.get("duplicate_count", 0))
+                + safe_count(scrape_stats.get("exclude_keyword_excluded_count", 0))
+                + safe_count(scrape_stats.get("grouping_low_quality_article_count", 0))
+                + safe_count(scrape_stats.get("grouping_duplicate_excluded_count", 0))
+            )
 
     selected_count = safe_count(section_result.get("selected_count", len(summaries)))
 
@@ -300,18 +310,18 @@ def build_section_dashboard(section_result):
                             </td>
                             <td width="20%" style="padding:8px 7px; border:1px solid #d4d4d4;">
                                 <div style="font-size:11px; line-height:1.3; font-weight:800; color:#737373; margin:0 0 3px 0;">
-                                    코드규칙제외
+                                    반복이슈제외({issue_filter_days}일)
                                 </div>
                                 <div style="font-size:17px; line-height:1.25; font-weight:900;">
-                                    {code_rule_excluded_count}
+                                    {issue_filter_excluded_count}
                                 </div>
                             </td>
                             <td width="20%" style="padding:8px 7px; border:1px solid #d4d4d4;">
                                 <div style="font-size:11px; line-height:1.3; font-weight:800; color:#737373; margin:0 0 3px 0;">
-                                    AI 중복제외
+                                    규칙기반제외
                                 </div>
                                 <div style="font-size:17px; line-height:1.25; font-weight:900;">
-                                    {ai_duplicate_excluded_count}
+                                    {rule_based_excluded_count}
                                 </div>
                             </td>
                             <td width="20%" style="padding:8px 7px; border:1px solid #d4d4d4;">
@@ -352,12 +362,11 @@ def build_section_insights(section_title, summaries, scrape_stats=None):
     for i, news in enumerate(summaries, 1):
         title = str(news.get("title", "")).strip()
         summary = str(news.get("summary", "")).strip()
-        category = str(news.get("category", "기타")).strip()
         source = str(news.get("source", "언론사 미상")).strip()
         importance_score = str(news.get("importance_score", "3")).strip()
 
         news_text_list.append(
-            f"{i}. [{category} / {source} / 중요도 {importance_score}] {title}\n요약: {summary}"
+            f"{i}. [{source} / 중요도 {importance_score}] {title}\n요약: {summary}"
         )
 
     news_text = "\n\n".join(news_text_list)
@@ -399,8 +408,9 @@ def build_section_insights(section_title, summaries, scrape_stats=None):
                     "content": prompt
                 }
             ],
-            temperature=0.2,
-            max_tokens=350
+            **openai_temperature_kwargs(MODEL, 0.2),
+            **openai_reasoning_effort_kwargs(MODEL),
+            **openai_token_limit_kwargs(MODEL, 1600 if is_gpt5_model(MODEL) else 350)
         )
 
         insight_text = response.choices[0].message.content.strip()
@@ -522,7 +532,6 @@ def build_news_section(section_result, section_index):
         summary = news.get("summary", "")
         summary_html = safe_text(summary).replace("\n", "<br>")
 
-        category = safe_text(news.get("category", section_title) or section_title)
         source = safe_text(news.get("source", "언론사 미상") or "언론사 미상")
         importance_score = safe_int(news.get("importance_score", 3))
         stars = "★" * importance_score + "☆" * (5 - importance_score)
@@ -540,8 +549,6 @@ def build_news_section(section_result, section_index):
                                 </div>
 
                                 <div style="font-size:11px; line-height:1.5; margin:0 0 7px 0;">
-                                    <span style="font-weight:800;">{category}</span>
-                                    <span>　</span>
                                     <span style="font-weight:800;">{source}</span>
                                     <span>　</span>
                                     <span style="font-weight:800; color:#ea580c;">중요도 {importance_score}</span>
@@ -864,7 +871,6 @@ def send_test_email(receiver_env_name="EMAIL_RECEIVER"):
                     "url": "#",
                     "published_at": "",
                     "importance_score": 4,
-                    "category": "경제",
                     "source": "테스트언론"
                 }
             ],
@@ -892,7 +898,6 @@ def send_test_email(receiver_env_name="EMAIL_RECEIVER"):
                     "url": "#",
                     "published_at": "",
                     "importance_score": 5,
-                    "category": "부동산",
                     "source": "테스트언론"
                 }
             ],

@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 # 기본 단가: USD / 1M tokens
 # 필요하면 환경변수로 덮어쓴다.
 DEFAULT_MODEL_PRICES: Dict[str, Dict[str, float]] = {
+    # GPT-4o / GPT-4.1 계열
     "gpt-4o-mini": {
         "input_per_1m": 0.15,
         "cached_input_per_1m": 0.075,
@@ -35,10 +36,66 @@ DEFAULT_MODEL_PRICES: Dict[str, Dict[str, float]] = {
         "cached_input_per_1m": 0.075,
         "output_per_1m": 0.60,
     },
+    "gpt-4.1-nano": {
+        "input_per_1m": 0.10,
+        "cached_input_per_1m": 0.025,
+        "output_per_1m": 0.40,
+    },
+    "gpt-4.1-mini": {
+        "input_per_1m": 0.40,
+        "cached_input_per_1m": 0.10,
+        "output_per_1m": 1.60,
+    },
+    "gpt-4.1": {
+        "input_per_1m": 2.00,
+        "cached_input_per_1m": 0.50,
+        "output_per_1m": 8.00,
+    },
+
+    # GPT-5 계열
+    "gpt-5-nano": {
+        "input_per_1m": 0.05,
+        "cached_input_per_1m": 0.005,
+        "output_per_1m": 0.40,
+    },
+    "gpt-5-mini": {
+        "input_per_1m": 0.25,
+        "cached_input_per_1m": 0.025,
+        "output_per_1m": 2.00,
+    },
+    "gpt-5": {
+        "input_per_1m": 1.25,
+        "cached_input_per_1m": 0.125,
+        "output_per_1m": 10.00,
+    },
+    "gpt-5-chat-latest": {
+        "input_per_1m": 1.25,
+        "cached_input_per_1m": 0.125,
+        "output_per_1m": 10.00,
+    },
+
+    # GPT-5.4 계열
+    "gpt-5.4-nano": {
+        "input_per_1m": 0.20,
+        "cached_input_per_1m": 0.02,
+        "output_per_1m": 1.25,
+    },
     "gpt-5.4-mini": {
         "input_per_1m": 0.75,
         "cached_input_per_1m": 0.075,
         "output_per_1m": 4.50,
+    },
+    "gpt-5.4": {
+        "input_per_1m": 2.50,
+        "cached_input_per_1m": 0.25,
+        "output_per_1m": 15.00,
+    },
+
+    # GPT-5.5 계열
+    "gpt-5.5": {
+        "input_per_1m": 5.00,
+        "cached_input_per_1m": 0.50,
+        "output_per_1m": 30.00,
     },
 }
 
@@ -80,10 +137,78 @@ def _get_attr_or_key(obj: Any, name: str, default: Any = 0) -> Any:
 def _base_model_name(model: str) -> str:
     """
     날짜 스냅샷 모델명을 기본 모델명으로 변환한다.
-    예: gpt-4o-mini-2024-07-18 -> gpt-4o-mini
+
+    예:
+    - gpt-4o-mini-2024-07-18 -> gpt-4o-mini
+    - gpt-5-nano-2026-03-17 -> gpt-5-nano
+    - gpt-5_4-mini-2026-03-17 -> gpt-5.4-mini
     """
     model = str(model or "").strip()
-    return re.sub(r"-\d{4}-\d{2}-\d{2}$", "", model)
+    model = model.replace("gpt-5_4", "gpt-5.4")
+    model = re.sub(r"-\d{4}-\d{2}-\d{2}$", "", model)
+    return model
+
+
+def openai_token_limit_kwargs(model: str, limit: int) -> Dict[str, int]:
+    """
+    모델별 출력 토큰 제한 파라미터를 반환한다.
+
+    - GPT-5 계열은 Chat Completions에서 max_tokens 대신 max_completion_tokens를 요구한다.
+    - GPT-4o/GPT-4.1 계열은 max_tokens를 사용한다.
+    """
+    model_name = _base_model_name(model).lower()
+
+    if model_name.startswith("gpt-5"):
+        return {"max_completion_tokens": int(limit)}
+
+    return {"max_tokens": int(limit)}
+
+
+
+
+def openai_temperature_kwargs(model: str, temperature: float) -> Dict[str, float]:
+    """
+    모델별 temperature 파라미터를 반환한다.
+
+    GPT-5 계열 Chat Completions 일부 모델은 temperature를 기본값 1만 허용한다.
+    이 경우 temperature 파라미터를 아예 보내지 않아 400 오류를 방지한다.
+    GPT-4o/GPT-4.1 계열은 기존처럼 지정값을 사용한다.
+    """
+    model_name = _base_model_name(model).lower()
+
+    if model_name.startswith("gpt-5"):
+        return {}
+
+    return {"temperature": float(temperature)}
+
+
+
+
+def is_gpt5_model(model: str) -> bool:
+    """GPT-5 계열 여부를 반환한다."""
+    return _base_model_name(model).lower().startswith("gpt-5")
+
+
+def openai_reasoning_effort_kwargs(model: str) -> Dict[str, str]:
+    """
+    GPT-5 계열 Chat Completions의 reasoning effort를 낮춰 숨은 reasoning token 소모를 줄인다.
+
+    - 기본값: low
+    - 변경: OPENAI_REASONING_EFFORT=minimal 또는 low/medium/high
+    - 빈 값, none, default이면 파라미터를 보내지 않는다.
+    """
+    if not is_gpt5_model(model):
+        return {}
+
+    effort = str(os.getenv("OPENAI_REASONING_EFFORT", "low") or "").strip().lower()
+    if effort in {"", "none", "default"}:
+        return {}
+    return {"reasoning_effort": effort}
+
+
+def openai_json_response_format_kwargs() -> Dict[str, Dict[str, str]]:
+    """JSON만 받아야 하는 호출에서 JSON mode를 켠다."""
+    return {"response_format": {"type": "json_object"}}
 
 
 def get_model_prices(model: str) -> Dict[str, float]:
@@ -146,6 +271,7 @@ def extract_usage(usage: Any) -> Dict[str, int]:
             "prompt_tokens": 0,
             "completion_tokens": 0,
             "cached_prompt_tokens": 0,
+            "reasoning_tokens": 0,
             "total_tokens": 0,
         }
 
@@ -165,10 +291,14 @@ def extract_usage(usage: Any) -> Dict[str, int]:
 
     cached_prompt_tokens = max(0, min(cached_prompt_tokens, prompt_tokens))
 
+    completion_details = _get_attr_or_key(usage, "completion_tokens_details", None)
+    reasoning_tokens = int(_get_attr_or_key(completion_details, "reasoning_tokens", 0) or 0)
+
     return {
         "prompt_tokens": prompt_tokens,
         "completion_tokens": completion_tokens,
         "cached_prompt_tokens": cached_prompt_tokens,
+        "reasoning_tokens": reasoning_tokens,
         "total_tokens": total_tokens,
     }
 
@@ -209,6 +339,7 @@ def add_openai_usage(model: str, usage_info: Dict[str, int], cost_info: Dict[str
             "prompt_tokens": 0,
             "completion_tokens": 0,
             "cached_prompt_tokens": 0,
+            "reasoning_tokens": 0,
             "total_tokens": 0,
             "input_cost_usd": 0.0,
             "cached_input_cost_usd": 0.0,
@@ -221,6 +352,7 @@ def add_openai_usage(model: str, usage_info: Dict[str, int], cost_info: Dict[str
     item["prompt_tokens"] += int(usage_info.get("prompt_tokens", 0) or 0)
     item["completion_tokens"] += int(usage_info.get("completion_tokens", 0) or 0)
     item["cached_prompt_tokens"] += int(usage_info.get("cached_prompt_tokens", 0) or 0)
+    item["reasoning_tokens"] += int(usage_info.get("reasoning_tokens", 0) or 0)
     item["total_tokens"] += int(usage_info.get("total_tokens", 0) or 0)
     item["input_cost_usd"] += float(cost_info.get("input_cost_usd", 0.0) or 0.0)
     item["cached_input_cost_usd"] += float(cost_info.get("cached_input_cost_usd", 0.0) or 0.0)
@@ -235,6 +367,7 @@ def get_openai_usage_totals() -> Dict[str, Any]:
         "prompt_tokens": 0,
         "completion_tokens": 0,
         "cached_prompt_tokens": 0,
+        "reasoning_tokens": 0,
         "total_tokens": 0,
         "input_cost_usd": 0.0,
         "cached_input_cost_usd": 0.0,
@@ -269,13 +402,14 @@ def record_openai_usage(
         log = logger
 
     log.info(
-        "🧾 %s 토큰/비용 | model=%s | input=%s | cached_input=%s | output=%s | total=%s | "
+        "🧾 %s 토큰/비용 | model=%s | input=%s | cached_input=%s | output=%s | reasoning=%s | total=%s | "
         "input_cost=$%.6f | cached_input_cost=$%.6f | output_cost=$%.6f | total_cost=$%.6f",
         label,
         model,
         f"{usage_info['prompt_tokens']:,}",
         f"{usage_info['cached_prompt_tokens']:,}",
         f"{usage_info['completion_tokens']:,}",
+        f"{usage_info.get('reasoning_tokens', 0):,}",
         f"{usage_info['total_tokens']:,}",
         cost_info["input_cost_usd"],
         cost_info["cached_input_cost_usd"],
@@ -307,13 +441,14 @@ def log_openai_usage_summary(log: Optional[logging.Logger] = None) -> Dict[str, 
 
     for model, item in sorted(by_model.items()):
         log.info(
-            "💰 model=%s | requests=%s | input=%s | cached_input=%s | output=%s | total=%s | "
+            "💰 model=%s | requests=%s | input=%s | cached_input=%s | output=%s | reasoning=%s | total=%s | "
             "input_cost=$%.6f | cached_input_cost=$%.6f | output_cost=$%.6f | total_cost=$%.6f",
             model,
             int(item.get("requests", 0)),
             f"{int(item.get('prompt_tokens', 0)):,}",
             f"{int(item.get('cached_prompt_tokens', 0)):,}",
             f"{int(item.get('completion_tokens', 0)):,}",
+            f"{int(item.get('reasoning_tokens', 0)):,}",
             f"{int(item.get('total_tokens', 0)):,}",
             float(item.get("input_cost_usd", 0.0)),
             float(item.get("cached_input_cost_usd", 0.0)),
@@ -322,12 +457,13 @@ def log_openai_usage_summary(log: Optional[logging.Logger] = None) -> Dict[str, 
         )
 
     log.info(
-        "💰 OpenAI 전체 예상 비용 | requests=%s | input=%s | cached_input=%s | output=%s | total=%s | "
+        "💰 OpenAI 전체 예상 비용 | requests=%s | input=%s | cached_input=%s | output=%s | reasoning=%s | total=%s | "
         "input_cost=$%.6f | cached_input_cost=$%.6f | output_cost=$%.6f | total_cost=$%.6f",
         int(grand_total.get("requests", 0)),
         f"{int(grand_total.get('prompt_tokens', 0)):,}",
         f"{int(grand_total.get('cached_prompt_tokens', 0)):,}",
         f"{int(grand_total.get('completion_tokens', 0)):,}",
+        f"{int(grand_total.get('reasoning_tokens', 0)):,}",
         f"{int(grand_total.get('total_tokens', 0)):,}",
         float(grand_total.get("input_cost_usd", 0.0)),
         float(grand_total.get("cached_input_cost_usd", 0.0)),

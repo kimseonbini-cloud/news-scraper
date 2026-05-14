@@ -5,7 +5,7 @@ OpenAI API를 사용한 뉴스 선별 모듈
 - 네이버 뉴스 API로 수집된 전체 뉴스 후보 중
 - 주제 적합성, 중요도, 중복 여부를 기준으로
 - 요약할 뉴스 후보를 먼저 선택한다.
-- 선택된 뉴스에 중요도 점수, 카테고리를 함께 부여한다.
+- 선택된 뉴스에 중요도 점수를 함께 부여한다.
 - 선택된 뉴스 중 같은 사건을 다룬 중복 기사들은 LLM으로 그룹화하여 1개만 남긴다.
 """
 
@@ -23,7 +23,14 @@ try:
 except Exception:
     OpenAI = None
 from dotenv import load_dotenv
-from openai_usage import record_openai_usage
+from openai_usage import (
+    record_openai_usage,
+    openai_token_limit_kwargs,
+    openai_temperature_kwargs,
+    openai_reasoning_effort_kwargs,
+    openai_json_response_format_kwargs,
+    is_gpt5_model,
+)
 
 load_dotenv()
 
@@ -42,10 +49,10 @@ else:
 # - SELECTOR_MODEL: 그룹 후보 100개 중 최종 10개를 고르는 그룹 단위 선별용
 #
 # 중요:
-# OPENAI_SELECTOR_MODEL 환경변수가 비어 있거나 로드되지 않더라도
-# 그룹 단위 최종 선별은 기본적으로 gpt-5.4-mini를 사용한다.
-MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-SELECTOR_MODEL = os.getenv("OPENAI_SELECTOR_MODEL", "gpt-5.4-mini")
+# 기본값을 GPT-5 nano로 둔다.
+# 더 높은 품질이 필요하면 env에서 OPENAI_SELECTOR_MODEL만 gpt-5-mini 또는 gpt-5.4-nano 등으로 올리면 된다.
+MODEL = os.getenv("OPENAI_MODEL", "gpt-5-nano")
+SELECTOR_MODEL = os.getenv("OPENAI_SELECTOR_MODEL", os.getenv("OPENAI_MODEL", "gpt-5-nano"))
 
 LAST_SELECTION_STATS = {
     "selection_tokens": 0,
@@ -247,7 +254,6 @@ def _build_event_dedup_text(news_list: List[Dict]) -> str:
 
     for idx, news in enumerate(news_list, 1):
         source = _clip_text(news.get("source"), 40)
-        category = _clip_text(news.get("category"), 40)
         importance_score = _safe_text(news.get("importance_score"))
         title = _clip_text(news.get("title"), 120)
         description = _clip_text(
@@ -262,7 +268,6 @@ def _build_event_dedup_text(news_list: List[Dict]) -> str:
             f"""
 [{idx}]
 언론사: {source}
-카테고리: {category}
 중요도: {importance_score}
 제목: {title}
 설명: {description}
@@ -288,14 +293,12 @@ def _extract_json(content: str) -> Dict:
 
 def _prepare_selected_news(
     news: Dict,
-    importance_score: Any = 3,
-    category: Any = "기타"
+    importance_score: Any = 3
 ) -> Dict:
     """
     요약 단계로 넘기기 전에 필요한 필드 보강
     """
     news["importance_score"] = _safe_int(importance_score)
-    news["category"] = _safe_text(category) or "기타"
     news["content"] = news.get("description", "")
 
     return news
@@ -313,8 +316,7 @@ def _fallback_select(news_list: List[Dict], limit: int) -> List[Dict]:
     for news in fallback_news:
         _prepare_selected_news(
             news=news,
-            importance_score=news.get("importance_score", 3),
-            category=news.get("category") or "기타"
+            importance_score=news.get("importance_score", 3)
         )
 
     return fallback_news
@@ -358,7 +360,7 @@ def _deduplicate_by_llm_event_group(
 2. 같은 회사, 병원, 기관, 학회, 정부기관, 지자체가 같은 발표·공개·론칭·계약·제휴·실적·공시·행사·정책·서비스를 다룬 기사는 같은 사건입니다.
 3. 같은 솔루션, 같은 플랫폼, 같은 서비스, 같은 기술, 같은 시스템 공개를 다룬 기사는 제목이 달라도 같은 사건입니다.
 4. 여러 언론사가 같은 보도자료를 받아쓴 기사는 같은 사건입니다.
-5. 제목 표현, 언론사, 문장 구조, 중요도, 카테고리가 달라도 실제 사건이 같으면 같은 event_group입니다.
+5. 제목 표현, 언론사, 문장 구조, 중요도가 달라도 실제 사건이 같으면 같은 event_group입니다.
 6. 단순히 같은 회사나 같은 질병 분야가 언급됐다는 이유만으로는 같은 사건이 아닙니다.
 7. 서로 다른 발표, 다른 서비스, 다른 날짜의 별도 사건이면 다른 event_group입니다.
 8. 각 event_group의 representative_index는 가장 정보가 구체적이고 요약하기 좋은 기사 1개로 고르세요.
@@ -423,8 +425,10 @@ def _deduplicate_by_llm_event_group(
                     "content": prompt
                 }
             ],
-            temperature=0.0,
-            **_openai_token_limit_kwargs(MODEL, 1200)
+            **openai_temperature_kwargs(MODEL, 0.0),
+            **openai_reasoning_effort_kwargs(MODEL),
+            **openai_json_response_format_kwargs(),
+            **_openai_token_limit_kwargs(MODEL, 4096 if is_gpt5_model(MODEL) else 1200)
         )
 
         content = response.choices[0].message.content.strip()
@@ -558,8 +562,7 @@ def _supplement_after_dedup(
 
             prepared_news = _prepare_selected_news(
                 news=news,
-                importance_score=news.get("importance_score", 3),
-                category=news.get("category") or "기타"
+                importance_score=news.get("importance_score", 3)
             )
 
             supplement_batch.append(prepared_news)
@@ -617,7 +620,6 @@ def select_important_news(
         선택된 뉴스 리스트.
         각 뉴스에는 아래 필드가 추가된다.
         - importance_score: 중요도 점수, 1~5
-        - category: 자동 분류 카테고리
         - content: summarizer.py에서 사용할 요약 대상 본문
     """
     reset_selection_stats()
@@ -685,17 +687,6 @@ def select_important_news(
 2점: 관련성은 있으나 영향도가 낮은 뉴스
 1점: 키워드는 있으나 중요도가 낮은 뉴스
 
-[카테고리 기준]
-브리핑 주제에 맞춰 짧게 분류하세요.
-
-의료 뉴스 카테고리 예시:
-EMR, 병원IT, 의료AI, 디지털헬스케어, 정책·규제, 의료데이터, 클라우드, 보안, 기타
-
-롯데 뉴스 카테고리 예시:
-롯데이노베이트, 그룹전략, 실적, 투자·제휴, 신사업, 인사, 리스크, 유통, 기타
-
-기타 브리핑도 주제에 맞게 분류하세요.
-
 [출력 형식]
 반드시 JSON만 출력하세요.
 설명 문장, 마크다운, 코드블록은 쓰지 마세요.
@@ -705,13 +696,11 @@ EMR, 병원IT, 의료AI, 디지털헬스케어, 정책·규제, 의료데이터,
   "selected": [
     {{
       "index": 1,
-      "importance_score": 5,
-      "category": "사업전략"
+      "importance_score": 5
     }},
     {{
       "index": 5,
-      "importance_score": 4,
-      "category": "의료AI"
+      "importance_score": 4
     }}
   ]
 }}
@@ -729,7 +718,7 @@ EMR, 병원IT, 의료AI, 디지털헬스케어, 정책·규제, 의료데이터,
                     "content": (
                         "당신은 뉴스 후보 중 중요하고 주제에 맞는 기사만 선별하는 편집자입니다. "
                         "반드시 JSON만 출력합니다. "
-                        "선택한 각 기사에는 index, importance_score, category만 포함합니다."
+                        "선택한 각 기사에는 index, importance_score만 포함합니다."
                     )
                 },
                 {
@@ -737,8 +726,10 @@ EMR, 병원IT, 의료AI, 디지털헬스케어, 정책·규제, 의료데이터,
                     "content": prompt
                 }
             ],
-            temperature=0.1,
-            **_openai_token_limit_kwargs(MODEL, 1800)
+            **openai_temperature_kwargs(MODEL, 0.1),
+            **openai_reasoning_effort_kwargs(MODEL),
+            **openai_json_response_format_kwargs(),
+            **_openai_token_limit_kwargs(MODEL, 4096 if is_gpt5_model(MODEL) else 1800)
         )
 
         content = response.choices[0].message.content.strip()
@@ -786,8 +777,7 @@ EMR, 병원IT, 의료AI, 디지털헬스케어, 정책·규제, 의료데이터,
 
             news = _prepare_selected_news(
                 news=news,
-                importance_score=item.get("importance_score", 3),
-                category=item.get("category") or "기타"
+                importance_score=item.get("importance_score", 3)
             )
 
             selected_news.append(news)
@@ -830,7 +820,6 @@ EMR, 병원IT, 의료AI, 디지털헬스케어, 정책·규제, 의료데이터,
             logger.info(
                 f"   [{i}] "
                 f"중요도 {news.get('importance_score', 3)} | "
-                f"{news.get('category', '기타')} | "
                 f"{news.get('source', '언론사 미상')} | "
                 f"{news.get('title', '')[:60]}"
             )
@@ -1233,13 +1222,13 @@ def _fallback_select_groups(
         )
         for group in sorted_groups[:limit]:
             news = _representative_news_from_group(group)
-            _prepare_selected_news(news, importance_score=3, category="기타")
+            _prepare_selected_news(news, importance_score=3)
             selected_news.append(news)
         return _deduplicate_final_selected_news(selected_news)
 
     for news in (fallback_news_list or [])[:limit]:
         news = dict(news)
-        _prepare_selected_news(news, importance_score=news.get("importance_score", 3), category=news.get("category") or "기타")
+        _prepare_selected_news(news, importance_score=news.get("importance_score", 3))
         selected_news.append(news)
     return _deduplicate_final_selected_news(selected_news)
 
@@ -1332,8 +1321,7 @@ def select_important_news_groups(
   "selected": [
     {{
       "group_id": "G001",
-      "importance_score": 5,
-      "category": "주제에 맞는 간단한 분류명"
+      "importance_score": 5
     }}
   ]
 }}
@@ -1357,13 +1345,15 @@ def select_important_news_groups(
                     "content": (
                         "당신은 사건 그룹 단위로 중요한 뉴스만 선별하는 편집자입니다. "
                         "반드시 JSON만 출력합니다. "
-                        "선택한 각 항목에는 group_id, importance_score, category만 포함합니다."
+                        "선택한 각 항목에는 group_id, importance_score만 포함합니다."
                     )
                 },
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.1,
-            **_openai_token_limit_kwargs(SELECTOR_MODEL, 1200)
+            **openai_temperature_kwargs(SELECTOR_MODEL, 0.1),
+            **openai_reasoning_effort_kwargs(SELECTOR_MODEL),
+            **openai_json_response_format_kwargs(),
+            **openai_token_limit_kwargs(SELECTOR_MODEL, 4096 if is_gpt5_model(SELECTOR_MODEL) else 1200)
         )
 
         content = response.choices[0].message.content.strip()
@@ -1405,8 +1395,7 @@ def select_important_news_groups(
             news = _representative_news_from_group(group)
             _prepare_selected_news(
                 news=news,
-                importance_score=item.get("importance_score", 3),
-                category=item.get("category") or "기타",
+                importance_score=item.get("importance_score", 3)
             )
             selected_news.append(news)
             used_group_ids.add(group_id)
@@ -1429,7 +1418,6 @@ def select_important_news_groups(
         for i, news in enumerate(selected_news, 1):
             logger.info(
                 f"   [{i}] 중요도 {news.get('importance_score', 3)} | "
-                f"{news.get('category', '기타')} | "
                 f"그룹 {news.get('group_id')} | "
                 f"기사 {news.get('group_article_count', 1)}개/언론사 {news.get('group_source_count', 1)}곳 | "
                 f"{news.get('source', '언론사 미상')} | {news.get('title', '')[:60]}"

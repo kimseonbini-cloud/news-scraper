@@ -19,7 +19,14 @@ except Exception:
     OpenAI = None
 
 from dotenv import load_dotenv
-from openai_usage import record_openai_usage
+from openai_usage import (
+    record_openai_usage,
+    openai_token_limit_kwargs,
+    openai_temperature_kwargs,
+    openai_reasoning_effort_kwargs,
+    openai_json_response_format_kwargs,
+    is_gpt5_model,
+)
 
 load_dotenv()
 
@@ -34,10 +41,29 @@ else:
     client = None
 
 # 모델 설정
-MODEL = os.getenv("SUMMARY_MODEL", "gpt-4o-mini")
+MODEL = os.getenv("SUMMARY_MODEL", os.getenv("OPENAI_MODEL", "gpt-5-nano"))
 
 # 기본값: 배치 요약 사용. 필요 시 SUMMARY_BATCH_MODE=false 로 단건 방식 사용 가능.
 SUMMARY_BATCH_MODE = os.getenv("SUMMARY_BATCH_MODE", "true").lower() not in {"0", "false", "no"}
+
+# GPT-5 계열은 max_completion_tokens 안에 숨은 reasoning token도 포함된다.
+# 너무 작게 잡으면 completion_tokens는 소모되지만 message.content가 빈 값으로 올 수 있다.
+SUMMARY_BATCH_COMPLETION_LIMIT = int(os.getenv("SUMMARY_BATCH_MAX_COMPLETION_TOKENS", "8192"))
+SUMMARY_SINGLE_COMPLETION_LIMIT = int(os.getenv("SUMMARY_SINGLE_MAX_COMPLETION_TOKENS", "1600"))
+
+
+def _message_content(response: Any) -> str:
+    try:
+        return _safe_text(response.choices[0].message.content)
+    except Exception:
+        return ""
+
+
+def _finish_reason(response: Any) -> str:
+    try:
+        return _safe_text(response.choices[0].finish_reason)
+    except Exception:
+        return ""
 
 
 def _safe_text(value: Any) -> str:
@@ -101,7 +127,6 @@ def _build_summary_result(article: Dict, summary: str, tokens_used: int = 0, err
     published_at = _safe_text(article.get("published_at") or article.get("published_at_kst") or "")
     published_at_kst = _safe_text(article.get("published_at_kst") or article.get("published_at") or "")
     importance_score = _safe_int(article.get("importance_score", 3))
-    category = _safe_text(article.get("category")) or "기타"
     source = (
         _safe_text(article.get("source"))
         or _safe_text(article.get("press"))
@@ -118,7 +143,6 @@ def _build_summary_result(article: Dict, summary: str, tokens_used: int = 0, err
         "published_at": published_at,
         "published_at_kst": published_at_kst,
         "importance_score": importance_score,
-        "category": category,
         "source": source,
         "tokens_used": int(tokens_used or 0),
     }
@@ -181,11 +205,12 @@ def summarize_article(article: Dict, max_length: int = 220) -> Dict:
                     "content": prompt
                 }
             ],
-            temperature=0.2,
-            max_tokens=300
+            **openai_temperature_kwargs(MODEL, 0.2),
+            **openai_reasoning_effort_kwargs(MODEL),
+            **openai_token_limit_kwargs(MODEL, SUMMARY_SINGLE_COMPLETION_LIMIT if is_gpt5_model(MODEL) else 300)
         )
 
-        summary = response.choices[0].message.content.strip()
+        summary = _message_content(response)
         usage_info = record_openai_usage(
             logger,
             "단건 뉴스 요약",
@@ -193,6 +218,12 @@ def summarize_article(article: Dict, max_length: int = 220) -> Dict:
             response.usage,
         )
         tokens_used = usage_info["total_tokens"]
+
+        if not summary:
+            raise ValueError(
+                f"단건 요약 응답 본문이 비어 있습니다. finish_reason={_finish_reason(response)} "
+                f"reasoning_tokens={usage_info.get('reasoning_tokens', 0)}"
+            )
 
         logger.info(f"✅ 요약 완료: {len(summary)}자 (토큰: {tokens_used})")
 
@@ -275,34 +306,73 @@ def summarize_batch_with_llm(articles: List[Dict], max_length: int = 220) -> Lis
 {chr(10).join(news_blocks)}
 """
 
-    response = client.chat.completions.create(
-        model=MODEL,
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "뉴스 기사를 정확하게 요약하는 편집자입니다. "
-                    "원문에 없는 사실을 추가하지 않고, 반드시 JSON만 출력합니다."
-                )
-            },
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ],
-        temperature=0.2,
-        max_tokens=max(700, len(articles) * 260)
-    )
+    last_error = None
+    parsed = None
+    tokens_used = 0
 
-    content = response.choices[0].message.content.strip()
-    usage_info = record_openai_usage(
-        logger,
-        "배치 뉴스 요약",
-        MODEL,
-        response.usage,
-    )
-    tokens_used = usage_info["total_tokens"]
-    parsed = _extract_json(content)
+    # GPT-5 계열은 max_completion_tokens 안에 reasoning token이 포함된다.
+    # 첫 시도에서 본문이 비거나 JSON 파싱이 실패하면 더 큰 한도로 배치 1회만 재시도한다.
+    completion_limits = [
+        SUMMARY_BATCH_COMPLETION_LIMIT if is_gpt5_model(MODEL) else max(700, len(articles) * 260),
+    ]
+    if is_gpt5_model(MODEL):
+        completion_limits.append(max(SUMMARY_BATCH_COMPLETION_LIMIT * 2, len(articles) * 1200))
+
+    for attempt_no, completion_limit in enumerate(completion_limits, 1):
+        response = client.chat.completions.create(
+            model=MODEL,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "뉴스 기사를 정확하게 요약하는 편집자입니다. "
+                        "원문에 없는 사실을 추가하지 않고, 반드시 JSON만 출력합니다."
+                    )
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            **openai_temperature_kwargs(MODEL, 0.2),
+            **openai_reasoning_effort_kwargs(MODEL),
+            **openai_json_response_format_kwargs(),
+            **openai_token_limit_kwargs(MODEL, completion_limit)
+        )
+
+        content = _message_content(response)
+        usage_info = record_openai_usage(
+            logger,
+            f"배치 뉴스 요약 시도 {attempt_no}",
+            MODEL,
+            response.usage,
+        )
+        tokens_used += usage_info["total_tokens"]
+
+        if not content:
+            last_error = ValueError(
+                f"배치 요약 응답 본문이 비어 있습니다. "
+                f"attempt={attempt_no}, finish_reason={_finish_reason(response)}, "
+                f"reasoning_tokens={usage_info.get('reasoning_tokens', 0)}, "
+                f"completion_limit={completion_limit}"
+            )
+            logger.warning("⚠️ %s", last_error)
+            continue
+
+        try:
+            parsed = _extract_json(content)
+            break
+        except Exception as e:
+            last_error = e
+            logger.warning(
+                "⚠️ 배치 요약 JSON 파싱 실패: attempt=%s | finish_reason=%s | content_preview=%s",
+                attempt_no,
+                _finish_reason(response),
+                content[:300],
+            )
+
+    if parsed is None:
+        raise last_error or ValueError("배치 요약 JSON 파싱 실패")
 
     by_index = {}
     for item in parsed.get("summaries", []):
