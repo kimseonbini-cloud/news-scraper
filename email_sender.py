@@ -639,6 +639,22 @@ def create_html_email(
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
                        style="border-collapse:collapse; width:100%; max-width:900px;">
                     <tr>
+                        <td style="padding:12px 0 0 0;
+                                   font-family:'Malgun Gothic','Apple SD Gothic Neo',Arial,sans-serif;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                                   style="border-collapse:collapse; margin:0 0 16px 0; pyborder:1px solid #e5e7eb;">
+                                <tr>
+                                    <td style="padding:12px 14px;">
+                                        <div style="font-size:12px; line-height:1.65; margin:0; color:#52525b; word-break:keep-all;">
+                                            본 메일은 AI를 통해 주요 뉴스를 자동으로 선별·요약하여 발송되는 뉴스 브리핑입니다.<br>
+                                            향후 수신을 원치 않으시는 경우 이용 중인 메일 서비스에서 수신 차단을 설정하시거나, 본 메일에 회신해 주시면 감사하겠습니다.
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
                         <td style="padding:0 0 12px 0; border-bottom:2px solid #999999;">
                             <div style="font-family:'Malgun Gothic','Apple SD Gothic Neo',Arial,sans-serif;
                                         font-size:22px; font-weight:900; line-height:1.35;
@@ -648,8 +664,10 @@ def create_html_email(
                         </td>
                     </tr>
 
+                    
+
                     <tr>
-                        <td style="padding:16px 0 0 0;
+                        <td style="padding:0;
                                    font-family:'Malgun Gothic','Apple SD Gothic Neo',Arial,sans-serif;">
 """
 
@@ -667,9 +685,6 @@ def create_html_email(
                         <td style="padding:8px 0 0 0;
                                    font-family:'Malgun Gothic','Apple SD Gothic Neo',Arial,sans-serif;
                                    color:#a1a1aa; font-size:11px; line-height:1.5;">
-                            <div style="margin:0 0 3px 0;">
-                                <strong>이 메일은 AI를 통하여 자동으로 선별, 요약되어 발송되었습니다.</strong>
-                            </div>
                             <div style="margin:0 0 3px 0;">
                                 AI News Scraper v1.0
                             </div>
