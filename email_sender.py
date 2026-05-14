@@ -655,7 +655,7 @@ def create_html_email(
                         </td>
                     </tr>
                     <tr>
-                        <td style="padding:0 0 12px 0; border-bottom:2px solid #999999;">
+                        <td style="padding:0 0 12px 0;">
                             <div style="font-family:'Malgun Gothic','Apple SD Gothic Neo',Arial,sans-serif;
                                         font-size:22px; font-weight:900; line-height:1.35;
                                         letter-spacing:-0.5px;">
