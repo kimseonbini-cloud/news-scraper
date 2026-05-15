@@ -48,7 +48,10 @@ SUMMARY_BATCH_MODE = os.getenv("SUMMARY_BATCH_MODE", "true").lower() not in {"0"
 
 # GPT-5 계열은 max_completion_tokens 안에 숨은 reasoning token도 포함된다.
 # 기본 한도는 동적으로 더 작게 잡고, 빈 응답/JSON 실패 때만 더 크게 재시도한다.
-SUMMARY_BATCH_COMPLETION_LIMIT = int(os.getenv("SUMMARY_BATCH_MAX_COMPLETION_TOKENS", "4096"))
+# 첫 시도에서 reasoning token이 출력 한도를 모두 써버리면 같은 요청을 재시도하게 된다.
+# 기본 한도를 5200으로 둬서 gpt-5-nano 배치 요약의 불필요한 2회 호출을 줄인다.
+# max_completion_tokens는 상한값이라 실제 비용은 사용된 토큰 기준으로만 발생한다.
+SUMMARY_BATCH_COMPLETION_LIMIT = int(os.getenv("SUMMARY_BATCH_MAX_COMPLETION_TOKENS", "5200"))
 SUMMARY_SINGLE_COMPLETION_LIMIT = int(os.getenv("SUMMARY_SINGLE_MAX_COMPLETION_TOKENS", "1600"))
 SUMMARY_INPUT_CONTENT_LIMIT = int(os.getenv("SUMMARY_INPUT_CONTENT_CHARS", "520"))
 
@@ -65,6 +68,45 @@ def _finish_reason(response: Any) -> str:
         return _safe_text(response.choices[0].finish_reason)
     except Exception:
         return ""
+
+
+def _summary_reasoning_effort_kwargs() -> Dict[str, str]:
+    """
+    요약 호출에서 GPT-5 계열의 숨은 reasoning token 소모를 줄이기 위한 설정.
+
+    기본값은 minimal이다.
+    - SUMMARY_REASONING_EFFORT=none 으로 두면 파라미터를 보내지 않는다.
+    - OPENAI_REASONING_EFFORT보다 SUMMARY_REASONING_EFFORT를 우선한다.
+    - 구버전 SDK에서 reasoning_effort를 지원하지 않으면 호출 wrapper가 자동으로 제거 후 재시도한다.
+    """
+    if not is_gpt5_model(MODEL):
+        return {}
+
+    effort = str(
+        os.getenv("SUMMARY_REASONING_EFFORT", os.getenv("OPENAI_REASONING_EFFORT", "minimal"))
+        or ""
+    ).strip().lower()
+
+    if effort in {"", "none", "default", "off", "false", "0"}:
+        return {}
+
+    return {"reasoning_effort": effort}
+
+
+def _create_chat_completion(**kwargs):
+    """
+    Chat Completions 호출 wrapper.
+    reasoning_effort 미지원 SDK/런타임에서는 해당 인자만 제거하고 즉시 재시도한다.
+    이 fallback은 TypeError 단계에서 발생하므로 API 토큰을 추가로 쓰지 않는다.
+    """
+    try:
+        return client.chat.completions.create(**kwargs)
+    except TypeError as e:
+        if "reasoning_effort" in str(e):
+            kwargs.pop("reasoning_effort", None)
+            logger.warning("⚠️ 현재 OpenAI SDK가 reasoning_effort를 지원하지 않아 해당 옵션 없이 재시도합니다.")
+            return client.chat.completions.create(**kwargs)
+        raise
 
 
 def _safe_text(value: Any) -> str:
@@ -145,9 +187,13 @@ def _batch_completion_limits(article_count: int, max_length: int) -> List[int]:
     first_limit = max(1200, 600 + article_count * per_article_budget)
 
     if is_gpt5_model(MODEL):
+        # GPT-5 계열은 reasoning token도 max_completion_tokens 안에 포함된다.
+        # 첫 시도 한도가 너무 작으면 본문 없이 length로 끝나 같은 요청을 한 번 더 보내게 된다.
+        # 상한만 넉넉히 잡고, reasoning_effort는 minimal로 낮춰 실제 사용 토큰을 줄인다.
+        first_limit = max(first_limit, min(SUMMARY_BATCH_COMPLETION_LIMIT, 5200))
         first_limit = min(first_limit, SUMMARY_BATCH_COMPLETION_LIMIT)
-        retry_limit = max(first_limit * 2, 600 + article_count * 600)
-        retry_limit = min(retry_limit, max(SUMMARY_BATCH_COMPLETION_LIMIT * 2, first_limit))
+        retry_limit = max(first_limit + 1200, 600 + article_count * 600)
+        retry_limit = min(retry_limit, max(SUMMARY_BATCH_COMPLETION_LIMIT + 1600, first_limit))
         return [first_limit, retry_limit] if retry_limit > first_limit else [first_limit]
 
     return [min(first_limit, SUMMARY_BATCH_COMPLETION_LIMIT)]
@@ -235,7 +281,7 @@ def summarize_article(article: Dict, max_length: int = 220) -> Dict:
 
         logger.debug(f"📝 요약 중: {title[:30]}...")
 
-        response = client.chat.completions.create(
+        response = _create_chat_completion(
             model=MODEL,
             messages=[
                 {
@@ -251,7 +297,7 @@ def summarize_article(article: Dict, max_length: int = 220) -> Dict:
                 }
             ],
             **openai_temperature_kwargs(MODEL, 0.2),
-            **openai_reasoning_effort_kwargs(MODEL),
+            **_summary_reasoning_effort_kwargs(),
             **openai_token_limit_kwargs(MODEL, SUMMARY_SINGLE_COMPLETION_LIMIT if is_gpt5_model(MODEL) else 300)
         )
 
@@ -351,7 +397,7 @@ def summarize_batch_with_llm(articles: List[Dict], max_length: int = 220) -> Lis
     completion_limits = _batch_completion_limits(len(articles), max_length)
 
     for attempt_no, completion_limit in enumerate(completion_limits, 1):
-        response = client.chat.completions.create(
+        response = _create_chat_completion(
             model=MODEL,
             messages=[
                 {
@@ -367,7 +413,7 @@ def summarize_batch_with_llm(articles: List[Dict], max_length: int = 220) -> Lis
                 }
             ],
             **openai_temperature_kwargs(MODEL, 0.2),
-            **openai_reasoning_effort_kwargs(MODEL),
+            **_summary_reasoning_effort_kwargs(),
             **openai_json_response_format_kwargs(),
             **openai_token_limit_kwargs(MODEL, completion_limit)
         )

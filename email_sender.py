@@ -4,6 +4,7 @@
 import smtplib
 import os
 import html as html_lib
+import re
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.utils import parsedate_to_datetime, formataddr
@@ -49,8 +50,9 @@ SMTP_PORT = 587
 # ====================================
 MODEL = os.getenv("EMAIL_INSIGHT_MODEL", os.getenv("OPENAI_MODEL", "gpt-5-nano"))
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-EMAIL_INSIGHT_USE_AI_DEFAULT = os.getenv("EMAIL_INSIGHT_USE_AI", "false").lower() not in {"0", "false", "no", "off"}
-EMAIL_INSIGHT_MAX_COMPLETION_TOKENS = int(os.getenv("EMAIL_INSIGHT_MAX_COMPLETION_TOKENS", "900"))
+EMAIL_INSIGHT_USE_AI_DEFAULT = os.getenv("EMAIL_INSIGHT_USE_AI", "true").lower() not in {"0", "false", "no", "off"}
+EMAIL_INSIGHT_MAX_COMPLETION_TOKENS = int(os.getenv("EMAIL_INSIGHT_MAX_COMPLETION_TOKENS", "2400"))
+EMAIL_INSIGHT_RETRY_MAX_COMPLETION_TOKENS = int(os.getenv("EMAIL_INSIGHT_RETRY_MAX_COMPLETION_TOKENS", "3600"))
 
 if OpenAI is not None and OPENAI_API_KEY:
     client = OpenAI(api_key=OPENAI_API_KEY)
@@ -328,7 +330,7 @@ def build_section_dashboard(section_result):
                             </td>
                             <td width="20%" style="padding:8px 7px; border:1px solid #d4d4d4;">
                                 <div style="font-size:11px; line-height:1.3; font-weight:800; color:#737373; margin:0 0 3px 0;">
-                                    반복이슈제외({issue_filter_days}일)
+                                    반복이슈제외
                                 </div>
                                 <div style="font-size:17px; line-height:1.25; font-weight:900;">
                                     {issue_filter_excluded_count}
@@ -356,6 +358,80 @@ def build_section_dashboard(section_result):
             </tr>
         </table>
     """
+
+
+
+def _email_insight_reasoning_effort_kwargs(model: str) -> dict:
+    """
+    메일 핵심 3줄 생성은 깊은 추론보다 짧은 종합이 중요하므로
+    GPT-5 계열에서는 reasoning_effort를 가장 낮게 시도한다.
+    구버전 SDK가 이 인자를 지원하지 않으면 호출 wrapper에서 자동 제거한다.
+    """
+    if not is_gpt5_model(model):
+        return {}
+
+    effort = os.getenv("EMAIL_INSIGHT_REASONING_EFFORT", "minimal").strip().lower()
+    if effort in {"", "none", "default", "off", "false", "0"}:
+        return {}
+    return {"reasoning_effort": effort}
+
+
+def _create_chat_completion_for_email_insight(**kwargs):
+    """
+    OpenAI SDK/모델 호환성 방어용 호출 wrapper.
+    reasoning_effort를 지원하지 않는 런타임에서는 해당 옵션만 제거하고 재시도한다.
+    """
+    try:
+        return client.chat.completions.create(**kwargs)
+    except TypeError as e:
+        if "reasoning_effort" in str(e):
+            kwargs.pop("reasoning_effort", None)
+            logger.warning("⚠️ 현재 OpenAI SDK가 reasoning_effort를 지원하지 않아 메일 핵심 3줄 호출에서 해당 옵션 없이 재시도합니다.")
+            return client.chat.completions.create(**kwargs)
+        raise
+
+
+def _response_content(response) -> str:
+    try:
+        return str(response.choices[0].message.content or "").strip()
+    except Exception:
+        return ""
+
+
+def _response_finish_reason(response) -> str:
+    try:
+        return str(response.choices[0].finish_reason or "").strip()
+    except Exception:
+        return ""
+
+def normalize_insight_lines(insight_text):
+    """
+    핵심 3줄 LLM 응답을 검증하고 정규화한다.
+    '1. 2. 3.'처럼 번호만 있고 실제 문장이 없는 응답은 실패로 본다.
+    """
+    raw_lines = [str(line or "").strip() for line in str(insight_text or "").split("\n")]
+    cleaned = []
+
+    for raw_line in raw_lines:
+        if not raw_line:
+            continue
+        text = re.sub(r"^\s*[0-9]+[\.\)．、:]\s*", "", raw_line).strip()
+        text = re.sub(r"\s+", " ", text).strip(" -–—•·.")
+
+        # 번호/기호만 있는 줄은 제외한다.
+        meaningful_chars = re.sub(r"[^0-9a-zA-Z가-힣]", "", text)
+        if len(meaningful_chars) < 8:
+            continue
+
+        cleaned.append(text)
+        if len(cleaned) >= 3:
+            break
+
+    if len(cleaned) != 3:
+        return []
+
+    return [f"{idx}. {text}" for idx, text in enumerate(cleaned, 1)]
+
 
 def build_section_insights(section_title, summaries, scrape_stats=None):
     """
@@ -416,9 +492,10 @@ def build_section_insights(section_title, summaries, scrape_stats=None):
 
 규칙:
 1. 제공된 제목/요약에 있는 사실만 사용합니다.
-2. 뉴스 개수, 중요도 개수 같은 메타 설명은 쓰지 않습니다.
-3. 섹션 전체 흐름을 3줄로 정리하되, 각 줄은 짧게 씁니다.
-4. 반드시 "1. ", "2. ", "3. "으로 시작하는 정확히 3줄만 출력합니다.
+2. 특정 기사 요약을 그대로 복사하지 말고, 선별된 뉴스 전체에서 반복되는 흐름과 핵심 변화를 종합합니다.
+3. 뉴스 개수, 중요도 개수 같은 메타 설명은 쓰지 않습니다.
+4. 서로 다른 3가지 관점으로 짧게 정리합니다.
+5. 반드시 "1. ", "2. ", "3. "으로 시작하는 정확히 3줄만 출력합니다.
 
 뉴스:
 {news_text}
@@ -428,50 +505,74 @@ def build_section_insights(section_title, summaries, scrape_stats=None):
             if client is None:
                 raise ValueError("OPENAI_API_KEY가 없거나 OpenAI 클라이언트를 초기화할 수 없습니다.")
 
-            response = client.chat.completions.create(
-                model=MODEL,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "뉴스 목록만 근거로 섹션의 핵심 흐름을 정확히 3줄로 요약합니다. "
-                            "추측이나 원문에 없는 사실은 추가하지 않습니다."
-                        )
-                    },
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-                **openai_temperature_kwargs(MODEL, 0.2),
-                **openai_reasoning_effort_kwargs(MODEL),
-                **openai_token_limit_kwargs(
-                    MODEL,
-                    EMAIL_INSIGHT_MAX_COMPLETION_TOKENS
-                    if is_gpt5_model(MODEL)
-                    else min(300, EMAIL_INSIGHT_MAX_COMPLETION_TOKENS)
-                )
-            )
+            messages = [
+                {
+                    "role": "system",
+                    "content": (
+                        "뉴스 목록만 근거로 섹션의 핵심 흐름을 정확히 3줄로 요약합니다. "
+                        "추측이나 원문에 없는 사실은 추가하지 않습니다. "
+                        "반드시 본문을 출력해야 하며, 1~3번 번호 목록 외 텍스트는 쓰지 않습니다."
+                    )
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
 
-            insight_text = response.choices[0].message.content.strip()
-            usage_info = record_openai_usage(
-                logger,
-                f"[{section_title}] 메일 핵심 3줄",
-                MODEL,
-                response.usage,
-            )
-            insight_tokens = usage_info["total_tokens"]
+            attempt_limits = [
+                EMAIL_INSIGHT_MAX_COMPLETION_TOKENS if is_gpt5_model(MODEL) else min(300, EMAIL_INSIGHT_MAX_COMPLETION_TOKENS),
+            ]
+            if is_gpt5_model(MODEL):
+                retry_limit = max(EMAIL_INSIGHT_RETRY_MAX_COMPLETION_TOKENS, EMAIL_INSIGHT_MAX_COMPLETION_TOKENS)
+                if retry_limit != attempt_limits[0]:
+                    attempt_limits.append(retry_limit)
+
+            insight_text = ""
+            total_insight_tokens = 0
+
+            for attempt_no, completion_limit in enumerate(attempt_limits, 1):
+                response = _create_chat_completion_for_email_insight(
+                    model=MODEL,
+                    messages=messages,
+                    **openai_temperature_kwargs(MODEL, 0.2),
+                    **openai_token_limit_kwargs(MODEL, completion_limit),
+                    **_email_insight_reasoning_effort_kwargs(MODEL),
+                )
+
+                usage_info = record_openai_usage(
+                    logger,
+                    f"[{section_title}] 메일 핵심 3줄 시도 {attempt_no}",
+                    MODEL,
+                    response.usage,
+                )
+                insight_tokens = usage_info["total_tokens"]
+                total_insight_tokens += insight_tokens
+
+                insight_text = _response_content(response)
+                finish_reason = _response_finish_reason(response)
+                reasoning_tokens = safe_count(usage_info.get("reasoning_tokens", 0))
+
+                if insight_text:
+                    break
+
+                logger.warning(
+                    f"⚠️ [{section_title}] 메일 핵심 3줄 응답 본문이 비어 있습니다. "
+                    f"attempt={attempt_no}, finish_reason={finish_reason}, "
+                    f"reasoning_tokens={reasoning_tokens}, completion_limit={completion_limit}"
+                )
+
             if isinstance(scrape_stats, dict):
-                scrape_stats["insight_tokens"] = safe_count(scrape_stats.get("insight_tokens", 0)) + insight_tokens
-            logger.info(f"🧾 [{section_title}] 메일 핵심 3줄 토큰 사용량: {insight_tokens}")
-            lines = [line.strip() for line in insight_text.split("\n") if line.strip()]
-            lines = lines[:3]
+                scrape_stats["insight_tokens"] = safe_count(scrape_stats.get("insight_tokens", 0)) + total_insight_tokens
+            logger.info(f"🧾 [{section_title}] 메일 핵심 3줄 토큰 사용량: {total_insight_tokens}")
+
+            lines = normalize_insight_lines(insight_text)
 
             if not lines:
-                raise ValueError("핵심 3줄 응답이 비어 있습니다.")
+                raise ValueError("핵심 3줄 응답이 비어 있거나 번호만 출력되었습니다.")
 
         except Exception as e:
-            logger.error(f"❌ [{section_title}] 핵심 3줄 생성 실패: {e}")
+            logger.warning(f"⚠️ [{section_title}] 핵심 3줄 LLM 생성 실패로 기존 요약 기반 fallback을 사용합니다: {e}")
 
             lines = []
             for i, news in enumerate(summaries[:3], 1):

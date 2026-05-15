@@ -751,6 +751,21 @@ def main():
         section_results.append(section_result)
 
     # ====================================
+    # 메일 발송 직전 전체 섹션 최종 중복 제거
+    # - 이미 요약된 결과만 비교하므로 OpenAI 호출/토큰 사용량은 늘지 않는다.
+    # - 섹션이 달라져도 같은 사건이면 하나만 남긴다.
+    # ====================================
+    final_dedup_result = issue_history.deduplicate_section_results(section_results)
+    section_results = final_dedup_result.get("section_results", section_results)
+    if final_dedup_result.get("excluded_count", 0):
+        logger.info(
+            "🧹 메일 최종 중복 제거: %s개 → %s개 / 제외 %s개",
+            final_dedup_result.get("before_count", 0),
+            final_dedup_result.get("after_count", 0),
+            final_dedup_result.get("excluded_count", 0),
+        )
+
+    # ====================================
     # 이메일 발송
     # ====================================
     logger.debug("📧 이메일 발송 시작: receiver_env=%s", receiver_env)

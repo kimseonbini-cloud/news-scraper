@@ -4,7 +4,7 @@
   "receiver_env": "EMAIL_RECEIVER_ECONOMY",
   "selector_candidate_group_limit": 45,
   "summary_max_length": 180,
-  "email_insight_ai": false,
+  "email_insight_ai": true,
   "sections": [
     {
       "section_name": "경제 뉴스 브리핑",

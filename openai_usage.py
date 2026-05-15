@@ -193,15 +193,16 @@ def openai_reasoning_effort_kwargs(model: str) -> Dict[str, str]:
     """
     GPT-5 계열 Chat Completions의 reasoning effort를 낮춰 숨은 reasoning token 소모를 줄인다.
 
-    - 기본값: minimal
+    - 기본값: none
     - 변경: OPENAI_REASONING_EFFORT=minimal 또는 low/medium/high
     - 빈 값, none, default이면 파라미터를 보내지 않는다.
+    - openai==1.12.0 환경에서는 reasoning_effort 미지원 오류가 날 수 있어 기본 전송하지 않는다.
     """
     if not is_gpt5_model(model):
         return {}
 
     model_name = _base_model_name(model).lower()
-    effort = str(os.getenv("OPENAI_REASONING_EFFORT", "minimal") or "").strip().lower()
+    effort = str(os.getenv("OPENAI_REASONING_EFFORT", "none") or "").strip().lower()
     if effort in {"", "none", "default"}:
         return {}
 
