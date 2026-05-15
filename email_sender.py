@@ -330,7 +330,7 @@ def build_section_dashboard(section_result):
                             </td>
                             <td width="20%" style="padding:8px 7px; border:1px solid #d4d4d4;">
                                 <div style="font-size:11px; line-height:1.3; font-weight:800; color:#737373; margin:0 0 3px 0;">
-                                    반복이슈제외
+                                    3일간 반복이슈제외
                                 </div>
                                 <div style="font-size:17px; line-height:1.25; font-weight:900;">
                                     {issue_filter_excluded_count}
@@ -675,7 +675,18 @@ def build_news_section(section_result, section_index):
 
         source = safe_text(news.get("source", "언론사 미상") or "언론사 미상")
         importance_score = safe_int(news.get("importance_score", 3))
-        stars = "★" * importance_score + "☆" * (5 - importance_score)
+        related_article_count = safe_count(news.get("group_article_count"), 1)
+        related_source_count = safe_count(news.get("group_source_count"), 1)
+
+        related_meta_html = ""
+        if related_article_count > 1:
+            related_parts = [f"관련보도 {related_article_count}건"]
+            if related_source_count > 1:
+                related_parts.append(f"언론사 {related_source_count}곳")
+            related_meta_html = f"""
+                                    <span>　</span>
+                                    <span style="font-weight:800; color:#2563eb;">{safe_text(" · ".join(related_parts))}</span>
+            """
 
         html_body += f"""
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
@@ -693,8 +704,7 @@ def build_news_section(section_result, section_index):
                                     <span style="font-weight:800;">{source}</span>
                                     <span>　</span>
                                     <span style="font-weight:800; color:#ea580c;">중요도 {importance_score}</span>
-                                    <span>　</span>
-                                    <span style="color:#f59e0b; letter-spacing:-1px;">{stars}</span>
+                                    {related_meta_html}
                                     <span>　</span>
                                     <span>{published_date}</span>
                                 </div>
@@ -1030,7 +1040,9 @@ def send_test_email(receiver_env_name="EMAIL_RECEIVER"):
                     "url": "#",
                     "published_at": "",
                     "importance_score": 4,
-                    "source": "테스트언론"
+                    "source": "테스트언론",
+                    "group_article_count": 8,
+                    "group_source_count": 5
                 }
             ],
             "raw_count": 100,
@@ -1057,7 +1069,9 @@ def send_test_email(receiver_env_name="EMAIL_RECEIVER"):
                     "url": "#",
                     "published_at": "",
                     "importance_score": 5,
-                    "source": "테스트언론"
+                    "source": "테스트언론",
+                    "group_article_count": 3,
+                    "group_source_count": 2
                 }
             ],
             "raw_count": 100,

@@ -397,7 +397,8 @@ def collect_select_and_summarize(
         section_name=section_name,
         candidate_news=news_list,
         days=issue_history_days,
-        file_path=issue_history_file_path
+        file_path=issue_history_file_path,
+        remove_internal_duplicates=False
     )
 
     before_issue_filter_count = len(news_list)
@@ -428,6 +429,10 @@ def collect_select_and_summarize(
     scrape_stats["issue_filter_text_excluded_count"] = issue_filter_result.get("text_excluded_count", 0)
     scrape_stats["issue_filter_token_overlap_excluded_count"] = issue_filter_result.get("token_overlap_excluded_count", 0)
     scrape_stats["issue_filter_simhash_excluded_count"] = issue_filter_result.get("simhash_excluded_count", 0)
+    scrape_stats["issue_filter_internal_duplicate_filter_enabled"] = issue_filter_result.get(
+        "internal_duplicate_filter_enabled",
+        False,
+    )
 
     issue_token_stats = issue_filter_result.get("token_stats", {}) or {}
     scrape_stats["issue_key_tokens"] = issue_token_stats.get("issue_key_tokens", 0)

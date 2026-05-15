@@ -1015,6 +1015,11 @@ def append_sent_issues(
         for alias_title in unique_nonempty([item_title] + (item_payload.get("alias_titles") or [])):
             existing_scope_title_keys.add(f"{scope}|{alias_title}")
 
+    historical_issue_ids = set(existing_issue_ids)
+    historical_scope_url_keys = set(existing_scope_url_keys)
+    historical_scope_title_keys = set(existing_scope_title_keys)
+    historical_scope_event_keys = set(existing_scope_event_keys)
+
     new_records = []
     skipped_duplicate_count = 0
 
@@ -1050,22 +1055,25 @@ def append_sent_issues(
                 for alias_title in unique_nonempty(record.get("alias_titles") or [])
             ]
 
+            if record["issue_id"] in historical_issue_ids:
+                skipped_duplicate_count += 1
+                continue
             if record["issue_id"] in existing_issue_ids:
                 skipped_duplicate_count += 1
                 continue
-            if record.get("normalized_url") and url_key in existing_scope_url_keys:
+            if record.get("normalized_url") and url_key in historical_scope_url_keys:
                 skipped_duplicate_count += 1
                 continue
-            if any(key in existing_scope_url_keys for key in alias_url_keys):
+            if any(key in historical_scope_url_keys for key in alias_url_keys):
                 skipped_duplicate_count += 1
                 continue
-            if record.get("normalized_title") and title_key in existing_scope_title_keys:
+            if record.get("normalized_title") and title_key in historical_scope_title_keys:
                 skipped_duplicate_count += 1
                 continue
-            if any(key in existing_scope_title_keys for key in alias_title_keys):
+            if any(key in historical_scope_title_keys for key in alias_title_keys):
                 skipped_duplicate_count += 1
                 continue
-            if event_key_full and event_key_full in existing_scope_event_keys:
+            if event_key_full and event_key_full in historical_scope_event_keys:
                 skipped_duplicate_count += 1
                 continue
 
@@ -1429,13 +1437,50 @@ def find_matching_payload(candidate_payload, past_payloads):
     return None, "", ""
 
 
+def make_excluded_item(
+    index,
+    news,
+    method,
+    reason,
+    matched_title="",
+    detail="",
+    candidate_payload=None,
+):
+    """
+    반복/내부 중복으로 제외된 후보의 진단 정보를 표준 형태로 만든다.
+    실행 흐름에는 쓰지 않고, 로그/대시보드/추후 디버깅용으로 반환한다.
+    """
+    if not isinstance(news, dict):
+        news = {}
+    candidate_payload = candidate_payload if isinstance(candidate_payload, dict) else {}
+
+    return {
+        "index": index,
+        "title": get_news_title(news),
+        "source": str(news.get("source") or "").strip(),
+        "url": get_news_url(news),
+        "method": str(method or "").strip(),
+        "reason": str(reason or "").strip(),
+        "matched_title": str(matched_title or "").strip(),
+        "detail": str(detail or "").strip(),
+        "normalized_title": candidate_payload.get("normalized_title", ""),
+        "event_key": candidate_payload.get("event_key", ""),
+        "anchor_tokens": list(candidate_payload.get("anchor_tokens") or [])[:12],
+        "action_tokens": list(candidate_payload.get("action_tokens") or [])[:8],
+        "number_tokens": list(candidate_payload.get("number_tokens") or [])[:8],
+    }
+
+
 def filter_seen_issues_with_llm(
     briefing_name, receiver_env, section_name,
-    candidate_news, days=3, file_path=HISTORY_FILE_PATH
+    candidate_news, days=3, file_path=HISTORY_FILE_PATH,
+    remove_internal_duplicates=True
 ):
     """
     기존 함수명은 유지하지만 LLM을 사용하지 않는다.
     최근 N일간 이미 메일에 보낸 이슈와 후보 뉴스를 규칙 기반으로 비교해 제외한다.
+    remove_internal_duplicates=False이면 당일 후보끼리의 의미 중복은 보존한다.
+    이 경우 뒤의 news_grouper.py가 같은 사건을 묶어 관련보도 건수를 계산한다.
     """
     reset_token_stats()
 
@@ -1456,6 +1501,7 @@ def filter_seen_issues_with_llm(
             "text_excluded_count": 0,
             "token_overlap_excluded_count": 0,
             "simhash_excluded_count": 0,
+            "internal_duplicate_filter_enabled": bool(remove_internal_duplicates),
             "token_stats": get_last_token_stats(),
         }
 
@@ -1481,7 +1527,8 @@ def filter_seen_issues_with_llm(
     simhash_excluded_count = 0
     internal_duplicate_count = 0
 
-    # 오늘 후보 내부 중복도 같은 기준으로 제거한다.
+    # 오늘 후보 내부 중복은 선택적으로만 제거한다.
+    # 메인 브리핑 흐름에서는 False로 두어 뒤의 그룹화 단계가 관련보도 건수를 계산하게 한다.
     seen_today_payloads = []
     seen_today_urls = set()
 
@@ -1529,52 +1576,54 @@ def filter_seen_issues_with_llm(
                 simhash_excluded_count += 1
             continue
 
-        # 3. 오늘 후보 내부 URL 중복
-        if news_url and news_url in seen_today_urls:
-            excluded_items.append(make_excluded_item(
-                index=idx,
-                news=news,
-                method="internal_url",
-                reason="오늘 후보 내부에서 같은 URL이 이미 유지됨",
-                matched_title="오늘 후보 내부 중복 URL",
-                detail="정규화 URL 완전 일치",
-                candidate_payload=candidate_payload,
-            ))
-            internal_duplicate_count += 1
-            continue
+        if remove_internal_duplicates:
+            # 3. 오늘 후보 내부 URL 중복
+            if news_url and news_url in seen_today_urls:
+                excluded_items.append(make_excluded_item(
+                    index=idx,
+                    news=news,
+                    method="internal_url",
+                    reason="오늘 후보 내부에서 같은 URL이 이미 유지됨",
+                    matched_title="오늘 후보 내부 중복 URL",
+                    detail="정규화 URL 완전 일치",
+                    candidate_payload=candidate_payload,
+                ))
+                internal_duplicate_count += 1
+                continue
 
-        # 4. 오늘 후보 내부 텍스트/fingerprint 중복
-        matched_today, today_method, today_detail = find_matching_payload(candidate_payload, seen_today_payloads)
-        if matched_today:
-            excluded_items.append(make_excluded_item(
-                index=idx,
-                news=news,
-                method=f"internal_{today_method}",
-                reason="오늘 후보 내부에서 이미 유지한 기사와 유사함",
-                matched_title=matched_today.get("title", ""),
-                detail=today_detail,
-                candidate_payload=candidate_payload,
-            ))
-            internal_duplicate_count += 1
-            continue
+            # 4. 오늘 후보 내부 텍스트/fingerprint 중복
+            matched_today, today_method, today_detail = find_matching_payload(candidate_payload, seen_today_payloads)
+            if matched_today:
+                excluded_items.append(make_excluded_item(
+                    index=idx,
+                    news=news,
+                    method=f"internal_{today_method}",
+                    reason="오늘 후보 내부에서 이미 유지한 기사와 유사함",
+                    matched_title=matched_today.get("title", ""),
+                    detail=today_detail,
+                    candidate_payload=candidate_payload,
+                ))
+                internal_duplicate_count += 1
+                continue
 
         filtered_news.append(news)
-        if news_url:
-            seen_today_urls.add(news_url)
-        seen_today_payloads.append({
-            "title": news_title,
-            "normalized_title": candidate_payload.get("normalized_title", ""),
-            "normalized_text": candidate_payload.get("normalized_text", ""),
-            "tokens": candidate_payload.get("tokens", []),
-            "title_tokens": candidate_payload.get("title_tokens", []),
-            "anchor_tokens": candidate_payload.get("anchor_tokens", []),
-            "number_tokens": candidate_payload.get("number_tokens", []),
-            "action_tokens": candidate_payload.get("action_tokens", []),
-            "alias_titles": candidate_payload.get("alias_titles", []),
-            "alias_urls": candidate_payload.get("alias_urls", []),
-            "fingerprint": candidate_payload.get("fingerprint", ""),
-            "event_key": candidate_payload.get("event_key", ""),
-        })
+        if remove_internal_duplicates:
+            if news_url:
+                seen_today_urls.add(news_url)
+            seen_today_payloads.append({
+                "title": news_title,
+                "normalized_title": candidate_payload.get("normalized_title", ""),
+                "normalized_text": candidate_payload.get("normalized_text", ""),
+                "tokens": candidate_payload.get("tokens", []),
+                "title_tokens": candidate_payload.get("title_tokens", []),
+                "anchor_tokens": candidate_payload.get("anchor_tokens", []),
+                "number_tokens": candidate_payload.get("number_tokens", []),
+                "action_tokens": candidate_payload.get("action_tokens", []),
+                "alias_titles": candidate_payload.get("alias_titles", []),
+                "alias_urls": candidate_payload.get("alias_urls", []),
+                "fingerprint": candidate_payload.get("fingerprint", ""),
+                "event_key": candidate_payload.get("event_key", ""),
+            })
 
     excluded_count = len(excluded_items)
 
@@ -1601,6 +1650,7 @@ def filter_seen_issues_with_llm(
         "text_excluded_count": text_excluded_count,
         "token_overlap_excluded_count": token_overlap_excluded_count,
         "simhash_excluded_count": simhash_excluded_count,
+        "internal_duplicate_filter_enabled": bool(remove_internal_duplicates),
         "token_stats": get_last_token_stats(),
     }
 
