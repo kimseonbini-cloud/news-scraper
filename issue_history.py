@@ -75,6 +75,19 @@ STOPWORDS = {
     "밝혔다", "전했다", "설명했다", "말했다", "따르면", "제공", "진행",
     "발표", "공개", "추진", "운영", "지원", "확대", "강화", "개최",
     "서비스", "사업", "기업", "업계", "시장", "정부", "기관", "서울",
+    "한국", "국내", "글로벌", "최신", "주요", "확인", "가능", "기준",
+    "기반", "활용", "도입", "사용", "운용", "참여", "소개", "제공",
+}
+
+TOKEN_SUFFIXES = (
+    "으로부터", "로부터", "에서는", "에게서", "까지", "부터", "처럼", "보다",
+    "으로", "라고", "하고", "에서", "에게", "에도", "에는", "만큼",
+    "은", "는", "이", "가", "을", "를", "의", "에", "와", "과", "도", "만", "로",
+)
+
+ANCHOR_STOPWORDS = STOPWORDS | {
+    "ai", "it", "ict", "dx", "si", "emr", "시스템", "기술", "산업", "시장",
+    "사업", "서비스", "플랫폼", "솔루션", "정보", "디지털",
 }
 
 
@@ -164,6 +177,22 @@ def compact_compare_text(text: str) -> str:
     return text
 
 
+def normalize_token(token: str) -> str:
+    token = str(token or "").lower().strip()
+    if not token:
+        return ""
+
+    token = token.replace("美", "미국").replace("韓", "한국").replace("中", "중국")
+    token = token.replace("日", "일본").replace("李", "이").replace("金", "김")
+
+    for suffix in TOKEN_SUFFIXES:
+        if len(token) > len(suffix) + 1 and token.endswith(suffix):
+            token = token[: -len(suffix)]
+            break
+
+    return token.strip()
+
+
 def extract_tokens(text: str, max_tokens: int = 80):
     """
     외부 형태소 분석기 없이 동작하는 간단 토큰 추출.
@@ -175,7 +204,7 @@ def extract_tokens(text: str, max_tokens: int = 80):
     tokens = []
     seen = set()
     for token in raw_tokens:
-        token = token.lower().strip()
+        token = normalize_token(token)
         if not token:
             continue
         if token in STOPWORDS:
@@ -192,6 +221,56 @@ def extract_tokens(text: str, max_tokens: int = 80):
         if len(tokens) >= max_tokens:
             break
     return tokens
+
+
+def extract_title_tokens(title: str):
+    return extract_tokens(title, max_tokens=30)
+
+
+def extract_anchor_tokens(tokens):
+    anchors = []
+    seen = set()
+    for token in tokens or []:
+        token = normalize_token(token)
+        if not token or token in ANCHOR_STOPWORDS:
+            continue
+        has_alpha = bool(re.search(r"[a-zA-Z]", token))
+        has_korean = bool(re.search(r"[가-힣]", token))
+        if has_alpha or (has_korean and len(token) >= 3) or len(token) >= 4:
+            if token not in seen:
+                seen.add(token)
+                anchors.append(token)
+    return anchors[:20]
+
+
+def extract_number_tokens(value: str):
+    return set(re.findall(r"\d+(?:\.\d+)?", str(value or "")))
+
+
+def unique_nonempty(values, limit=None):
+    seen = set()
+    result = []
+    for value in values or []:
+        text = str(value or "").strip()
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        result.append(text)
+        if limit is not None and len(result) >= limit:
+            break
+    return result
+
+
+def get_news_alias_titles(news: dict):
+    titles = [get_news_title(news)]
+    titles.extend(news.get("group_article_titles") or [])
+    return unique_nonempty(titles, limit=16)
+
+
+def get_news_alias_urls(news: dict):
+    urls = [get_news_url(news)]
+    urls.extend(news.get("group_article_urls") or [])
+    return unique_nonempty([normalize_url(url) for url in urls], limit=16)
 
 
 def make_hash(value: str) -> str:
@@ -274,16 +353,77 @@ def get_news_summary_or_description(news: dict) -> str:
     )
 
 
+def get_news_compare_text(news: dict) -> str:
+    if not isinstance(news, dict):
+        return ""
+
+    parts = [
+        str(news.get("summary") or "").strip(),
+        str(news.get("description") or "").strip(),
+        str(news.get("content") or "").strip(),
+    ]
+
+    for keyword in news.get("group_keywords") or []:
+        parts.append(str(keyword).strip())
+
+    keyword = str(news.get("keyword") or "").strip()
+    if keyword:
+        parts.append(keyword)
+
+    seen = set()
+    cleaned = []
+    for part in parts:
+        if not part or part in seen:
+            continue
+        seen.add(part)
+        cleaned.append(part)
+
+    return " ".join(cleaned)
+
+
 def build_compare_payload(title: str, summary: str):
     compare_text = normalize_compare_text(f"{title} {summary}")
     compact_text = compact_compare_text(compare_text)
     tokens = extract_tokens(compare_text)
+    title_tokens = extract_title_tokens(title)
     return {
         "normalized_title": normalize_title(title),
         "normalized_text": compact_text,
         "tokens": tokens,
+        "title_tokens": title_tokens,
+        "anchor_tokens": extract_anchor_tokens(title_tokens or tokens),
+        "number_tokens": sorted(extract_number_tokens(f"{title} {summary}")),
         "fingerprint": make_simhash(tokens),
     }
+
+
+def build_event_signature(news: dict):
+    title = get_news_title(news)
+    compare_text = get_news_compare_text(news) or get_news_summary_or_description(news)
+    raw_alias_titles = get_news_alias_titles(news)
+    alias_titles = [
+        normalize_title(alias_title)
+        for alias_title in raw_alias_titles
+        if normalize_title(alias_title)
+    ]
+    alias_titles = unique_nonempty(alias_titles, limit=16)
+    alias_urls = get_news_alias_urls(news)
+
+    event_text_parts = [title, compare_text]
+    event_text_parts.extend(raw_alias_titles)
+    event_text = " ".join(unique_nonempty(event_text_parts))
+    payload = build_compare_payload(title, event_text)
+    alias_title_tokens = extract_tokens(" ".join(raw_alias_titles), max_tokens=60)
+    payload["title_tokens"] = unique_nonempty(
+        list(payload.get("title_tokens") or []) + alias_title_tokens,
+        limit=80,
+    )
+    payload["anchor_tokens"] = extract_anchor_tokens(
+        payload["title_tokens"] or payload.get("tokens", [])
+    )
+    payload["alias_titles"] = alias_titles
+    payload["alias_urls"] = alias_urls
+    return payload
 
 
 # ====================================
@@ -291,19 +431,19 @@ def build_compare_payload(title: str, summary: str):
 # ====================================
 def load_issue_history(file_path=HISTORY_FILE_PATH):
     if not os.path.exists(file_path):
-        return {"version": 2, "issues": []}
+        return {"version": 3, "issues": []}
     try:
         with open(file_path, "r", encoding="utf-8") as f:
             data = json.load(f)
         if not isinstance(data, dict):
-            return {"version": 2, "issues": []}
+            return {"version": 3, "issues": []}
         if "issues" not in data or not isinstance(data["issues"], list):
             data["issues"] = []
-        data["version"] = max(int(data.get("version", 1) or 1), 2)
+        data["version"] = max(int(data.get("version", 1) or 1), 3)
         return data
     except Exception as e:
         logger.warning(f"⚠️ 이슈 히스토리 읽기 실패, 빈 히스토리로 시작합니다: {e}")
-        return {"version": 2, "issues": []}
+        return {"version": 3, "issues": []}
 
 
 def save_issue_history(data, file_path=HISTORY_FILE_PATH):
@@ -316,7 +456,7 @@ def save_issue_history(data, file_path=HISTORY_FILE_PATH):
 
 def prune_old_issues(history, days=3):
     if not isinstance(history, dict):
-        return {"version": 2, "issues": []}, 0
+        return {"version": 3, "issues": []}, 0
 
     issues = history.get("issues", [])
     if not isinstance(issues, list):
@@ -345,7 +485,7 @@ def prune_old_issues(history, days=3):
             removed_count += 1
 
     history["issues"] = kept_issues
-    history["version"] = max(int(history.get("version", 2) or 2), 2)
+    history["version"] = max(int(history.get("version", 3) or 3), 3)
     return history, removed_count
 
 
@@ -379,19 +519,20 @@ def build_issue_record(
 ):
     title = get_news_title(news)
     summary = get_news_summary_or_description(news)
+    compare_text = get_news_compare_text(news) or summary
     source = str(news.get("source") or "").strip()
     url = get_news_url(news)
     published_at = str(news.get("published_at") or "").strip()
     importance_score = news.get("importance_score")
 
-    payload = build_compare_payload(title, summary)
+    payload = build_event_signature(news)
     normalized_url = normalize_url(url)
     issue_id = make_issue_id(
         briefing_name=briefing_name,
         receiver_env=receiver_env,
         section_name=section_name,
         title=title,
-        summary=summary,
+        summary=compare_text,
         url=url,
     )
 
@@ -401,19 +542,33 @@ def build_issue_record(
         "issue_id": issue_id,
         "saved_at": now_kst.isoformat(),
         "saved_date": now_kst.strftime("%Y-%m-%d"),
+        "event_signature_version": 3,
         "briefing_name": briefing_name,
         "subject_prefix": subject_prefix,
         "receiver_env": receiver_env,
         "section_name": section_name,
         "title": title,
         "summary": summary,
+        "description": str(news.get("description") or "").strip(),
+        "compare_text": compare_text[:1000],
         "source": source,
         "url": url,
         "normalized_url": normalized_url,
+        "alias_urls": payload["alias_urls"],
+        "alias_titles": payload["alias_titles"],
         "normalized_title": payload["normalized_title"],
         "normalized_text": payload["normalized_text"],
         "content_fingerprint": payload["fingerprint"],
         "content_tokens": payload["tokens"],
+        "title_tokens": payload["title_tokens"],
+        "anchor_tokens": payload["anchor_tokens"],
+        "number_tokens": payload["number_tokens"],
+        "event_normalized_text": payload["normalized_text"],
+        "event_fingerprint": payload["fingerprint"],
+        "event_tokens": payload["tokens"],
+        "event_title_tokens": payload["title_tokens"],
+        "event_anchor_tokens": payload["anchor_tokens"],
+        "event_number_tokens": payload["number_tokens"],
         "published_at": published_at,
         "importance_score": importance_score,
         # 이전 버전 히스토리와의 호환용 필드. 새 로직에서는 사용하지 않는다.
@@ -436,23 +591,72 @@ def get_issue_compare_payload(issue: dict):
         issue = {}
 
     title = str(issue.get("title") or "")
-    summary = str(issue.get("summary") or issue.get("description") or issue.get("content") or "")
+    summary = " ".join([
+        str(issue.get("summary") or "").strip(),
+        str(issue.get("description") or "").strip(),
+        str(issue.get("compare_text") or "").strip(),
+        str(issue.get("content") or "").strip(),
+    ]).strip()
 
     normalized_title = str(issue.get("normalized_title") or "").strip() or normalize_title(title)
-    normalized_text = str(issue.get("normalized_text") or "").strip()
-    tokens = issue.get("content_tokens")
-    fingerprint = str(issue.get("content_fingerprint") or "").strip()
+    normalized_text = str(issue.get("event_normalized_text") or issue.get("normalized_text") or "").strip()
+    tokens = issue.get("event_tokens") or issue.get("content_tokens")
+    title_tokens = issue.get("event_title_tokens") or issue.get("title_tokens")
+    anchor_tokens = issue.get("event_anchor_tokens") or issue.get("anchor_tokens")
+    number_tokens = issue.get("event_number_tokens") or issue.get("number_tokens")
+    fingerprint = str(issue.get("event_fingerprint") or issue.get("content_fingerprint") or "").strip()
+    alias_titles = issue.get("alias_titles")
+    alias_urls = issue.get("alias_urls")
 
-    if not normalized_text or not isinstance(tokens, list) or not fingerprint:
+    if (
+        not normalized_text
+        or not isinstance(tokens, list)
+        or not isinstance(title_tokens, list)
+        or not isinstance(anchor_tokens, list)
+        or not isinstance(number_tokens, list)
+        or not isinstance(alias_titles, list)
+        or not isinstance(alias_urls, list)
+        or not fingerprint
+    ):
         payload = build_compare_payload(title, summary)
         normalized_text = normalized_text or payload["normalized_text"]
         tokens = tokens if isinstance(tokens, list) and tokens else payload["tokens"]
+        title_tokens = (
+            title_tokens
+            if isinstance(title_tokens, list) and title_tokens
+            else payload["title_tokens"]
+        )
+        anchor_tokens = (
+            anchor_tokens
+            if isinstance(anchor_tokens, list) and anchor_tokens
+            else payload["anchor_tokens"]
+        )
+        number_tokens = (
+            number_tokens
+            if isinstance(number_tokens, list)
+            else payload["number_tokens"]
+        )
+        alias_titles = (
+            alias_titles
+            if isinstance(alias_titles, list) and alias_titles
+            else unique_nonempty([normalized_title], limit=16)
+        )
+        alias_urls = (
+            alias_urls
+            if isinstance(alias_urls, list)
+            else unique_nonempty([get_issue_normalized_url(issue)], limit=16)
+        )
         fingerprint = fingerprint or payload["fingerprint"]
 
     return {
         "normalized_title": normalized_title,
         "normalized_text": normalized_text,
         "tokens": tokens or [],
+        "title_tokens": title_tokens or [],
+        "anchor_tokens": anchor_tokens or [],
+        "number_tokens": number_tokens or [],
+        "alias_titles": alias_titles or [],
+        "alias_urls": alias_urls or [],
         "fingerprint": fingerprint,
     }
 
@@ -486,10 +690,10 @@ def append_sent_issues(
         item_payload = get_issue_compare_payload(item)
         item_title = item_payload.get("normalized_title", "")
 
-        if item_url:
-            existing_scope_url_keys.add(f"{scope}|{item_url}")
-        if item_title:
-            existing_scope_title_keys.add(f"{scope}|{item_title}")
+        for alias_url in unique_nonempty([item_url] + (item_payload.get("alias_urls") or [])):
+            existing_scope_url_keys.add(f"{scope}|{alias_url}")
+        for alias_title in unique_nonempty([item_title] + (item_payload.get("alias_titles") or [])):
+            existing_scope_title_keys.add(f"{scope}|{alias_title}")
 
     new_records = []
     skipped_duplicate_count = 0
@@ -514,6 +718,14 @@ def append_sent_issues(
             ])
             url_key = f"{scope}|{record.get('normalized_url', '')}"
             title_key = f"{scope}|{record.get('normalized_title', '')}"
+            alias_url_keys = [
+                f"{scope}|{alias_url}"
+                for alias_url in unique_nonempty(record.get("alias_urls") or [])
+            ]
+            alias_title_keys = [
+                f"{scope}|{alias_title}"
+                for alias_title in unique_nonempty(record.get("alias_titles") or [])
+            ]
 
             if record["issue_id"] in existing_issue_ids:
                 skipped_duplicate_count += 1
@@ -521,7 +733,13 @@ def append_sent_issues(
             if record.get("normalized_url") and url_key in existing_scope_url_keys:
                 skipped_duplicate_count += 1
                 continue
+            if any(key in existing_scope_url_keys for key in alias_url_keys):
+                skipped_duplicate_count += 1
+                continue
             if record.get("normalized_title") and title_key in existing_scope_title_keys:
+                skipped_duplicate_count += 1
+                continue
+            if any(key in existing_scope_title_keys for key in alias_title_keys):
                 skipped_duplicate_count += 1
                 continue
 
@@ -530,6 +748,10 @@ def append_sent_issues(
                 existing_scope_url_keys.add(url_key)
             if record.get("normalized_title"):
                 existing_scope_title_keys.add(title_key)
+            for key in alias_url_keys:
+                existing_scope_url_keys.add(key)
+            for key in alias_title_keys:
+                existing_scope_title_keys.add(key)
 
             new_records.append(record)
 
@@ -537,7 +759,7 @@ def append_sent_issues(
         history["issues"].extend(new_records)
 
     history["last_updated_at"] = get_now_kst().isoformat()
-    history["version"] = max(int(history.get("version", 2) or 2), 2)
+    history["version"] = max(int(history.get("version", 3) or 3), 3)
     save_issue_history(history, file_path)
 
     return {
@@ -597,6 +819,9 @@ def build_past_issue_indexes(past_issues):
 
         if issue_url and issue_url not in past_by_url:
             past_by_url[issue_url] = issue
+        for alias_url in payload.get("alias_urls") or []:
+            if alias_url and alias_url not in past_by_url:
+                past_by_url[alias_url] = issue
 
         past_payloads.append({
             "issue": issue,
@@ -604,6 +829,11 @@ def build_past_issue_indexes(past_issues):
             "normalized_title": payload.get("normalized_title", ""),
             "normalized_text": payload.get("normalized_text", ""),
             "tokens": payload.get("tokens", []),
+            "title_tokens": payload.get("title_tokens", []),
+            "anchor_tokens": payload.get("anchor_tokens", []),
+            "number_tokens": payload.get("number_tokens", []),
+            "alias_titles": payload.get("alias_titles", []),
+            "alias_urls": payload.get("alias_urls", []),
             "fingerprint": payload.get("fingerprint", ""),
         })
 
@@ -620,27 +850,86 @@ def judge_duplicate_by_payload(candidate_payload, past_payload):
     """
     cand_title = candidate_payload.get("normalized_title", "")
     past_title = past_payload.get("normalized_title", "")
+    candidate_titles = unique_nonempty(
+        [cand_title] + (candidate_payload.get("alias_titles") or []),
+        limit=16,
+    )
+    past_titles = unique_nonempty(
+        [past_title] + (past_payload.get("alias_titles") or []),
+        limit=16,
+    )
+    cand_numbers = set(candidate_payload.get("number_tokens") or [])
+    past_numbers = set(past_payload.get("number_tokens") or [])
+    number_conflict = bool(cand_numbers and past_numbers and cand_numbers != past_numbers)
 
-    if cand_title and past_title:
-        if cand_title == past_title:
-            return True, "title_exact", "정규화 제목 동일"
+    shared_anchor = bool(
+        set(candidate_payload.get("anchor_tokens") or [])
+        & set(past_payload.get("anchor_tokens") or [])
+    )
+    title_overlap, title_common_count = token_overlap_score(
+        candidate_payload.get("title_tokens", []),
+        past_payload.get("title_tokens", []),
+    )
 
-        title_score = SequenceMatcher(None, cand_title, past_title).ratio()
-        if title_score >= TITLE_SIMILARITY_THRESHOLD:
-            return True, "title_similarity", f"제목 유사도 {title_score:.2f}"
+    best_title_score = 0.0
 
-    cand_text = candidate_payload.get("normalized_text", "")
-    past_text = past_payload.get("normalized_text", "")
-    if cand_text and past_text:
-        text_score = SequenceMatcher(None, cand_text, past_text).ratio()
-        if text_score >= TEXT_SIMILARITY_THRESHOLD:
-            return True, "text_similarity", f"본문 유사도 {text_score:.2f}"
+    for candidate_title in candidate_titles:
+        for past_alias_title in past_titles:
+            if not candidate_title or not past_alias_title:
+                continue
+
+            if candidate_title == past_alias_title:
+                return True, "title_exact", "정규화 제목/별칭 제목 동일"
+
+            if min(len(candidate_title), len(past_alias_title)) >= 10:
+                shorter, longer = sorted([candidate_title, past_alias_title], key=len)
+                if shorter in longer and not number_conflict:
+                    return True, "title_contains", "후보 제목과 과거 별칭 제목이 포함 관계"
+
+            title_score = SequenceMatcher(None, candidate_title, past_alias_title).ratio()
+            if title_score > best_title_score:
+                best_title_score = title_score
+
+    if best_title_score >= TITLE_SIMILARITY_THRESHOLD and not number_conflict:
+        return True, "title_similarity", f"제목/별칭 제목 유사도 {best_title_score:.2f}"
+
+    if best_title_score >= 0.76 and title_common_count >= 3 and shared_anchor:
+        return True, "title_similarity_anchor", (
+            f"제목/별칭 제목 유사도 {best_title_score:.2f}, 제목 공통 토큰 {title_common_count}개"
+        )
+
+    if title_overlap >= 0.50 and title_common_count >= 3 and shared_anchor:
+        return True, "title_token_overlap", (
+            f"제목 토큰 겹침률 {title_overlap:.2f}, 공통 {title_common_count}개"
+        )
 
     overlap_score, common_count = token_overlap_score(
         candidate_payload.get("tokens", []),
         past_payload.get("tokens", []),
     )
-    if common_count >= MIN_COMMON_TOKEN_COUNT and overlap_score >= TOKEN_OVERLAP_THRESHOLD:
+
+    cand_text = candidate_payload.get("normalized_text", "")
+    past_text = past_payload.get("normalized_text", "")
+    if cand_text and past_text:
+        text_score = SequenceMatcher(None, cand_text, past_text).ratio()
+        if (
+            text_score >= TEXT_SIMILARITY_THRESHOLD
+            and not number_conflict
+            and (common_count >= MIN_COMMON_TOKEN_COUNT or shared_anchor)
+        ):
+            return True, "text_similarity", f"본문 유사도 {text_score:.2f}"
+
+        if text_score >= 0.72 and common_count >= MIN_COMMON_TOKEN_COUNT and shared_anchor and not number_conflict:
+            return True, "text_similarity_anchor", (
+                f"본문 유사도 {text_score:.2f}, 공통 토큰 {common_count}개"
+            )
+
+    if (
+        common_count >= MIN_COMMON_TOKEN_COUNT
+        and overlap_score >= TOKEN_OVERLAP_THRESHOLD
+        and not number_conflict
+        and (shared_anchor or common_count >= MIN_COMMON_TOKEN_COUNT + 2)
+    ):
         return True, "token_overlap", f"토큰 겹침률 {overlap_score:.2f}, 공통 {common_count}개"
 
     distance = simhash_distance(
@@ -649,7 +938,7 @@ def judge_duplicate_by_payload(candidate_payload, past_payload):
     )
     if distance is not None and distance <= SIMHASH_DISTANCE_THRESHOLD:
         # SimHash만으로 과하게 지워지는 것을 막기 위해 최소 토큰 공통 조건을 추가한다.
-        if common_count >= max(2, MIN_COMMON_TOKEN_COUNT - 1):
+        if common_count >= max(3, MIN_COMMON_TOKEN_COUNT - 1) and shared_anchor and not number_conflict:
             return True, "simhash", f"SimHash 거리 {distance}, 공통 토큰 {common_count}개"
 
     return False, "", ""
@@ -723,7 +1012,7 @@ def filter_seen_issues_with_llm(
         news_title = get_news_title(news)
         news_summary = get_news_summary_or_description(news)
         news_url = normalize_url(get_news_url(news))
-        candidate_payload = build_compare_payload(news_title, news_summary)
+        candidate_payload = build_event_signature(news)
 
         # 1. 과거 발송 URL 완전 일치
         if news_url and news_url in past_by_url:
@@ -749,9 +1038,9 @@ def filter_seen_issues_with_llm(
                 "reason": f"최근 발송 이력과 유사함 ({detail})",
                 "method": method,
             })
-            if method in ("title_exact", "title_similarity"):
+            if method.startswith("title_"):
                 title_excluded_count += 1
-            elif method == "text_similarity":
+            elif method.startswith("text_"):
                 text_excluded_count += 1
             elif method == "token_overlap":
                 token_overlap_excluded_count += 1
@@ -792,6 +1081,11 @@ def filter_seen_issues_with_llm(
             "normalized_title": candidate_payload.get("normalized_title", ""),
             "normalized_text": candidate_payload.get("normalized_text", ""),
             "tokens": candidate_payload.get("tokens", []),
+            "title_tokens": candidate_payload.get("title_tokens", []),
+            "anchor_tokens": candidate_payload.get("anchor_tokens", []),
+            "number_tokens": candidate_payload.get("number_tokens", []),
+            "alias_titles": candidate_payload.get("alias_titles", []),
+            "alias_urls": candidate_payload.get("alias_urls", []),
             "fingerprint": candidate_payload.get("fingerprint", ""),
         })
 

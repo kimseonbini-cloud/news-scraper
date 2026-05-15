@@ -64,6 +64,12 @@ STOPWORDS = {
     "한국", "국내", "글로벌", "최신", "주요", "확인", "가능", "기준",
 }
 
+TOKEN_SUFFIXES = (
+    "으로부터", "로부터", "에서는", "에게서", "까지", "부터", "처럼", "보다",
+    "으로", "라고", "하고", "에서", "에게", "에도", "에는", "만큼",
+    "은", "는", "이", "가", "을", "를", "의", "에", "와", "과", "도", "만", "로",
+)
+
 # 대표 기사로 쓰기 애매한 패턴. 그룹에는 남기되 대표 선정 점수에서 감점한다.
 PHOTO_URL_PATTERNS = ("/photos/", "/photo/", "NISI")
 PHOTO_TITLE_PATTERNS = (
@@ -118,6 +124,22 @@ def compact_compare_text(text: str) -> str:
     return text
 
 
+def normalize_token(token: str) -> str:
+    token = str(token or "").lower().strip()
+    if not token:
+        return ""
+
+    token = token.replace("美", "미국").replace("韓", "한국").replace("中", "중국")
+    token = token.replace("日", "일본").replace("李", "이").replace("金", "김")
+
+    for suffix in TOKEN_SUFFIXES:
+        if len(token) > len(suffix) + 1 and token.endswith(suffix):
+            token = token[: -len(suffix)]
+            break
+
+    return token.strip()
+
+
 def extract_tokens(text: str, max_tokens: int = 80) -> List[str]:
     text = normalize_compare_text(text)
     raw_tokens = re.findall(r"[가-힣a-zA-Z0-9]{2,}", text)
@@ -125,7 +147,7 @@ def extract_tokens(text: str, max_tokens: int = 80) -> List[str]:
     tokens: List[str] = []
     seen = set()
     for token in raw_tokens:
-        token = token.lower().strip()
+        token = normalize_token(token)
         if not token or token in STOPWORDS or token.isdigit() or len(token) < 2:
             continue
         if token in seen:
@@ -349,6 +371,7 @@ class NewsPayload:
     normalized_title: str
     normalized_text: str
     tokens: List[str]
+    title_tokens: List[str]
     fingerprint: str
 
 
@@ -385,6 +408,7 @@ def build_payload(news: Dict[str, Any], index: int) -> NewsPayload:
     description = get_news_description(news)
     compare_text = f"{title} {description}"
     tokens = extract_tokens(compare_text)
+    title_tokens = extract_tokens(title, max_tokens=30)
     return NewsPayload(
         index=index,
         news=news,
@@ -398,6 +422,7 @@ def build_payload(news: Dict[str, Any], index: int) -> NewsPayload:
         normalized_title=normalize_title(title),
         normalized_text=compact_compare_text(compare_text),
         tokens=tokens,
+        title_tokens=title_tokens,
         fingerprint=make_simhash(tokens),
     )
 
@@ -425,6 +450,18 @@ def compare_payloads(
 
     title_score = 0.0
     if candidate.normalized_title and representative.normalized_title:
+        if min(len(candidate.normalized_title), len(representative.normalized_title)) >= 10:
+            shorter, longer = sorted(
+                [candidate.normalized_title, representative.normalized_title],
+                key=len,
+            )
+            if shorter in longer:
+                return True, {
+                    "method": "title_contains",
+                    "detail": "한쪽 제목이 다른 쪽 제목을 포함",
+                    "score": len(shorter) / max(1, len(longer)),
+                }
+
         title_score = SequenceMatcher(None, candidate.normalized_title, representative.normalized_title).ratio()
         if title_score >= title_threshold:
             return True, {
@@ -432,6 +469,18 @@ def compare_payloads(
                 "detail": f"제목 유사도 {title_score:.2f}",
                 "score": title_score,
             }
+
+    title_overlap_score, title_common_count = token_overlap_score(
+        candidate.title_tokens,
+        representative.title_tokens,
+    )
+    if title_common_count >= 3 and title_overlap_score >= 0.55:
+        return True, {
+            "method": "title_token_overlap",
+            "detail": f"제목 핵심 토큰 겹침률 {title_overlap_score:.2f}, 공통 {title_common_count}개",
+            "score": title_overlap_score,
+            "common_count": title_common_count,
+        }
 
     text_score = 0.0
     if candidate.normalized_text and representative.normalized_text:
@@ -649,6 +698,7 @@ def group_priority_score(serialized_group: Dict[str, Any]) -> float:
 
 def representative_news_from_group(serialized_group: Dict[str, Any]) -> Dict[str, Any]:
     rep = dict(serialized_group.get("representative") or {})
+    articles = serialized_group.get("articles") or []
     rep["group_id"] = serialized_group.get("group_id")
     rep["group_article_count"] = serialized_group.get("article_count", 1)
     rep["group_source_count"] = serialized_group.get("source_count", 1)
@@ -657,6 +707,16 @@ def representative_news_from_group(serialized_group: Dict[str, Any]) -> Dict[str
     rep["group_quality_flags"] = serialized_group.get("quality_flags", [])
     rep["group_representative_score"] = serialized_group.get("representative_score", 0)
     rep["group_priority_score"] = serialized_group.get("priority_score", 0)
+    rep["group_article_titles"] = [
+        str(article.get("title") or "").strip()
+        for article in articles[:12]
+        if str(article.get("title") or "").strip()
+    ]
+    rep["group_article_urls"] = [
+        str(article.get("url") or "").strip()
+        for article in articles[:12]
+        if str(article.get("url") or "").strip()
+    ]
     rep["description"] = rep.get("description", "")
     rep["content"] = rep.get("description", "")
     return rep

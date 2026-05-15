@@ -2,6 +2,9 @@
   "briefing_name": "식품산업 뉴스브리핑",
   "subject_prefix": "식품산업 뉴스브리핑",
   "receiver_env": "EMAIL_RECEIVER_INOHAS",
+  "selector_candidate_group_limit": 45,
+  "summary_max_length": 180,
+  "email_insight_ai": false,
   "sections": [
     {
       "section_name": "식품산업·수출·투자·규제 동향",

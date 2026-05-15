@@ -15,7 +15,7 @@ import logging
 import re
 import hashlib
 from difflib import SequenceMatcher
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from urllib.parse import urlparse
 
 try:
@@ -61,6 +61,27 @@ LAST_SELECTION_STATS = {
     "selected_before_final_dedup_count": 0,
     "selected_after_final_dedup_count": 0,
 }
+
+
+def _env_int(name: str, default: int, min_value: int = 1, max_value: Optional[int] = None) -> int:
+    try:
+        value = int(os.getenv(name, str(default)))
+    except Exception:
+        value = int(default)
+
+    value = max(int(min_value), value)
+    if max_value is not None:
+        value = min(int(max_value), value)
+    return value
+
+
+DEFAULT_SELECTOR_CANDIDATE_GROUP_LIMIT = _env_int("SELECTOR_CANDIDATE_GROUP_LIMIT", 45, 10, 100)
+SELECTOR_MAX_COMPLETION_TOKENS = _env_int("SELECTOR_MAX_COMPLETION_TOKENS", 700, 256, 2048)
+SELECTOR_DETAILED_CANDIDATE_COUNT = _env_int("SELECTOR_DETAILED_CANDIDATE_COUNT", 15, 0, 50)
+GROUP_CANDIDATE_TITLE_CHARS = _env_int("SELECTOR_GROUP_TITLE_CHARS", 65, 35, 120)
+GROUP_CANDIDATE_DESCRIPTION_CHARS = _env_int("SELECTOR_GROUP_DESCRIPTION_CHARS", 50, 0, 160)
+GROUP_CANDIDATE_SOURCES_CHARS = _env_int("SELECTOR_GROUP_SOURCES_CHARS", 30, 20, 100)
+GROUP_CANDIDATE_KEYWORDS_CHARS = _env_int("SELECTOR_GROUP_KEYWORDS_CHARS", 30, 10, 100)
 
 
 def reset_selection_stats():
@@ -196,10 +217,6 @@ def _deduplicate_by_url(news_list: List[Dict], log_prefix: str = "후보") -> Li
 
         for url in url_candidates:
             if url in seen_urls:
-                logger.info(
-                    f"⏭️ {log_prefix} URL 중복 제외: "
-                    f"{_safe_text(news.get('title'))[:70]}"
-                )
                 duplicated = True
                 break
 
@@ -289,6 +306,21 @@ def _extract_json(content: str) -> Dict:
         content = content.replace("```json", "").replace("```", "").strip()
 
     return json.loads(content)
+
+
+def _ensure_json_object(result: Any) -> Dict[str, Any]:
+    """
+    모델이 JSON 배열이나 문자열을 반환해도 호출부에서 AttributeError가 나지 않게 한다.
+    """
+    if isinstance(result, dict):
+        return result
+    return {}
+
+
+def _ensure_json_list(value: Any) -> List[Any]:
+    if isinstance(value, list):
+        return value
+    return []
 
 
 def _prepare_selected_news(
@@ -441,16 +473,16 @@ def _deduplicate_by_llm_event_group(
         event_group_tokens = usage_info["total_tokens"]
         add_selection_tokens("event_group_tokens", event_group_tokens)
 
-        logger.info(f"🧩 LLM 사건 그룹화 응답 수신 (토큰: {event_group_tokens})")
+        logger.debug(f"🧩 LLM 사건 그룹화 응답 수신: 토큰 {event_group_tokens}")
 
         try:
-            result = _extract_json(content)
+            result = _ensure_json_object(_extract_json(content))
         except json.JSONDecodeError:
             logger.error("❌ LLM 사건 그룹화 JSON 파싱 실패")
-            logger.error(content)
+            logger.error("응답 미리보기: %s", content[:300])
             return news_list[:limit]
 
-        event_groups = result.get("event_groups", [])
+        event_groups = _ensure_json_list(result.get("event_groups"))
 
         if not event_groups:
             logger.warning("⚠️ LLM 사건 그룹화 결과가 비어 있어 원본 선택 결과를 유지합니다.")
@@ -460,6 +492,8 @@ def _deduplicate_by_llm_event_group(
         covered_indexes = set()
 
         for group in event_groups:
+            if not isinstance(group, dict):
+                continue
             indexes = group.get("indexes", [])
             representative_index = group.get("representative_index")
 
@@ -510,17 +544,6 @@ def _deduplicate_by_llm_event_group(
             f"🧠 LLM 사건 그룹화 중복 제거 완료: "
             f"{len(news_list)}개 → {len(deduped_news)}개"
         )
-
-        for group in event_groups:
-            indexes = group.get("indexes", [])
-            representative_index = group.get("representative_index")
-
-            if len(indexes) > 1:
-                logger.info(
-                    f"   🧩 사건 그룹: {group.get('event_group', '')} | "
-                    f"대표 {representative_index} | "
-                    f"그룹 {indexes}"
-                )
 
         return deduped_news
 
@@ -628,11 +651,12 @@ def select_important_news(
         logger.warning("선택할 뉴스 후보가 없습니다.")
         return []
 
-    logger.info(f"\n{'=' * 60}")
-    logger.info(f"🧠 OpenAI 뉴스 선별 시작: {topic_name}")
-    logger.info(f"원본 후보 뉴스 수: {len(news_list)}개")
-    logger.info(f"최종 선택 목표: {limit}개")
-    logger.info(f"{'=' * 60}")
+    logger.info(
+        "🧠 [%s] 기사 선별 시작: 후보 %s개 / 목표 %s개",
+        topic_name,
+        len(news_list),
+        limit,
+    )
 
     # 1차 URL 중복 제거
     candidate_pool = _deduplicate_by_url(
@@ -644,7 +668,7 @@ def select_important_news(
         logger.warning("URL 중복 제거 후 남은 후보 뉴스가 없습니다.")
         return []
 
-    logger.info(f"OpenAI 전달 후보 뉴스 수: {len(candidate_pool)}개")
+    logger.info(f"🧺 [{topic_name}] 기사 선별 후보: URL중복 후 {len(candidate_pool)}개")
 
     if client is None:
         logger.warning("⚠️ OpenAI 클라이언트가 없어 fallback 선별을 사용합니다.")
@@ -659,53 +683,26 @@ def select_important_news(
     candidate_text = _build_candidate_text(candidate_pool)
 
     prompt = f"""
-아래는 네이버 뉴스 API로 수집한 뉴스 후보 목록입니다.
+작업: "{topic_name}" 브리핑의 뉴스 후보를 고릅니다.
 
-당신의 역할은 뉴스 편집자입니다.
-아래 기준으로 최종 후보 뉴스 {candidate_limit}개 이하를 선택하세요.
-
-[브리핑 이름]
-{topic_name}
-
-[선택해야 하는 뉴스 주제]
+주제:
 {topic_description}
 
-[선택 기준]
-1. 주제와 직접 관련 있는 뉴스만 선택하세요.
-2. 기업 전략, 실적, 투자, 제휴, 정책, 규제, 기술 도입, 산업 변화에 영향이 큰 뉴스를 우선 선택하세요.
-3. 홍보성 기사, 단순 행사 안내, 단순 제품 소개성 기사는 제외하세요.
-4. 같은 사건처럼 보이는 기사가 여러 개 있어도, 이 단계에서는 판단이 애매하면 후보에 포함해도 됩니다.
-5. 최종 후보로 최대 {candidate_limit}개까지 선택하세요.
-6. 가능하면 서로 다른 사건, 서로 다른 기업, 서로 다른 정책, 서로 다른 기술 이슈가 골고루 포함되도록 선택하세요.
-7. 명백히 주제와 무관한 기사는 제외하되, 주제 관련성이 어느 정도 있으면 후보에 포함하세요.
-8. 이후 시스템이 같은 사건 중복을 한 번 더 제거합니다.
+선택 기준:
+1. 주제와 직접 관련 있고 독자가 알아야 할 사건을 우선합니다.
+2. 기업 전략, 실적, 투자, 제휴, 정책, 규제, 기술 도입, 산업 변화는 우선합니다.
+3. 후보가 충분하면 서로 다른 사건으로 {candidate_limit}개까지 고릅니다.
+4. 홍보성 기사, 단순 행사, 사진기사, 키워드만 맞는 기사는 제외합니다.
+5. index는 후보 목록에 있는 번호만 사용하고 중복하지 마세요.
 
-[중요도 점수 기준]
-5점: 기업 전략, 대형 투자, 실적, 규제, 산업 변화에 직접 영향
-4점: 사업 방향, 기술 도입, 제휴, 주요 서비스 변화와 관련
-3점: 참고할 만한 일반 산업 뉴스
-2점: 관련성은 있으나 영향도가 낮은 뉴스
-1점: 키워드는 있으나 중요도가 낮은 뉴스
+importance_score:
+5=영향 큰 핵심 뉴스, 4=주요 변화, 3=일반 참고 뉴스, 2=낮은 영향, 1=거의 제외 대상.
+모든 항목을 기계적으로 3점으로 주지 말고 차등화하세요.
 
-[출력 형식]
-반드시 JSON만 출력하세요.
-설명 문장, 마크다운, 코드블록은 쓰지 마세요.
+출력은 JSON 객체 하나만:
+{{"selected":[{{"index":1,"importance_score":5}}]}}
 
-형식:
-{{
-  "selected": [
-    {{
-      "index": 1,
-      "importance_score": 5
-    }},
-    {{
-      "index": 5,
-      "importance_score": 4
-    }}
-  ]
-}}
-
-[뉴스 후보 목록]
+후보:
 {candidate_text}
 """
 
@@ -716,9 +713,9 @@ def select_important_news(
                 {
                     "role": "system",
                     "content": (
-                        "당신은 뉴스 후보 중 중요하고 주제에 맞는 기사만 선별하는 편집자입니다. "
-                        "반드시 JSON만 출력합니다. "
-                        "선택한 각 기사에는 index, importance_score만 포함합니다."
+                        "뉴스 편집 데스크입니다. 후보 index 중에서만 선택하고, "
+                        "중복 사건을 피하며, 중요도 점수를 1~5로 차등 부여합니다. "
+                        "응답은 JSON 객체 하나만 출력합니다."
                     )
                 },
                 {
@@ -742,16 +739,16 @@ def select_important_news(
         tokens_used = usage_info["total_tokens"]
         add_selection_tokens("selection_tokens", tokens_used)
 
-        logger.info(f"🧾 뉴스 1차 선별 토큰 사용량: {tokens_used}")
+        logger.debug(f"🧾 뉴스 1차 선별 토큰 사용량: {tokens_used}")
 
         try:
-            result = _extract_json(content)
+            result = _ensure_json_object(_extract_json(content))
         except json.JSONDecodeError:
             logger.error("❌ OpenAI 1차 선별 응답 JSON 파싱 실패")
-            logger.error(content)
+            logger.error("응답 미리보기: %s", content[:300])
             return _fallback_select(candidate_pool, limit)
 
-        selected_items = result.get("selected", [])
+        selected_items = _ensure_json_list(result.get("selected"))
 
         if not selected_items:
             logger.warning("⚠️ OpenAI가 선택한 뉴스가 없습니다. fallback을 사용합니다.")
@@ -760,17 +757,25 @@ def select_important_news(
         selected_news = []
         used_indexes = set()
 
+        invalid_item_count = 0
         for item in selected_items:
+            if not isinstance(item, dict):
+                invalid_item_count += 1
+                continue
+
             try:
                 selected_index = item.get("index")
                 idx = int(selected_index) - 1
             except Exception:
+                invalid_item_count += 1
                 continue
 
             if idx < 0 or idx >= len(candidate_pool):
+                invalid_item_count += 1
                 continue
 
             if idx in used_indexes:
+                invalid_item_count += 1
                 continue
 
             news = candidate_pool[idx]
@@ -785,6 +790,9 @@ def select_important_news(
 
             if len(selected_news) >= candidate_limit:
                 break
+
+        if invalid_item_count:
+            logger.debug("기사 선별 응답 무시 항목: %s개", invalid_item_count)
 
         if not selected_news:
             logger.warning("⚠️ 유효하게 선별된 뉴스가 없습니다. fallback을 사용합니다.")
@@ -814,15 +822,7 @@ def select_important_news(
 
         final_news = deduped_selected_news[:limit]
 
-        logger.info(f"✅ 최종 뉴스 선별 완료: {len(final_news)}개 선택")
-
-        for i, news in enumerate(final_news, 1):
-            logger.info(
-                f"   [{i}] "
-                f"중요도 {news.get('importance_score', 3)} | "
-                f"{news.get('source', '언론사 미상')} | "
-                f"{news.get('title', '')[:60]}"
-            )
+        logger.info(f"✅ 최종 뉴스 선별 완료: 1차 {len(selected_news)}개 → 최종 {len(final_news)}개")
 
         return final_news
 
@@ -863,6 +863,10 @@ def _normalize_final_dedup_title(value: Any) -> str:
     text = re.sub(r"\s+", "", text)
     text = re.sub(r"[^0-9a-z가-힣]", "", text)
     return text.strip()
+
+
+def _extract_final_number_tokens(value: Any) -> set:
+    return set(re.findall(r"\d+(?:\.\d+)?", _safe_text(value)))
 
 
 def _extract_final_dedup_tokens(news: Dict[str, Any], max_tokens: int = 90) -> List[str]:
@@ -1027,43 +1031,45 @@ def _is_final_duplicate_news(candidate: Dict[str, Any], kept: Dict[str, Any]):
 
     cand_title = cand_payload.get("normalized_title") or ""
     kept_title = kept_payload.get("normalized_title") or ""
+    cand_numbers = _extract_final_number_tokens(cand_payload.get("title") or cand_title)
+    kept_numbers = _extract_final_number_tokens(kept_payload.get("title") or kept_title)
+    number_conflict = bool(cand_numbers and kept_numbers and cand_numbers != kept_numbers)
 
     if cand_title and kept_title and cand_title == kept_title:
         return True, "title_exact", 1.0
 
     # 한쪽 제목이 다른 쪽 제목을 대부분 포함하면 같은 사건으로 본다.
     # 예: 제목 뒤에 '(종합)', 부제, 수치 설명이 붙은 변형 기사.
-    if cand_title and kept_title and min(len(cand_title), len(kept_title)) >= 10:
+    if cand_title and kept_title and min(len(cand_title), len(kept_title)) >= 10 and not number_conflict:
         shorter, longer = sorted([cand_title, kept_title], key=len)
         if shorter in longer:
             return True, "title_contains", len(shorter) / max(1, len(longer))
-
-    title_similarity = 0.0
-    if cand_title and kept_title:
-        title_similarity = SequenceMatcher(None, cand_title, kept_title).ratio()
-        # 기존 0.82는 너무 보수적이라 같은 사건의 제목 변형을 많이 놓쳤다.
-        if title_similarity >= 0.72:
-            return True, "title_similarity", title_similarity
 
     title_overlap, title_common_count = _final_token_overlap(
         cand_payload.get("title_tokens", []),
         kept_payload.get("title_tokens", []),
     )
-    if title_overlap >= 0.45 and title_common_count >= 3:
+
+    title_similarity = 0.0
+    if cand_title and kept_title:
+        title_similarity = SequenceMatcher(None, cand_title, kept_title).ratio()
+        if title_similarity >= 0.88 and not number_conflict:
+            return True, "title_similarity", title_similarity
+        if (
+            title_similarity >= 0.76
+            and title_common_count >= 3
+            and _has_shared_final_anchor(cand_payload, kept_payload)
+            and not number_conflict
+        ):
+            return True, f"title_similarity_anchor_common_{title_common_count}", title_similarity
+
+    if title_overlap >= 0.45 and title_common_count >= 3 and not number_conflict:
         return True, f"title_token_overlap_common_{title_common_count}", title_overlap
 
     # 최종 10개 안에서는 제목 핵심어 3개 이상이 겹치고 anchor도 공유하면
     # 표현이 달라도 같은 사건일 가능성이 높다.
-    if title_common_count >= 3 and _has_shared_final_anchor(cand_payload, kept_payload):
+    if title_common_count >= 3 and _has_shared_final_anchor(cand_payload, kept_payload) and not number_conflict:
         return True, f"title_common_anchor_{title_common_count}", title_overlap
-
-    cand_text = cand_payload.get("normalized_text") or ""
-    kept_text = kept_payload.get("normalized_text") or ""
-    text_similarity = 0.0
-    if cand_text and kept_text:
-        text_similarity = SequenceMatcher(None, cand_text, kept_text).ratio()
-        if text_similarity >= 0.68:
-            return True, "text_similarity", text_similarity
 
     overlap, common_count = _final_token_overlap(
         cand_payload.get("tokens", []),
@@ -1071,19 +1077,47 @@ def _is_final_duplicate_news(candidate: Dict[str, Any], kept: Dict[str, Any]):
     )
     shared_anchor = _has_shared_final_anchor(cand_payload, kept_payload)
 
+    cand_text = cand_payload.get("normalized_text") or ""
+    kept_text = kept_payload.get("normalized_text") or ""
+    text_similarity = 0.0
+    if cand_text and kept_text:
+        text_similarity = SequenceMatcher(None, cand_text, kept_text).ratio()
+        if text_similarity >= 0.92 and (common_count >= 5 or shared_anchor) and not number_conflict:
+            return True, "text_similarity", text_similarity
+        if text_similarity >= 0.72 and common_count >= 4 and shared_anchor and not number_conflict:
+            return True, f"text_similarity_anchor_common_{common_count}", text_similarity
+
     # 최종 후보는 이미 AI가 고른 10개 안쪽이므로, 여기서는 중복 제거를 조금 더 적극적으로 적용한다.
     # 단, 단순히 흔한 단어만 겹쳐서 지워지는 것을 막기 위해 공통 토큰 수와 anchor 공유를 함께 본다.
-    if overlap >= 0.48 and common_count >= 4 and shared_anchor:
+    if overlap >= 0.48 and common_count >= 4 and shared_anchor and not number_conflict:
         return True, f"token_overlap_common_{common_count}", overlap
 
-    if overlap >= 0.62 and common_count >= 4:
-        return True, f"strong_token_overlap_common_{common_count}", overlap
-
     distance = _final_simhash_distance(cand_payload.get("simhash"), kept_payload.get("simhash"))
-    if distance is not None and distance <= 8 and common_count >= 4 and shared_anchor:
+    if distance is not None and distance <= 8 and common_count >= 4 and shared_anchor and not number_conflict:
         return True, f"simhash_distance_{distance}", 1.0 - (distance / 64)
 
     return False, "", max(title_similarity, text_similarity, overlap, title_overlap)
+
+
+def _find_final_duplicate_info(
+    candidate: Dict[str, Any],
+    kept_news: List[Dict[str, Any]],
+) -> Optional[Dict[str, Any]]:
+    candidate["_final_dedup_payload"] = (
+        candidate.get("_final_dedup_payload")
+        or _build_final_dedup_payload(candidate)
+    )
+
+    for kept in kept_news:
+        is_duplicate, method, score = _is_final_duplicate_news(candidate, kept)
+        if is_duplicate:
+            return {
+                "method": method,
+                "score": score,
+                "kept_title": kept.get("title", ""),
+            }
+
+    return None
 
 
 def _deduplicate_final_selected_news(news_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -1092,7 +1126,6 @@ def _deduplicate_final_selected_news(news_list: List[Dict[str, Any]]) -> List[Di
 
     의도:
     - AI가 10개를 골랐더라도 같은 사건이 섞이면 제거한다.
-    - 제거 후 8개, 9개, 1개가 남아도 억지로 보충하지 않는다.
     - 제거 수는 LAST_SELECTION_STATS["final_duplicate_excluded_count"]에 저장해
       이메일 대시보드의 "AI 중복제외"에 표시한다.
     """
@@ -1103,25 +1136,10 @@ def _deduplicate_final_selected_news(news_list: List[Dict[str, Any]]) -> List[Di
         candidate = dict(news)
         candidate["_final_dedup_payload"] = _build_final_dedup_payload(candidate)
 
-        duplicate_info = None
-        for kept in kept_news:
-            is_duplicate, method, score = _is_final_duplicate_news(candidate, kept)
-            if is_duplicate:
-                duplicate_info = {
-                    "method": method,
-                    "score": score,
-                    "kept_title": kept.get("title", ""),
-                }
-                break
+        duplicate_info = _find_final_duplicate_info(candidate, kept_news)
 
         if duplicate_info:
             excluded_count += 1
-            logger.info(
-                "⏭️ AI 선별 후 중복 제외: "
-                f"{candidate.get('title', '')[:70]} | "
-                f"기준={duplicate_info['method']} {duplicate_info['score']:.2f} | "
-                f"남긴 기사={duplicate_info['kept_title'][:70]}"
-            )
             continue
 
         candidate.pop("_final_dedup_payload", None)
@@ -1134,10 +1152,156 @@ def _deduplicate_final_selected_news(news_list: List[Dict[str, Any]]) -> List[Di
     logger.info(
         f"🧹 AI 선별 후 최종 중복 제거 완료: "
         f"{len(news_list or [])}개 → {len(kept_news)}개 "
-        f"(중복 제외 {excluded_count}개, 보충 없음)"
+        f"(중복 제외 {excluded_count}개)"
     )
 
     return kept_news
+
+
+def _supplement_final_news_after_dedup(
+    selected_news: List[Dict[str, Any]],
+    candidate_news: List[Dict[str, Any]],
+    limit: int,
+    used_group_ids: Optional[set] = None,
+) -> List[Dict[str, Any]]:
+    """
+    최종 중복 제거 후 limit보다 적으면 남은 후보에서 중복이 아닌 뉴스만 보충한다.
+    중복 방지가 우선이므로, 후보가 있어도 같은 사건이면 채우지 않는다.
+    """
+    final_news = [dict(news) for news in (selected_news or [])]
+    if len(final_news) >= limit:
+        return final_news[:limit]
+
+    used_group_ids = set(used_group_ids or set())
+    for news in final_news:
+        group_id = _safe_text(news.get("group_id"))
+        if group_id:
+            used_group_ids.add(group_id)
+
+    added_count = 0
+    duplicate_skip_count = 0
+
+    for news in candidate_news or []:
+        if len(final_news) >= limit:
+            break
+
+        group_id = _safe_text(news.get("group_id"))
+        if group_id and group_id in used_group_ids:
+            continue
+
+        candidate = dict(news)
+        _prepare_selected_news(
+            candidate,
+            importance_score=candidate.get("importance_score", 3),
+        )
+        candidate["_final_dedup_payload"] = _build_final_dedup_payload(candidate)
+        duplicate_info = _find_final_duplicate_info(candidate, final_news)
+
+        if duplicate_info:
+            duplicate_skip_count += 1
+            continue
+
+        candidate.pop("_final_dedup_payload", None)
+        final_news.append(candidate)
+        added_count += 1
+        if group_id:
+            used_group_ids.add(group_id)
+
+    if duplicate_skip_count:
+        LAST_SELECTION_STATS["final_duplicate_excluded_count"] = (
+            int(LAST_SELECTION_STATS.get("final_duplicate_excluded_count", 0))
+            + duplicate_skip_count
+        )
+
+    LAST_SELECTION_STATS["selected_after_final_dedup_count"] = len(final_news)
+
+    logger.info(
+        f"➕ 최종 뉴스 보충 완료: "
+        f"{len(selected_news or [])}개 → {len(final_news)}개 / "
+        f"추가 {added_count}개 / 보충 중복 제외 {duplicate_skip_count}개"
+    )
+
+    return final_news[:limit]
+
+
+def _group_sort_key(group: Dict[str, Any]):
+    rep = group.get("representative") or {}
+    return (
+        float(group.get("priority_score") or 0),
+        int(group.get("source_count") or 0),
+        int(group.get("article_count") or 0),
+        _safe_text(rep.get("published_at_kst") or rep.get("published_at")),
+    )
+
+
+def _shortlist_groups_for_ai(
+    group_list: List[Dict[str, Any]],
+    final_limit: int,
+    candidate_group_limit: Optional[int] = None,
+) -> List[Dict[str, Any]]:
+    """
+    로컬 점수로 넓게 정렬하되, AI에는 설정된 수만 넘긴다.
+    단순 상위 N개만 자르면 특정 키워드에 쏠릴 수 있어 키워드별 대표와 최신 그룹을 섞는다.
+    """
+    sorted_groups = sorted(group_list or [], key=_group_sort_key, reverse=True)
+    if not sorted_groups:
+        return []
+
+    target = int(candidate_group_limit or DEFAULT_SELECTOR_CANDIDATE_GROUP_LIMIT)
+    target = max(int(final_limit or 1), target)
+    target = min(len(sorted_groups), target)
+
+    if len(sorted_groups) <= target:
+        return sorted_groups
+
+    selected: List[Dict[str, Any]] = []
+    seen_group_ids = set()
+
+    def add_group(group: Dict[str, Any]) -> bool:
+        if len(selected) >= target:
+            return False
+        group_id = _safe_text(group.get("group_id"))
+        if not group_id or group_id in seen_group_ids:
+            return False
+        seen_group_ids.add(group_id)
+        selected.append(group)
+        return True
+
+    priority_seed_count = min(len(sorted_groups), max(final_limit * 3, target // 2))
+    for group in sorted_groups[:priority_seed_count]:
+        add_group(group)
+
+    keyword_buckets: Dict[str, List[Dict[str, Any]]] = {}
+    for group in sorted_groups:
+        keywords = group.get("keywords") or ["__unknown__"]
+        for keyword in keywords:
+            keyword = _safe_text(keyword) or "__unknown__"
+            keyword_buckets.setdefault(keyword, []).append(group)
+
+    per_keyword_quota = max(2, final_limit // 2)
+    for keyword in sorted(keyword_buckets):
+        added_for_keyword = 0
+        for group in keyword_buckets[keyword]:
+            if add_group(group):
+                added_for_keyword += 1
+            if len(selected) >= target or added_for_keyword >= per_keyword_quota:
+                break
+        if len(selected) >= target:
+            break
+
+    recent_groups = sorted(
+        sorted_groups,
+        key=lambda group: _safe_text((group.get("representative") or {}).get("published_at_kst")),
+        reverse=True,
+    )
+    for group in recent_groups[:max(final_limit * 2, 10)]:
+        add_group(group)
+
+    for group in sorted_groups:
+        if not add_group(group) and len(selected) >= target:
+            break
+
+    return selected[:target]
 
 
 def _build_group_candidate_text(group_list: List[Dict[str, Any]]) -> str:
@@ -1149,37 +1313,83 @@ def _build_group_candidate_text(group_list: List[Dict[str, Any]]) -> str:
     for idx, group in enumerate(group_list or [], 1):
         rep = group.get("representative") or {}
         group_id = _safe_text(group.get("group_id") or f"G{idx:03d}")
-        title = _clip_text(rep.get("title"), 120)
-        description = _clip_text(rep.get("description"), 180)
-        source = _clip_text(rep.get("source"), 40)
-        sources = ", ".join(group.get("sources") or [])[:120]
-        keywords = ", ".join(group.get("keywords") or [])[:100]
-        published_at = _safe_text(rep.get("published_at_kst") or rep.get("published_at"))
+        title = _clip_text(rep.get("title"), GROUP_CANDIDATE_TITLE_CHARS)
+        description = ""
+        if idx <= SELECTOR_DETAILED_CANDIDATE_COUNT:
+            description = _clip_text(rep.get("description"), GROUP_CANDIDATE_DESCRIPTION_CHARS)
+        source = _clip_text(rep.get("source"), 30)
+        sources = ", ".join(group.get("sources") or [])[:GROUP_CANDIDATE_SOURCES_CHARS]
+        keywords = ", ".join(group.get("keywords") or [])[:GROUP_CANDIDATE_KEYWORDS_CHARS]
         article_count = int(group.get("article_count") or 1)
         source_count = int(group.get("source_count") or 1)
         priority_score = _safe_text(group.get("priority_score"))
-        quality_flags = ", ".join(group.get("quality_flags") or [])
+        quality_flags = ",".join(group.get("quality_flags") or []) or "-"
+        description_part = f" | desc={description}" if description else ""
 
         lines.append(
-            f"""
-[{idx}]
-group_id: {group_id}
-기사수: {article_count}
-언론사수: {source_count}
-언론사: {sources or source}
-키워드: {keywords}
-대표제목: {title}
-대표설명: {description}
-발행시각: {published_at}
-로컬점수: {priority_score}
-품질플래그: {quality_flags or '없음'}
-""".strip()
+            f"[{idx}] id={group_id} | n={article_count} src={source_count} score={priority_score} "
+            f"flags={quality_flags} | press={sources or source} | kw={keywords} | title={title}"
+            f"{description_part}"
         )
     return "\n\n".join(lines)
 
 
+def _estimate_importance_score_from_group(group: Dict[str, Any]) -> int:
+    """
+    AI 점수가 없는 fallback/보충 후보의 중요도를 로컬 그룹 신호로 추정한다.
+    중복 보충 과정에서 모든 뉴스가 3점으로 표시되는 것을 막기 위한 안전망이다.
+    """
+    try:
+        priority_score = float(group.get("priority_score") or 0)
+    except Exception:
+        priority_score = 0.0
+
+    article_count = int(group.get("article_count") or 1)
+    source_count = int(group.get("source_count") or 1)
+    flags = set(group.get("quality_flags") or [])
+
+    if "low_representative_score" in flags or "photo_like_representative" in flags:
+        return 2
+
+    if priority_score >= 24 or (source_count >= 5 and article_count >= 8):
+        return 5
+
+    if source_count >= 3 or article_count >= 4 or priority_score >= 13:
+        return 4
+
+    if priority_score < 4:
+        return 2
+
+    return 3
+
+
+def _estimate_importance_score_from_news(news: Dict[str, Any]) -> int:
+    """
+    그룹 dict가 아닌 대표 기사 dict만 있을 때의 fallback 중요도 추정.
+    """
+    if news.get("importance_score") not in (None, ""):
+        return _safe_int(news.get("importance_score"), default=3)
+
+    try:
+        priority_score = float(news.get("group_priority_score") or 0)
+    except Exception:
+        priority_score = 0.0
+
+    article_count = int(news.get("group_article_count") or 1)
+    source_count = int(news.get("group_source_count") or 1)
+    flags = set(news.get("group_quality_flags") or [])
+
+    return _estimate_importance_score_from_group({
+        "priority_score": priority_score,
+        "article_count": article_count,
+        "source_count": source_count,
+        "quality_flags": list(flags),
+    })
+
+
 def _representative_news_from_group(group: Dict[str, Any]) -> Dict[str, Any]:
     rep = dict(group.get("representative") or {})
+    articles = group.get("articles") or []
 
     # 그룹화 결과의 대표 기사에는 published_at_kst만 있는 경우가 있다.
     # 이후 요약/메일 단계는 published_at을 우선 사용하므로 여기서 호환 필드를 보강한다.
@@ -1195,6 +1405,19 @@ def _representative_news_from_group(group: Dict[str, Any]) -> Dict[str, Any]:
     rep["group_keywords"] = group.get("keywords", [])
     rep["group_quality_flags"] = group.get("quality_flags", [])
     rep["group_priority_score"] = group.get("priority_score", 0)
+    rep["group_article_titles"] = [
+        _safe_text(article.get("title"))
+        for article in articles[:12]
+        if _safe_text(article.get("title"))
+    ]
+    rep["group_article_urls"] = [
+        _safe_text(article.get("url"))
+        for article in articles[:12]
+        if _safe_text(article.get("url"))
+    ]
+    rep["local_importance_score"] = _estimate_importance_score_from_group(group)
+    if rep.get("importance_score") in (None, ""):
+        rep["importance_score"] = rep["local_importance_score"]
     rep["content"] = rep.get("description", "")
     return rep
 
@@ -1212,25 +1435,40 @@ def _fallback_select_groups(
     if group_list:
         sorted_groups = sorted(
             group_list,
-            key=lambda group: (
-                float(group.get("priority_score") or 0),
-                int(group.get("source_count") or 0),
-                int(group.get("article_count") or 0),
-                _safe_text((group.get("representative") or {}).get("published_at_kst")),
-            ),
+            key=_group_sort_key,
             reverse=True,
         )
-        for group in sorted_groups[:limit]:
+        candidate_news = []
+        for group in sorted_groups:
             news = _representative_news_from_group(group)
-            _prepare_selected_news(news, importance_score=3)
-            selected_news.append(news)
-        return _deduplicate_final_selected_news(selected_news)
+            _prepare_selected_news(
+                news,
+                importance_score=_estimate_importance_score_from_group(group),
+            )
+            candidate_news.append(news)
 
-    for news in (fallback_news_list or [])[:limit]:
+        selected_news = _deduplicate_final_selected_news(candidate_news[:limit])
+        return _supplement_final_news_after_dedup(
+            selected_news=selected_news,
+            candidate_news=candidate_news,
+            limit=limit,
+        )
+
+    candidate_news = []
+    for news in fallback_news_list or []:
         news = dict(news)
-        _prepare_selected_news(news, importance_score=news.get("importance_score", 3))
-        selected_news.append(news)
-    return _deduplicate_final_selected_news(selected_news)
+        _prepare_selected_news(
+            news,
+            importance_score=_estimate_importance_score_from_news(news),
+        )
+        candidate_news.append(news)
+
+    selected_news = _deduplicate_final_selected_news(candidate_news[:limit])
+    return _supplement_final_news_after_dedup(
+        selected_news=selected_news,
+        candidate_news=candidate_news,
+        limit=limit,
+    )
 
 
 def select_important_news_groups(
@@ -1238,7 +1476,8 @@ def select_important_news_groups(
     fallback_news_list: List[Dict[str, Any]],
     topic_name: str,
     topic_description: str,
-    limit: int = 10
+    limit: int = 10,
+    candidate_group_limit: Optional[int] = None
 ) -> List[Dict]:
     """
     Python 규칙 기반으로 묶인 사건 그룹 중 OpenAI가 중요한 그룹만 선택한다.
@@ -1254,28 +1493,19 @@ def select_important_news_groups(
         logger.warning("선택할 뉴스 그룹 후보가 없습니다.")
         return []
 
-    logger.info(f"\n{'=' * 60}")
-    logger.info(f"🧠 OpenAI 그룹 단위 뉴스 선별 시작: {topic_name}")
-    logger.info(f"그룹 후보 수: {len(group_list or [])}개")
-    logger.info(f"최종 선택 목표: {limit}개")
-    logger.info(f"{'=' * 60}")
+    logger.info(
+        f"🧠 [{topic_name}] 그룹 선별 시작: 후보 {len(group_list or [])}개 / 목표 {limit}개"
+    )
 
     if client is None:
         logger.warning("⚠️ OpenAI 클라이언트가 없어 그룹 fallback 선별을 사용합니다.")
         return _fallback_select_groups(group_list, fallback_news_list, limit)
 
-    # 이미 Python에서 max_total_news 수준으로 줄였으므로 전체 그룹을 넣되,
-    # 너무 많을 때는 로컬 우선순위 상위 100개로 제한한다.
-    prepared_groups = sorted(
-        group_list or [],
-        key=lambda group: (
-            float(group.get("priority_score") or 0),
-            int(group.get("source_count") or 0),
-            int(group.get("article_count") or 0),
-            _safe_text((group.get("representative") or {}).get("published_at_kst")),
-        ),
-        reverse=True,
-    )[:100]
+    prepared_groups = _shortlist_groups_for_ai(
+        group_list=group_list or [],
+        final_limit=limit,
+        candidate_group_limit=candidate_group_limit,
+    )
 
     if not prepared_groups:
         logger.warning("⚠️ OpenAI에 전달할 그룹이 없어 fallback 선별을 사용합니다.")
@@ -1283,69 +1513,63 @@ def select_important_news_groups(
 
     group_text = _build_group_candidate_text(prepared_groups)
     selection_limit = min(len(prepared_groups), max(limit, 1))
+    completion_limit = SELECTOR_MAX_COMPLETION_TOKENS if is_gpt5_model(SELECTOR_MODEL) else min(900, SELECTOR_MAX_COMPLETION_TOKENS)
+
+    logger.info(
+        "🧺 그룹 선별 후보 압축: 전체 %s개 → AI 전달 %s개 "
+        "(로컬점수+키워드분산+최신 혼합, candidate_group_limit=%s, completion_limit=%s)",
+        len(group_list or []),
+        len(prepared_groups),
+        candidate_group_limit or DEFAULT_SELECTOR_CANDIDATE_GROUP_LIMIT,
+        completion_limit,
+    )
 
     prompt = f"""
-아래는 뉴스 기사들을 Python 규칙 기반으로 같은 사건끼리 묶은 '사건 그룹' 목록입니다.
+작업: "{topic_name}" 브리핑에 넣을 뉴스 그룹을 고릅니다.
 
-당신의 역할은 뉴스 편집자입니다.
-아래 기준으로 최종 뉴스 그룹 {selection_limit}개 이하를 선택하세요.
-
-[브리핑 이름]
-{topic_name}
-
-[선택해야 하는 뉴스 주제]
+주제:
 {topic_description}
 
-[중요한 원칙]
-1. 이미 같은 사건으로 묶인 그룹 목록입니다. 같은 사건을 중복 선택하지 마세요.
-2. group_id 기준으로만 선택하세요.
-3. 주제와 직접 관련 있는 그룹만 선택하세요.
-4. 여러 언론사가 다룬 그룹, 산업/정책/시장 영향이 큰 그룹을 우선하세요.
-5. 단순 사진기사, 단순 속보, 단순 홍보성 그룹은 제외하세요.
-6. 품질플래그가 photo_like_representative, low_representative_score, overgroup_risk_token_time_span이면 특별한 이유가 없는 한 제외하세요.
-7. 서로 다른 사건, 서로 다른 이슈가 골고루 포함되도록 선택하세요.
+후보 필드:
+- id: 선택할 때 반드시 사용할 group_id
+- n: 같은 사건으로 묶인 기사 수
+- src: 서로 다른 언론사 수
+- score: 로컬 우선순위 점수
+- flags: 품질 경고
+- title/desc: 대표 기사 제목/짧은 설명
 
-[중요도 점수 기준]
-5점: 선택해야 하는 뉴스 주제와 직접 관련 있고, 정책·규제·실적·투자·시장 변화·산업 구조 변화처럼 영향이 큰 이슈
-4점: 주요 기업·기관·시장 참여자의 전략, 서비스, 제도, 수급, 기술, 유통, 투자 변화와 관련 있는 이슈
-3점: 주제와 관련성이 있고 참고할 만한 일반 뉴스
-2점: 관련성은 있으나 영향도나 구체성이 낮은 뉴스
-1점: 키워드는 있으나 주제 적합성 또는 중요도가 낮은 뉴스
+선택 기준:
+1. 주제와 직접 관련 있고 독자가 알아야 할 사건을 우선합니다.
+2. src, n, score가 높거나 정책/규제/실적/투자/계약/시장 변화가 있으면 우선합니다.
+3. 후보가 충분하면 서로 다른 사건으로 {selection_limit}개를 채웁니다. 관련성이 낮거나 홍보/사진/단순 행사뿐이면 덜 뽑아도 됩니다.
+4. photo_like_representative, low_representative_score, overgroup_risk_token_time_span 플래그는 원칙적으로 제외합니다.
+5. 같은 group_id를 두 번 쓰지 말고, 후보에 없는 group_id를 만들지 마세요.
 
-[출력 형식]
-반드시 JSON만 출력하세요.
-설명 문장, 마크다운, 코드블록은 쓰지 마세요.
+importance_score:
+- 5: 주제 핵심이며 영향이 큰 정책/규제/실적/투자/대형계약/시장 변화
+- 4: 주요 기업/기관의 전략, 서비스, 기술, 제휴, 수급 변화
+- 3: 주제 관련 일반 뉴스
+- 2: 관련성은 있으나 영향/구체성이 낮음
+- 1: 거의 제외 대상이지만 참고용으로만 선택
+모든 항목을 기계적으로 3점으로 주지 말고 후보 신호에 따라 차등화하세요.
 
-형식:
-{{
-  "selected": [
-    {{
-      "group_id": "G001",
-      "importance_score": 5
-    }}
-  ]
-}}
+출력은 JSON 객체 하나만:
+{{"selected":[{{"group_id":"G001","importance_score":5}}]}}
 
-[뉴스 그룹 후보 목록]
+후보:
 {group_text}
 """
 
     try:
-        logger.info(
-            "🤖 그룹 단위 뉴스 선별 모델: %s | OPENAI_SELECTOR_MODEL env=%s | OPENAI_MODEL env=%s",
-            SELECTOR_MODEL,
-            os.getenv("OPENAI_SELECTOR_MODEL") or "미설정",
-            os.getenv("OPENAI_MODEL") or "미설정",
-        )
         response = client.chat.completions.create(
             model=SELECTOR_MODEL,
             messages=[
                 {
                     "role": "system",
                     "content": (
-                        "당신은 사건 그룹 단위로 중요한 뉴스만 선별하는 편집자입니다. "
-                        "반드시 JSON만 출력합니다. "
-                        "선택한 각 항목에는 group_id, importance_score만 포함합니다."
+                        "뉴스 편집 데스크입니다. 후보 group_id 중에서만 선택하고, "
+                        "중복 사건을 피하며, 중요도 점수를 1~5로 차등 부여합니다. "
+                        "응답은 JSON 객체 하나만 출력합니다."
                     )
                 },
                 {"role": "user", "content": prompt}
@@ -1353,7 +1577,7 @@ def select_important_news_groups(
             **openai_temperature_kwargs(SELECTOR_MODEL, 0.1),
             **openai_reasoning_effort_kwargs(SELECTOR_MODEL),
             **openai_json_response_format_kwargs(),
-            **openai_token_limit_kwargs(SELECTOR_MODEL, 4096 if is_gpt5_model(SELECTOR_MODEL) else 1200)
+            **openai_token_limit_kwargs(SELECTOR_MODEL, completion_limit)
         )
 
         content = response.choices[0].message.content.strip()
@@ -1365,16 +1589,16 @@ def select_important_news_groups(
         )
         tokens_used = usage_info["total_tokens"]
         add_selection_tokens("selection_tokens", tokens_used)
-        logger.info(f"🧾 그룹 단위 뉴스 선별 토큰 사용량: {tokens_used}")
+        logger.debug(f"🧾 그룹 단위 뉴스 선별 토큰 사용량: {tokens_used}")
 
         try:
-            result = _extract_json(content)
+            result = _ensure_json_object(_extract_json(content))
         except Exception:
             logger.error("❌ OpenAI 그룹 선별 응답 JSON 파싱 실패")
-            logger.error(content)
+            logger.error("응답 미리보기: %s", content[:300])
             return _fallback_select_groups(group_list, fallback_news_list, limit)
 
-        selected_items = result.get("selected", [])
+        selected_items = _ensure_json_list(result.get("selected"))
         if not selected_items:
             logger.warning("⚠️ OpenAI가 선택한 그룹이 없습니다. fallback을 사용합니다.")
             return _fallback_select_groups(group_list, fallback_news_list, limit)
@@ -1383,13 +1607,20 @@ def select_important_news_groups(
         selected_news = []
         used_group_ids = set()
 
+        invalid_item_count = 0
         for item in selected_items:
+            if not isinstance(item, dict):
+                invalid_item_count += 1
+                continue
+
             group_id = _safe_text(item.get("group_id"))
             if not group_id or group_id in used_group_ids:
+                invalid_item_count += 1
                 continue
 
             group = group_by_id.get(group_id)
             if not group:
+                invalid_item_count += 1
                 continue
 
             news = _representative_news_from_group(group)
@@ -1403,6 +1634,9 @@ def select_important_news_groups(
             if len(selected_news) >= limit:
                 break
 
+        if invalid_item_count:
+            logger.debug("그룹 선별 응답 무시 항목: %s개", invalid_item_count)
+
         if not selected_news:
             logger.warning("⚠️ 유효하게 선택된 그룹이 없습니다. fallback을 사용합니다.")
             return _fallback_select_groups(group_list, fallback_news_list, limit)
@@ -1410,19 +1644,37 @@ def select_important_news_groups(
         before_final_dedup_count = len(selected_news)
         selected_news = _deduplicate_final_selected_news(selected_news)
 
+        if len(selected_news) < limit:
+            supplement_candidates = []
+
+            for group in prepared_groups:
+                news = _representative_news_from_group(group)
+                _prepare_selected_news(
+                    news,
+                    importance_score=_estimate_importance_score_from_group(group),
+                )
+                supplement_candidates.append(news)
+
+            for news in fallback_news_list or []:
+                news = dict(news)
+                _prepare_selected_news(
+                    news,
+                    importance_score=_estimate_importance_score_from_news(news),
+                )
+                supplement_candidates.append(news)
+
+            selected_news = _supplement_final_news_after_dedup(
+                selected_news=selected_news,
+                candidate_news=supplement_candidates,
+                limit=limit,
+                used_group_ids=used_group_ids,
+            )
+
         logger.info(
             f"✅ 그룹 단위 뉴스 선별 완료: "
             f"AI 선택 {before_final_dedup_count}개 → 최종 {len(selected_news)}개 "
             f"(중복 제외 {LAST_SELECTION_STATS.get('final_duplicate_excluded_count', 0)}개)"
         )
-        for i, news in enumerate(selected_news, 1):
-            logger.info(
-                f"   [{i}] 중요도 {news.get('importance_score', 3)} | "
-                f"그룹 {news.get('group_id')} | "
-                f"기사 {news.get('group_article_count', 1)}개/언론사 {news.get('group_source_count', 1)}곳 | "
-                f"{news.get('source', '언론사 미상')} | {news.get('title', '')[:60]}"
-            )
-
         return selected_news
 
     except Exception as e:

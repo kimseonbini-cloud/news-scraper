@@ -276,7 +276,7 @@ def save_unmapped_press_domains(filename: str = DEFAULT_UNMAPPED_PRESS_DOMAINS_F
     - 중복 도메인은 set으로 제거한다
     """
     if not UNMAPPED_PRESS_DOMAINS:
-        logger.info("🧩 이번 실행 언론사 미매핑 도메인: 0개")
+        logger.debug("🧩 이번 실행 언론사 미매핑 도메인: 0개")
         return
 
     existing_domains = set()
@@ -311,10 +311,12 @@ def save_unmapped_press_domains(filename: str = DEFAULT_UNMAPPED_PRESS_DOMAINS_F
     with open(filename, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
 
-    logger.info(f"🧩 이번 실행 언론사 미매핑 도메인: {len(current_domains)}개")
-    logger.info(f"🧩 새로 추가된 미매핑 도메인: {len(current_domains - existing_domains)}개")
-    logger.info(f"🧩 누적 미매핑 도메인: {len(merged_domains)}개")
-    logger.info(f"🧩 미매핑 도메인 저장: {filename}")
+    logger.info(
+        "🧩 미매핑 언론사 도메인: 이번 %s개 / 신규 %s개 / 누적 %s개",
+        len(current_domains),
+        len(current_domains - existing_domains),
+        len(merged_domains),
+    )
 
 
 def search_naver_news(
@@ -360,7 +362,7 @@ def search_naver_news(
             "start": start,
         }
 
-        logger.info(
+        logger.debug(
             f"🔍 검색 중: '{query}' "
             f"(sort={sort}, start={start}, display={display})"
         )
@@ -384,7 +386,7 @@ def search_naver_news(
 
         api_date_range = get_news_date_range(items)
 
-        logger.info(
+        logger.debug(
             f"🕒 조회 결과 발행일 범위: "
             f"query='{query}', sort={sort}, start={start}, display={display} | "
             f"{format_date_range_for_log(api_date_range)}"
@@ -493,7 +495,7 @@ def sample_news_by_time_bucket(
     total_items = sum(len(bucket_map[key]["items"]) for key in sorted_bucket_keys)
 
     if total_items <= max_total_news:
-        logger.info(
+        logger.debug(
             f"🧺 시간대별 샘플링 불필요: "
             f"전체 {total_items}개가 max_total_news={max_total_news} 이하"
         )
@@ -621,7 +623,7 @@ def sample_news_by_time_bucket(
 
         ratio = len(bucket_items) / total_items if total_items else 0
 
-        logger.info(
+        logger.debug(
             f"🧺 시간대 비례 샘플링: "
             f"{bucket['start'].strftime('%Y-%m-%d %H:%M')} ~ "
             f"{bucket['end'].strftime('%Y-%m-%d %H:%M')} | "
@@ -631,7 +633,7 @@ def sample_news_by_time_bucket(
 
     sampled_news = sampled_news[:max_total_news]
 
-    logger.info(
+    logger.debug(
         f"🧺 시간대별 비례 샘플링 완료: "
         f"{len(news_list)}개 → {len(sampled_news)}개 "
         f"(bucket_hours={bucket_hours}, max_total_news={max_total_news}, min_per_bucket={min_per_bucket})"
@@ -753,22 +755,17 @@ def search_multiple_keywords(
     now_kst = get_now_kst()
     cutoff_dt = now_kst - timedelta(hours=recent_hours)
 
-    logger.info("\n" + "=" * 60)
-    logger.info("🕒 최근 뉴스 필터 적용")
-    logger.info(f"기준 현재 시각: {now_kst.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-    logger.info(f"저장 기준: {cutoff_dt.strftime('%Y-%m-%d %H:%M:%S %Z')} 이후 발행 뉴스")
-    logger.info(f"정렬 방식: {sorts}")
-    logger.info(f"키워드당 페이지 수: {pages_per_keyword}")
-    logger.info(f"페이지당 조회 수: {display_per_keyword}")
-    logger.info(f"키워드당 최대 조회 수: {display_per_keyword * pages_per_keyword}")
-    logger.info(f"시간대 비례 샘플링: {enable_time_bucket_sampling}")
-    logger.info(f"AI 선별 전달 최대 후보 수: {max_total_news}")
-    logger.info("=" * 60)
+    logger.info(
+        "🕒 뉴스 수집 조건: 키워드 %s개 / 최근 %s시간 / sorts=%s / "
+        "키워드당 최대 %s개",
+        len(keywords or []),
+        recent_hours,
+        sorts,
+        display_per_keyword * pages_per_keyword,
+    )
 
     for keyword in keywords:
-        logger.info(f"\n{'=' * 60}")
-        logger.info(f"🔍 키워드: '{keyword}'")
-        logger.info(f"{'=' * 60}")
+        logger.debug(f"🔍 키워드: '{keyword}'")
 
         for sort in sorts:
             for page_index in range(pages_per_keyword):
@@ -843,30 +840,10 @@ def search_multiple_keywords(
 
     pre_sampling_count = len(all_news)
 
-    logger.info(f"\n{'=' * 60}")
-    logger.info("✅ 뉴스 1차 수집 완료")
-    logger.info("-" * 60)
-
-    logger.info(f"📥 전체 검색 뉴스: {total_seen_count}개")
-
-    logger.info("🧹 제외 내역")
-    logger.info(f"   - {recent_hours}시간 초과 제외: {old_news_count}개")
-    logger.info(f"   - URL 중복 제외: {duplicate_count}개")
-    logger.info(f"   - 날짜 파싱 실패 제외: {parse_fail_or_invalid_count}개")
-    logger.info(f"   - 검색 실패 횟수: {failed_search_count}회")
-
-    logger.info("📌 필터 통과 결과")
-    logger.info(f"   - {recent_hours}시간 이내 + 중복 제거 후 후보: {pre_sampling_count}개")
-
     logger.info(
-        f"📊 계산 확인: {total_seen_count}개 = "
-        f"{old_news_count}개(시간초과) + "
-        f"{duplicate_count}개(중복) + "
-        f"{parse_fail_or_invalid_count}개(날짜실패) + "
-        f"{pre_sampling_count}개(후보)"
+        f"✅ 뉴스 1차 수집: 검색 {total_seen_count}개 → 후보 {pre_sampling_count}개 "
+        f"(시간초과 {old_news_count}, URL중복 {duplicate_count}, 날짜실패 {parse_fail_or_invalid_count}, 검색실패 {failed_search_count})"
     )
-
-    logger.info(f"{'=' * 60}")
 
     # 시간대별 비례 샘플링 적용
     # 주의: enable_time_bucket_sampling=False이면 여기서는 max_total_news 제한도 걸지 않는다.
@@ -885,7 +862,7 @@ def search_multiple_keywords(
         )
         scraper_sampling_applied = before_sampling_count > len(all_news)
     else:
-        logger.info(
+        logger.debug(
             "🧺 스크래퍼 내부 시간대 샘플링 비활성화: "
             "반복 이슈 필터 후 main.py에서 최종 후보 수를 제한합니다."
         )
@@ -894,7 +871,7 @@ def search_multiple_keywords(
 
     final_candidate_date_range = get_news_date_range(all_news)
 
-    logger.info(
+    logger.debug(
         f"🕒 AI 선별 후보 발행일 범위: "
         f"후보 {final_candidate_count}개 | "
         f"{format_date_range_for_log(final_candidate_date_range)}"
@@ -930,10 +907,7 @@ def search_multiple_keywords(
     for news in all_news:
         news.pop("_published_dt", None)
 
-    logger.info(f"\n{'=' * 60}")
-    logger.info("✅ 뉴스 수집 최종 완료")
-    logger.info(f"최종 후보 뉴스 수: {final_candidate_count}개")
-    logger.info(f"{'=' * 60}")
+    logger.info(f"✅ 뉴스 수집 최종 후보: {final_candidate_count}개")
 
     if save_unmapped_domains_at_end:
         save_unmapped_press_domains(

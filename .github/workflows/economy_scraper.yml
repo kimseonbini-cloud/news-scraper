@@ -12,7 +12,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: news-scraper-main
+  group: news-scraper-economy
   cancel-in-progress: false
 
 jobs:
@@ -47,14 +47,57 @@ jobs:
           git checkout main
           git reset --hard origin/main
 
+      - name: Verify environment variables
+        env:
+          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
+          OPENAI_SELECTOR_MODEL: ${{ secrets.OPENAI_SELECTOR_MODEL }}
+          SUMMARY_MODEL: ${{ secrets.SUMMARY_MODEL }}
+          EMAIL_INSIGHT_MODEL: ${{ secrets.EMAIL_INSIGHT_MODEL }}
+          EMAIL_SENDER: ${{ secrets.EMAIL_SENDER }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          EMAIL_RECEIVER: ${{ secrets.EMAIL_RECEIVER }}
+          EMAIL_RECEIVER_ECONOMY: ${{ secrets.EMAIL_RECEIVER_ECONOMY }}
+          EMAIL_RECEIVER_INOHAS: ${{ secrets.EMAIL_RECEIVER_INOHAS }}
+        run: |
+          python - <<'PY'
+          import os
+
+          keys = [
+              "NAVER_CLIENT_ID",
+              "NAVER_CLIENT_SECRET",
+              "OPENAI_API_KEY",
+              "OPENAI_MODEL",
+              "OPENAI_SELECTOR_MODEL",
+              "SUMMARY_MODEL",
+              "EMAIL_INSIGHT_MODEL",
+              "EMAIL_SENDER",
+              "EMAIL_PASSWORD",
+              "EMAIL_RECEIVER",
+              "EMAIL_RECEIVER_ECONOMY",
+              "EMAIL_RECEIVER_INOHAS",
+          ]
+
+          for key in keys:
+              print(f"{key}: {'SET' if os.getenv(key) else 'MISSING'}")
+          PY
+
       - name: Run economy scraper
         env:
           NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
           NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
+          OPENAI_SELECTOR_MODEL: ${{ secrets.OPENAI_SELECTOR_MODEL }}
+          SUMMARY_MODEL: ${{ secrets.SUMMARY_MODEL }}
+          EMAIL_INSIGHT_MODEL: ${{ secrets.EMAIL_INSIGHT_MODEL }}
           EMAIL_SENDER: ${{ secrets.EMAIL_SENDER }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          EMAIL_RECEIVER: ${{ secrets.EMAIL_RECEIVER }}
           EMAIL_RECEIVER_ECONOMY: ${{ secrets.EMAIL_RECEIVER_ECONOMY }}
+          EMAIL_RECEIVER_INOHAS: ${{ secrets.EMAIL_RECEIVER_INOHAS }}
         run: python main.py --config configs/economy_briefing.json
 
       - name: Commit and push if changed

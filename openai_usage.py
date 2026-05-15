@@ -193,16 +193,23 @@ def openai_reasoning_effort_kwargs(model: str) -> Dict[str, str]:
     """
     GPT-5 계열 Chat Completions의 reasoning effort를 낮춰 숨은 reasoning token 소모를 줄인다.
 
-    - 기본값: low
+    - 기본값: minimal
     - 변경: OPENAI_REASONING_EFFORT=minimal 또는 low/medium/high
     - 빈 값, none, default이면 파라미터를 보내지 않는다.
     """
     if not is_gpt5_model(model):
         return {}
 
-    effort = str(os.getenv("OPENAI_REASONING_EFFORT", "low") or "").strip().lower()
+    model_name = _base_model_name(model).lower()
+    effort = str(os.getenv("OPENAI_REASONING_EFFORT", "minimal") or "").strip().lower()
     if effort in {"", "none", "default"}:
         return {}
+
+    # gpt-5.4 계열은 minimal을 지원하지 않는다. 비용 절감 의도는 유지하되
+    # API가 받는 가장 낮은 값인 none으로 보낸다.
+    if effort == "minimal" and model_name.startswith(("gpt-5.4", "gpt-5.5")):
+        effort = "none"
+
     return {"reasoning_effort": effort}
 
 
@@ -402,18 +409,13 @@ def record_openai_usage(
         log = logger
 
     log.info(
-        "🧾 %s 토큰/비용 | model=%s | input=%s | cached_input=%s | output=%s | reasoning=%s | total=%s | "
-        "input_cost=$%.6f | cached_input_cost=$%.6f | output_cost=$%.6f | total_cost=$%.6f",
+        "🧾 %s: model=%s / tokens input=%s, output=%s, reasoning=%s, total=%s / cost=$%.6f",
         label,
         model,
         f"{usage_info['prompt_tokens']:,}",
-        f"{usage_info['cached_prompt_tokens']:,}",
         f"{usage_info['completion_tokens']:,}",
         f"{usage_info.get('reasoning_tokens', 0):,}",
         f"{usage_info['total_tokens']:,}",
-        cost_info["input_cost_usd"],
-        cost_info["cached_input_cost_usd"],
-        cost_info["output_cost_usd"],
         cost_info["total_cost_usd"],
     )
 
@@ -433,41 +435,28 @@ def log_openai_usage_summary(log: Optional[logging.Logger] = None) -> Dict[str, 
     grand_total = totals["grand_total"]
 
     if not by_model:
-        log.info("🧾 OpenAI 사용량 상세: 기록된 호출 없음")
+        log.info("🧾 OpenAI 사용량: 기록된 호출 없음")
         return totals
-
-    log.info("-" * 60)
-    log.info("💰 OpenAI 모델별 사용량/예상 비용")
 
     for model, item in sorted(by_model.items()):
         log.info(
-            "💰 model=%s | requests=%s | input=%s | cached_input=%s | output=%s | reasoning=%s | total=%s | "
-            "input_cost=$%.6f | cached_input_cost=$%.6f | output_cost=$%.6f | total_cost=$%.6f",
+            "💰 OpenAI 모델별: model=%s / requests=%s / tokens input=%s, output=%s, reasoning=%s, total=%s / cost=$%.6f",
             model,
             int(item.get("requests", 0)),
             f"{int(item.get('prompt_tokens', 0)):,}",
-            f"{int(item.get('cached_prompt_tokens', 0)):,}",
             f"{int(item.get('completion_tokens', 0)):,}",
             f"{int(item.get('reasoning_tokens', 0)):,}",
             f"{int(item.get('total_tokens', 0)):,}",
-            float(item.get("input_cost_usd", 0.0)),
-            float(item.get("cached_input_cost_usd", 0.0)),
-            float(item.get("output_cost_usd", 0.0)),
             float(item.get("total_cost_usd", 0.0)),
         )
 
     log.info(
-        "💰 OpenAI 전체 예상 비용 | requests=%s | input=%s | cached_input=%s | output=%s | reasoning=%s | total=%s | "
-        "input_cost=$%.6f | cached_input_cost=$%.6f | output_cost=$%.6f | total_cost=$%.6f",
+        "💰 OpenAI 전체: requests=%s / tokens input=%s, output=%s, reasoning=%s, total=%s / cost=$%.6f",
         int(grand_total.get("requests", 0)),
         f"{int(grand_total.get('prompt_tokens', 0)):,}",
-        f"{int(grand_total.get('cached_prompt_tokens', 0)):,}",
         f"{int(grand_total.get('completion_tokens', 0)):,}",
         f"{int(grand_total.get('reasoning_tokens', 0)):,}",
         f"{int(grand_total.get('total_tokens', 0)):,}",
-        float(grand_total.get("input_cost_usd", 0.0)),
-        float(grand_total.get("cached_input_cost_usd", 0.0)),
-        float(grand_total.get("output_cost_usd", 0.0)),
         float(grand_total.get("total_cost_usd", 0.0)),
     )
 

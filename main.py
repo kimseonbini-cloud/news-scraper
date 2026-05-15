@@ -45,6 +45,17 @@ DEFAULT_MAX_TOTAL_NEWS = 100
 # OpenAI 최종 선별 개수
 DEFAULT_SELECT_LIMIT = 10
 
+# OpenAI 그룹 선별에 실제로 전달할 후보 그룹 수
+# 로컬 그룹화는 넓게 하되, AI 입력은 설정별로 압축해 토큰을 줄인다.
+DEFAULT_SELECTOR_CANDIDATE_GROUP_LIMIT = 45
+
+# 요약 최대 길이. 설정 파일/섹션별로 조절 가능하다.
+DEFAULT_SUMMARY_MAX_LENGTH = 180
+
+# 메일 상단 3줄 흐름 요약을 별도 AI 호출로 만들지 여부.
+# 기본은 꺼서 섹션당 1회씩 추가되는 AI 호출을 줄인다.
+DEFAULT_EMAIL_INSIGHT_AI = False
+
 # 최근 며칠간 이미 다룬 이슈를 비교할지
 DEFAULT_ISSUE_HISTORY_DAYS = 3
 
@@ -63,6 +74,8 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 
 def parse_args():
@@ -211,6 +224,29 @@ def normalize_exclude_keywords(value):
     return []
 
 
+def normalize_bool(value, default=False):
+    """
+    설정 파일의 bool 값을 안전하게 변환한다.
+    JSON bool뿐 아니라 "true"/"false", "1"/"0" 문자열도 지원한다.
+    """
+    if value is None:
+        return bool(default)
+
+    if isinstance(value, bool):
+        return value
+
+    if isinstance(value, (int, float)):
+        return value != 0
+
+    text = str(value).strip().lower()
+    if text in {"1", "true", "yes", "y", "on"}:
+        return True
+    if text in {"0", "false", "no", "n", "off"}:
+        return False
+
+    return bool(default)
+
+
 def apply_exclude_keywords(news_list, exclude_keywords, section_name):
     """
     AI 선별 전에 명백히 제외할 키워드를 포함한 뉴스를 제거한다.
@@ -266,7 +302,10 @@ def collect_select_and_summarize(
     unmapped_press_domains_file_path=None,
     exclude_keywords=None,
     grouping_max_groups=None,
-    grouping_exclude_low_quality=True
+    grouping_exclude_low_quality=True,
+    selector_candidate_group_limit=DEFAULT_SELECTOR_CANDIDATE_GROUP_LIMIT,
+    summary_max_length=DEFAULT_SUMMARY_MAX_LENGTH,
+    email_insight_ai=DEFAULT_EMAIL_INSIGHT_AI
 ):
     """
     섹션별 뉴스 수집 → 최근 반복 이슈 제거 → OpenAI 선별 → 요약 처리
@@ -289,6 +328,9 @@ def collect_select_and_summarize(
         exclude_keywords: 섹션별 제외 키워드 리스트
         grouping_max_groups: 그룹화 후 OpenAI 선별에 넘길 최대 그룹 수
         grouping_exclude_low_quality: 사진/저품질 그룹을 선별 후보에서 제외할지 여부
+        selector_candidate_group_limit: OpenAI 그룹 선별 프롬프트에 실제 포함할 후보 그룹 수
+        summary_max_length: 뉴스별 요약 최대 글자 수
+        email_insight_ai: 메일 상단 핵심 3줄을 별도 AI 호출로 생성할지 여부
 
     Returns:
         {
@@ -301,23 +343,16 @@ def collect_select_and_summarize(
     """
     sorts = normalize_sorts(sorts)
 
-    logger.info("\n" + "=" * 60)
-    logger.info(f"📰 [{section_name}] 뉴스 수집 시작")
-    logger.info("=" * 60)
-    logger.info(f"브리핑 이름: {briefing_name}")
-    logger.info(f"수신자 환경변수: {receiver_env}")
-    logger.info(f"키워드: {', '.join(keywords)}")
-    logger.info(f"최근 뉴스 기준: {recent_hours}시간 이내")
-    logger.info(f"정렬 방식: {sorts}")
-    logger.info(f"키워드당 페이지별 조회 개수: {display_per_keyword}")
-    logger.info(f"키워드당 페이지 수: {pages_per_keyword}")
-    logger.info(f"키워드당 최대 조회 개수: {display_per_keyword * pages_per_keyword}")
-    logger.info(f"AI 선별 전달 최대 후보 수: {max_total_news}")
-    logger.info(f"최종 선별 개수: {select_limit}")
-    logger.info(f"반복 이슈 비교 기간: 최근 {issue_history_days}일")
-    logger.info(f"반복 이슈 히스토리 파일: {issue_history_file_path}")
-    logger.info(f"미매핑 언론사 도메인 파일: {unmapped_press_domains_file_path}")
-    logger.info(f"제외 키워드: {', '.join(normalize_exclude_keywords(exclude_keywords)) if normalize_exclude_keywords(exclude_keywords) else '없음'}")
+    logger.info(
+        "📰 [%s] 시작: 키워드 %s개 / 최근 %s시간 / 수집상한 %s개 / "
+        "AI후보 %s개 / 선별 %s개",
+        section_name,
+        len(keywords or []),
+        recent_hours,
+        max_total_news,
+        selector_candidate_group_limit,
+        select_limit,
+    )
 
     # 1) 먼저 시간대 샘플링 없이 넓게 수집한다.
     # 반복/내부중복 제거를 먼저 하고, 그 다음 max_total_news 제한을 적용해야
@@ -337,6 +372,9 @@ def collect_select_and_summarize(
     # 이 시점의 news_list는 URL/시간 필터까지만 거친 전체 후보다.
     scrape_stats = naver_news_scraper.get_last_scrape_stats()
     scrape_stats["pre_issue_filter_candidate_count"] = len(news_list)
+    scrape_stats["selector_candidate_group_limit"] = int(selector_candidate_group_limit or 0)
+    scrape_stats["summary_max_length"] = int(summary_max_length or DEFAULT_SUMMARY_MAX_LENGTH)
+    scrape_stats["email_insight_ai"] = bool(email_insight_ai)
 
     if not news_list:
         logger.error(f"❌ [{section_name}] 수집된 뉴스가 없습니다.")
@@ -353,10 +391,6 @@ def collect_select_and_summarize(
     # ====================================
     # 최근 N일 반복 이슈 제거
     # ====================================
-    logger.info("\n" + "=" * 60)
-    logger.info(f"🧹 [{section_name}] 최근 {issue_history_days}일 반복 이슈 제거 시작")
-    logger.info("=" * 60)
-
     issue_filter_result = issue_history.filter_seen_issues_with_llm(
         briefing_name=briefing_name,
         receiver_env=receiver_env,
@@ -377,9 +411,6 @@ def collect_select_and_summarize(
         f"{after_issue_filter_count}개 유지 "
         f"(최근 {issue_history_days}일 이슈 {issue_filter_result.get('past_issue_count', 0)}개 비교)"
     )
-
-    if issue_filter_result.get("message"):
-        logger.info(f"🧹 [{section_name}] 반복 이슈 필터 상태: {issue_filter_result.get('message')}")
 
     scrape_stats["issue_filter_before_count"] = before_issue_filter_count
     scrape_stats["issue_filter_after_count"] = after_issue_filter_count
@@ -431,10 +462,6 @@ def collect_select_and_summarize(
     # Python 규칙 기반 사건 그룹화
     # ====================================
     grouping_max_groups = int(grouping_max_groups or max_total_news)
-
-    logger.info("\n" + "=" * 60)
-    logger.info(f"🧩 [{section_name}] Python 사건 그룹화 시작")
-    logger.info("=" * 60)
 
     grouping_result = news_grouper.build_grouping_result(
         news_list=news_list,
@@ -536,16 +563,13 @@ def collect_select_and_summarize(
     # ====================================
     # OpenAI 뉴스 선별
     # ====================================
-    logger.info("\n" + "=" * 60)
-    logger.info(f"🧠 [{section_name}] OpenAI 뉴스 선별 시작")
-    logger.info("=" * 60)
-
     selected_news = news_selector.select_important_news_groups(
         group_list=grouping_result.get("selection_groups", []),
         fallback_news_list=grouped_representative_news,
         topic_name=section_name,
         topic_description=topic_description,
-        limit=select_limit
+        limit=select_limit,
+        candidate_group_limit=selector_candidate_group_limit
     )
 
     selection_stats = news_selector.get_last_selection_stats()
@@ -570,14 +594,13 @@ def collect_select_and_summarize(
     # ====================================
     # OpenAI 뉴스 요약
     # ====================================
-    logger.info("\n" + "=" * 60)
-    logger.info(f"🤖 [{section_name}] AI 요약 시작")
-    logger.info("=" * 60)
-
     for news in selected_news:
         news["content"] = news.get("description", "")
 
-    summaries = summarizer.summarize_batch(selected_news)
+    summaries = summarizer.summarize_batch(
+        selected_news,
+        max_length=summary_max_length
+    )
     scrape_stats["summary_tokens"] = sum(summary.get("tokens_used", 0) for summary in summaries or [])
 
     if not summaries:
@@ -624,35 +647,34 @@ def main():
     sorts = normalize_sorts(config.get("sorts", DEFAULT_SORTS))
     max_total_news = int(config.get("max_total_news", DEFAULT_MAX_TOTAL_NEWS))
     select_limit = int(config.get("select_limit", DEFAULT_SELECT_LIMIT))
+    selector_candidate_group_limit = int(
+        config.get("selector_candidate_group_limit", DEFAULT_SELECTOR_CANDIDATE_GROUP_LIMIT)
+    )
+    summary_max_length = int(config.get("summary_max_length", DEFAULT_SUMMARY_MAX_LENGTH))
+    email_insight_ai = normalize_bool(
+        config.get("email_insight_ai", DEFAULT_EMAIL_INSIGHT_AI),
+        DEFAULT_EMAIL_INSIGHT_AI
+    )
     recent_hours = int(config.get("recent_hours", DEFAULT_RECENT_HOURS))
     issue_history_days = int(config.get("issue_history_days", DEFAULT_ISSUE_HISTORY_DAYS))
 
-    logger.info("\n" + "=" * 60)
-    logger.info("🚀 뉴스 스크래퍼 시작")
-    logger.info(f"⏰ {datetime.now().strftime('%Y년 %m월 %d일 %H:%M:%S')}")
-    logger.info(f"설정 파일: {config_path}")
-    logger.info(f"상태 파일 구분값: {state_paths['config_slug']}")
-    logger.info(f"상태 파일 디렉터리: {state_paths['state_dir']}")
-    logger.info(f"이슈 히스토리 파일: {issue_history_file_path}")
-    logger.info(f"미매핑 언론사 도메인 파일: {unmapped_press_domains_file_path}")
     config_exclude_keywords = normalize_exclude_keywords(config.get("exclude_keywords", []))
-    logger.info(f"기본 제외 키워드: {', '.join(config_exclude_keywords) if config_exclude_keywords else '없음'}")
-    logger.info(f"브리핑 이름: {briefing_name}")
-    logger.info(f"수신자 환경변수: {receiver_env}")
-    logger.info(f"메일 제목 prefix: {subject_prefix}")
-    logger.info(f"OpenAI 기본 모델 env OPENAI_MODEL: {os.getenv('OPENAI_MODEL') or '미설정'}")
-    logger.info(f"OpenAI 최종선별 모델 env OPENAI_SELECTOR_MODEL: {os.getenv('OPENAI_SELECTOR_MODEL') or '미설정'}")
-    logger.info(f"현재 news_selector.MODEL: {getattr(news_selector, 'MODEL', '확인불가')}")
-    logger.info(f"현재 news_selector.SELECTOR_MODEL: {getattr(news_selector, 'SELECTOR_MODEL', '확인불가')}")
-    logger.info(f"섹션 수: {len(sections)}개")
-    logger.info(f"기본 정렬 방식: {sorts}")
-    logger.info(f"기본 키워드당 페이지별 조회 개수: {display_per_keyword}")
-    logger.info(f"기본 키워드당 페이지 수: {pages_per_keyword}")
-    logger.info(f"기본 키워드당 최대 조회 개수: {display_per_keyword * pages_per_keyword}")
-    logger.info(f"기본 AI 선별 전달 최대 후보 수: {max_total_news}")
-    logger.info(f"기본 반복 이슈 비교 기간: 최근 {issue_history_days}일")
-    logger.info("결과 JSON 파일 저장: 비활성화")
-    logger.info("=" * 60)
+    logger.info(
+        "🚀 뉴스 스크래퍼 시작: %s / 섹션 %s개 / selector=%s / summary=%s / config=%s",
+        briefing_name,
+        len(sections),
+        getattr(news_selector, "SELECTOR_MODEL", "확인불가"),
+        getattr(summarizer, "MODEL", "확인불가"),
+        config_path,
+    )
+    logger.info(
+        "⚙️ 기본값: recent=%sh / issue_history=%s일 / max_total=%s / select=%s / ai_groups=%s",
+        recent_hours,
+        issue_history_days,
+        max_total_news,
+        select_limit,
+        selector_candidate_group_limit,
+    )
 
     section_results = []
 
@@ -676,6 +698,16 @@ def main():
         section_select_limit = int(
             section.get("select_limit", select_limit)
         )
+        section_selector_candidate_group_limit = int(
+            section.get("selector_candidate_group_limit", selector_candidate_group_limit)
+        )
+        section_summary_max_length = int(
+            section.get("summary_max_length", summary_max_length)
+        )
+        section_email_insight_ai = normalize_bool(
+            section.get("email_insight_ai", email_insight_ai),
+            email_insight_ai
+        )
         section_recent_hours = int(
             section.get("recent_hours", recent_hours)
         )
@@ -688,8 +720,9 @@ def main():
         section_grouping_max_groups = int(
             section.get("grouping_max_groups", config.get("grouping_max_groups", section_max_total_news))
         )
-        section_grouping_exclude_low_quality = bool(
-            section.get("grouping_exclude_low_quality", config.get("grouping_exclude_low_quality", True))
+        section_grouping_exclude_low_quality = normalize_bool(
+            section.get("grouping_exclude_low_quality", config.get("grouping_exclude_low_quality", True)),
+            True
         )
 
         section_result = collect_select_and_summarize(
@@ -709,7 +742,10 @@ def main():
             unmapped_press_domains_file_path=unmapped_press_domains_file_path,
             exclude_keywords=section_exclude_keywords,
             grouping_max_groups=section_grouping_max_groups,
-            grouping_exclude_low_quality=section_grouping_exclude_low_quality
+            grouping_exclude_low_quality=section_grouping_exclude_low_quality,
+            selector_candidate_group_limit=section_selector_candidate_group_limit,
+            summary_max_length=section_summary_max_length,
+            email_insight_ai=section_email_insight_ai
         )
 
         section_results.append(section_result)
@@ -717,9 +753,7 @@ def main():
     # ====================================
     # 이메일 발송
     # ====================================
-    logger.info("\n" + "=" * 60)
-    logger.info("📧 이메일 발송 시작")
-    logger.info("=" * 60)
+    logger.debug("📧 이메일 발송 시작: receiver_env=%s", receiver_env)
 
     result = email_sender.send_email(
         briefing_name=briefing_name,
@@ -744,8 +778,7 @@ def main():
             f"🗂️ 이슈 히스토리 저장 완료: "
             f"신규 {history_result['saved_count']}개 / "
             f"오래된 이슈 삭제 {history_result.get('pruned_count', 0)}개 / "
-            f"누적 {history_result['total_count']}개 / "
-            f"{history_result['file_path']}"
+            f"누적 {history_result['total_count']}개"
         )
 
     else:
@@ -759,18 +792,16 @@ def main():
             naver_news_scraper.save_unmapped_press_domains(
                 filename=unmapped_press_domains_file_path
             )
-            logger.info(f"🗂️ 미매핑 언론사 도메인 저장 완료: {unmapped_press_domains_file_path}")
+            logger.debug(f"🗂️ 미매핑 언론사 도메인 저장 완료: {unmapped_press_domains_file_path}")
         except Exception as e:
             logger.warning(f"⚠️ 미매핑 언론사 도메인 저장 실패: {e}")
     else:
-        logger.info("미매핑 언론사 도메인 저장 함수 없음: 건너뜀")
+        logger.debug("미매핑 언론사 도메인 저장 함수 없음: 건너뜀")
 
     # ====================================
     # 최종 결과
     # ====================================
-    logger.info("\n" + "=" * 60)
-    logger.info("📊 작업 완료 요약")
-    logger.info("=" * 60)
+    logger.info("📊 작업 완료 요약 생성")
 
     total_raw_count = 0
     total_selected_count = 0
@@ -829,73 +860,53 @@ def main():
         total_insight_tokens += insight_tokens
         total_tokens += section_total_tokens
 
-        logger.info(f"📰 [{section_name}] 후보 수집: {raw_count}개")
-        logger.info(f"🧠 [{section_name}] 뉴스 선별: {selected_count}개")
-        logger.info(f"✨ [{section_name}] 뉴스 요약: {summary_count}개")
-        after_issue_filter_before_sampling_count = scrape_stats.get(
-            "after_issue_filter_before_sampling_count", issue_filter_after_count
-        )
-        after_issue_filter_after_sampling_count = scrape_stats.get(
-            "after_issue_filter_after_sampling_count", final_candidate_count
+        total_seen_count = scrape_stats.get("total_seen_count", issue_filter_before_count)
+        exclude_keyword_excluded_count = scrape_stats.get("exclude_keyword_excluded_count", 0)
+        grouping_duplicate_article_count = scrape_stats.get("grouping_duplicate_excluded_count", 0)
+        grouping_low_quality_article_count = scrape_stats.get("grouping_low_quality_article_count", 0)
+        logger.info(
+            "📊 [%s] 처리: 검색 %s개 → 후보 %s개 → 반복필터 %s개 → "
+            "AI후보 %s개 → 선별 %s개 → 요약 %s개 / 토큰 %s",
+            section_name,
+            total_seen_count,
+            pre_sampling_count,
+            issue_filter_after_count,
+            final_candidate_count,
+            selected_count,
+            summary_count,
+            f"{section_total_tokens:,}",
         )
         logger.info(
-            f"📊 [{section_name}] 수집 통계: "
-            f"URL/시간 필터 후 {pre_sampling_count}개 / "
-            f"스크래퍼 내부 샘플링 "
-            f"{'적용' if scrape_stats.get('scraper_sampling_applied') else '없음'} / "
-            f"URL 중복 제외 {duplicate_count}개 / "
-            f"{scrape_stats.get('recent_hours', DEFAULT_RECENT_HOURS)}시간 초과 제외 {old_news_count}개"
-        )
-        logger.info(
-            f"🧹 [{section_name}] 반복 이슈 필터: "
-            f"{issue_filter_before_count}개 → {issue_filter_after_count}개 / "
-            f"제외 {issue_filter_excluded_count}개 / "
-            f"비교 이슈 {issue_filter_past_issue_count}개"
-        )
-        logger.info(
-            f"🧺 [{section_name}] 필터 후 시간대 샘플링: "
-            f"{after_issue_filter_before_sampling_count}개 → "
-            f"{after_issue_filter_after_sampling_count}개 / "
-            f"AI 선별 후보 {final_candidate_count}개"
-        )
-        logger.info(
-            f"🧹 [{section_name}] 반복 이슈 제외 상세: "
-            f"URL {scrape_stats.get('issue_filter_url_excluded_count', 0)}개 / "
-            f"제목 {scrape_stats.get('issue_filter_title_excluded_count', 0)}개 / "
-            f"본문유사 {scrape_stats.get('issue_filter_text_excluded_count', 0)}개 / "
-            f"토큰겹침 {scrape_stats.get('issue_filter_token_overlap_excluded_count', 0)}개 / "
-            f"SimHash {scrape_stats.get('issue_filter_simhash_excluded_count', 0)}개 / "
-            f"LLM {scrape_stats.get('issue_filter_llm_excluded_count', 0)}개 / "
-            f"오늘 후보 내부 {scrape_stats.get('issue_filter_internal_duplicate_count', 0)}개"
-        )
-        logger.info(
-            f"🧾 [{section_name}] 토큰 사용량: "
-            f"issue_key {issue_key_tokens:,}(사용 안 함) / "
-            f"반복판단LLM {issue_duplicate_tokens:,}(사용 안 함) / "
-            f"선별 {selection_tokens:,} / "
-            f"사건그룹 {event_group_tokens:,} / "
-            f"요약 {summary_tokens:,} / "
-            f"메일3줄 {insight_tokens:,} / "
-            f"합계 {section_total_tokens:,}"
+            "🧹 [%s] 제외: 시간초과 %s / URL중복 %s / 반복 %s(과거 %s건 비교) / "
+            "제외어 %s / 그룹중복 %s / 저품질 %s / AI중복 %s",
+            section_name,
+            old_news_count,
+            duplicate_count,
+            issue_filter_excluded_count,
+            issue_filter_past_issue_count,
+            exclude_keyword_excluded_count,
+            grouping_duplicate_article_count,
+            grouping_low_quality_article_count,
+            scrape_stats.get("ai_duplicate_excluded_count", 0),
         )
 
-    logger.info("-" * 60)
-    logger.info(f"📰 전체 후보 수집: {total_raw_count}개")
-    logger.info(f"🧠 전체 뉴스 선별: {total_selected_count}개")
-    logger.info(f"✨ 전체 뉴스 요약: {total_summary_count}개")
-    logger.info(f"🧾 issue_key 생성 토큰 합계: {total_issue_key_tokens:,} (사용 안 함)")
-    logger.info(f"🧾 반복 이슈 LLM 판단 토큰 합계: {total_issue_duplicate_tokens:,} (사용 안 함)")
-    logger.info(f"🧾 뉴스 선별 토큰 합계: {total_selection_tokens:,}")
-    logger.info(f"🧾 사건 그룹화 토큰 합계: {total_event_group_tokens:,}")
-    logger.info(f"🧾 뉴스 요약 토큰 합계: {total_summary_tokens:,}")
-    logger.info(f"🧾 메일 핵심 3줄 토큰 합계: {total_insight_tokens:,}")
-    logger.info(f"🧾 전체 추적 토큰 합계: {total_tokens:,}")
+    logger.info(
+        "📊 전체 처리: 후보 %s개 / 선별 %s개 / 요약 %s개 / 발송 %s",
+        total_raw_count,
+        total_selected_count,
+        total_summary_count,
+        result["success"],
+    )
+    logger.info(
+        "🧾 전체 AI 토큰: 선별 %s / 사건그룹 %s / 요약 %s / 메일3줄 %s / 총 %s",
+        f"{total_selection_tokens:,}",
+        f"{total_event_group_tokens:,}",
+        f"{total_summary_tokens:,}",
+        f"{total_insight_tokens:,}",
+        f"{total_tokens:,}",
+    )
     log_openai_usage_summary(logger)
-    logger.info(f"📧 발송: {result['success']}")
-
-    logger.info("\n" + "=" * 60)
     logger.info("✅ 모든 작업 완료")
-    logger.info("=" * 60 + "\n")
 
 
 if __name__ == "__main__":

@@ -47,9 +47,10 @@ MODEL = os.getenv("SUMMARY_MODEL", os.getenv("OPENAI_MODEL", "gpt-5-nano"))
 SUMMARY_BATCH_MODE = os.getenv("SUMMARY_BATCH_MODE", "true").lower() not in {"0", "false", "no"}
 
 # GPT-5 계열은 max_completion_tokens 안에 숨은 reasoning token도 포함된다.
-# 너무 작게 잡으면 completion_tokens는 소모되지만 message.content가 빈 값으로 올 수 있다.
-SUMMARY_BATCH_COMPLETION_LIMIT = int(os.getenv("SUMMARY_BATCH_MAX_COMPLETION_TOKENS", "8192"))
+# 기본 한도는 동적으로 더 작게 잡고, 빈 응답/JSON 실패 때만 더 크게 재시도한다.
+SUMMARY_BATCH_COMPLETION_LIMIT = int(os.getenv("SUMMARY_BATCH_MAX_COMPLETION_TOKENS", "4096"))
 SUMMARY_SINGLE_COMPLETION_LIMIT = int(os.getenv("SUMMARY_SINGLE_MAX_COMPLETION_TOKENS", "1600"))
+SUMMARY_INPUT_CONTENT_LIMIT = int(os.getenv("SUMMARY_INPUT_CONTENT_CHARS", "520"))
 
 
 def _message_content(response: Any) -> str:
@@ -113,15 +114,51 @@ def _extract_json(content: str) -> Dict:
         return json.loads(content[start:end + 1])
 
 
+def _ensure_json_object(result: Any) -> Dict[str, Any]:
+    if isinstance(result, dict):
+        return result
+    return {}
+
+
+def _ensure_json_list(value: Any) -> List[Any]:
+    if isinstance(value, list):
+        return value
+    return []
+
+
 def _build_fallback_summary(article: Dict, max_length: int = 220) -> str:
     content = _safe_text(article.get("content") or article.get("description"))
     return content[:max_length] + "..." if len(content) > max_length else content
+
+
+def _clip_text(value: Any, limit: int) -> str:
+    text = _safe_text(value)
+    if len(text) <= limit:
+        return text
+    return text[:limit].rstrip() + "..."
+
+
+def _batch_completion_limits(article_count: int, max_length: int) -> List[int]:
+    article_count = max(int(article_count or 1), 1)
+    max_length = max(int(max_length or 180), 80)
+    per_article_budget = max(220, min(max_length + 160, 420))
+    first_limit = max(1200, 600 + article_count * per_article_budget)
+
+    if is_gpt5_model(MODEL):
+        first_limit = min(first_limit, SUMMARY_BATCH_COMPLETION_LIMIT)
+        retry_limit = max(first_limit * 2, 600 + article_count * 600)
+        retry_limit = min(retry_limit, max(SUMMARY_BATCH_COMPLETION_LIMIT * 2, first_limit))
+        return [first_limit, retry_limit] if retry_limit > first_limit else [first_limit]
+
+    return [min(first_limit, SUMMARY_BATCH_COMPLETION_LIMIT)]
 
 
 def _build_summary_result(article: Dict, summary: str, tokens_used: int = 0, error: str = None) -> Dict:
     title = _safe_text(article.get("title", "제목 없음"))
     url = _safe_text(article.get("url", "#"))
     keyword = _safe_text(article.get("keyword", ""))
+    description = _safe_text(article.get("description"))
+    content = _safe_text(article.get("content"))
     # 수집/그룹화 단계에 따라 published_at 또는 published_at_kst 중 하나만 있을 수 있다.
     # 메일에서 발생시간이 사라지지 않도록 둘 다 보존한다.
     published_at = _safe_text(article.get("published_at") or article.get("published_at_kst") or "")
@@ -140,6 +177,16 @@ def _build_summary_result(article: Dict, summary: str, tokens_used: int = 0, err
         "summary": _safe_text(summary),
         "url": url,
         "keyword": keyword,
+        "description": description,
+        "content": content or description,
+        "group_id": article.get("group_id"),
+        "group_article_count": article.get("group_article_count"),
+        "group_source_count": article.get("group_source_count"),
+        "group_keywords": article.get("group_keywords", []),
+        "group_quality_flags": article.get("group_quality_flags", []),
+        "group_priority_score": article.get("group_priority_score"),
+        "group_article_titles": article.get("group_article_titles", []),
+        "group_article_urls": article.get("group_article_urls", []),
         "published_at": published_at,
         "published_at_kst": published_at_kst,
         "importance_score": importance_score,
@@ -172,15 +219,13 @@ def summarize_article(article: Dict, max_length: int = 220) -> Dict:
 
     try:
         prompt = f"""
-다음 뉴스 기사를 {max_length}자 이내로 요약해주세요.
+뉴스를 {max_length}자 이내, 1~2문장으로 요약하세요.
 
-[요약 기준]
-1. 핵심 내용만 간결하게 정리하세요.
-2. 기사 제목과 내용에 없는 사실은 추가하지 마세요.
-3. 기업명, 서비스명, 수치, 일정은 원문에 있는 경우에만 포함하세요.
-4. 추측성 표현은 쓰지 마세요.
-5. 문장은 자연스러운 한국어로 작성하세요.
-6. 요약은 1~2문장으로 작성하세요.
+규칙:
+1. 제목/내용에 있는 사실만 사용합니다.
+2. 기업명, 서비스명, 수치, 일정은 원문에 있을 때만 포함합니다.
+3. 추측, 전망, 평가를 새로 만들지 않습니다.
+4. 내용이 부족하면 제목을 바탕으로 확인 가능한 사실만 씁니다.
 
 제목: {title}
 내용: {content}
@@ -188,7 +233,7 @@ def summarize_article(article: Dict, max_length: int = 220) -> Dict:
 요약:
 """
 
-        logger.info(f"📝 요약 중: {title[:30]}...")
+        logger.debug(f"📝 요약 중: {title[:30]}...")
 
         response = client.chat.completions.create(
             model=MODEL,
@@ -225,7 +270,7 @@ def summarize_article(article: Dict, max_length: int = 220) -> Dict:
                 f"reasoning_tokens={usage_info.get('reasoning_tokens', 0)}"
             )
 
-        logger.info(f"✅ 요약 완료: {len(summary)}자 (토큰: {tokens_used})")
+        logger.debug(f"✅ 단건 요약 완료: {len(summary)}자 / 토큰 {tokens_used}")
 
         return _build_summary_result(
             article=article,
@@ -265,8 +310,8 @@ def summarize_batch_with_llm(articles: List[Dict], max_length: int = 220) -> Lis
 
     news_blocks = []
     for idx, article in enumerate(articles, 1):
-        title = _safe_text(article.get("title", "제목 없음"))
-        content = _safe_text(article.get("content") or article.get("description"))
+        title = _clip_text(article.get("title", "제목 없음"), 120)
+        content = _clip_text(article.get("content") or article.get("description"), SUMMARY_INPUT_CONTENT_LIMIT)
         source = _safe_text(article.get("source")) or "언론사 미상"
         published_at = _safe_text(article.get("published_at"))
 
@@ -281,28 +326,19 @@ def summarize_batch_with_llm(articles: List[Dict], max_length: int = 220) -> Lis
         )
 
     prompt = f"""
-아래 뉴스 기사들을 각각 {max_length}자 이내로 요약하세요.
+아래 뉴스들을 각각 {max_length}자 이내, 1~2문장으로 요약하세요.
 
-[요약 기준]
-1. 각 기사는 1~2문장으로 요약하세요.
-2. 기사 제목과 내용에 없는 사실은 추가하지 마세요.
-3. 기업명, 서비스명, 수치, 일정은 원문에 있는 경우에만 포함하세요.
-4. 추측성 표현은 쓰지 마세요.
-5. 문장은 자연스러운 한국어로 작성하세요.
-6. 모든 index를 빠짐없이 포함하세요.
+요약 규칙:
+1. 제목/내용에 있는 사실만 사용합니다.
+2. 기업명, 서비스명, 수치, 일정은 원문에 있을 때만 포함합니다.
+3. 추측, 전망, 평가를 새로 만들지 않습니다.
+4. 내용이 부족하면 제목을 바탕으로 확인 가능한 사실만 씁니다.
+5. 모든 index를 정확히 한 번씩 포함하고 summary는 빈 문자열로 두지 않습니다.
 
-[출력 규칙]
-반드시 JSON만 출력하세요.
-설명 문장, 마크다운, 코드블록은 쓰지 마세요.
+출력은 JSON 객체 하나만:
+{{"summaries":[{{"index":1,"summary":"요약문"}}]}}
 
-[출력 형식]
-{{
-  "summaries": [
-    {{"index": 1, "summary": "요약문"}}
-  ]
-}}
-
-[뉴스 목록]
+뉴스:
 {chr(10).join(news_blocks)}
 """
 
@@ -312,11 +348,7 @@ def summarize_batch_with_llm(articles: List[Dict], max_length: int = 220) -> Lis
 
     # GPT-5 계열은 max_completion_tokens 안에 reasoning token이 포함된다.
     # 첫 시도에서 본문이 비거나 JSON 파싱이 실패하면 더 큰 한도로 배치 1회만 재시도한다.
-    completion_limits = [
-        SUMMARY_BATCH_COMPLETION_LIMIT if is_gpt5_model(MODEL) else max(700, len(articles) * 260),
-    ]
-    if is_gpt5_model(MODEL):
-        completion_limits.append(max(SUMMARY_BATCH_COMPLETION_LIMIT * 2, len(articles) * 1200))
+    completion_limits = _batch_completion_limits(len(articles), max_length)
 
     for attempt_no, completion_limit in enumerate(completion_limits, 1):
         response = client.chat.completions.create(
@@ -360,7 +392,7 @@ def summarize_batch_with_llm(articles: List[Dict], max_length: int = 220) -> Lis
             continue
 
         try:
-            parsed = _extract_json(content)
+            parsed = _ensure_json_object(_extract_json(content))
             break
         except Exception as e:
             last_error = e
@@ -375,12 +407,16 @@ def summarize_batch_with_llm(articles: List[Dict], max_length: int = 220) -> Lis
         raise last_error or ValueError("배치 요약 JSON 파싱 실패")
 
     by_index = {}
-    for item in parsed.get("summaries", []):
+    for item in _ensure_json_list(parsed.get("summaries")):
+        if not isinstance(item, dict):
+            continue
         try:
             idx = int(item.get("index"))
         except Exception:
             continue
-        by_index[idx] = _safe_text(item.get("summary"))
+        summary_text = _safe_text(item.get("summary"))
+        if summary_text:
+            by_index[idx] = summary_text
 
     if not by_index:
         raise ValueError("배치 요약 응답에 summaries가 없습니다.")
@@ -406,30 +442,32 @@ def summarize_batch_with_llm(articles: List[Dict], max_length: int = 220) -> Lis
     if results and remainder > 0:
         results[0]["tokens_used"] += remainder
 
-    logger.info(f"✅ 배치 요약 완료: {len(results)}개 기사 (총 토큰: {tokens_used})")
+    logger.debug(f"✅ 배치 요약 완료: {len(results)}개 / 토큰 {tokens_used}")
 
     return results
 
 
-def summarize_batch(articles: List[Dict], delay: float = 1.0) -> List[Dict]:
+def summarize_batch(articles: List[Dict], delay: float = 1.0, max_length: int = 220) -> List[Dict]:
     """
     여러 기사 일괄 요약.
 
     기본은 배치 요약이며, 실패 시 기존 단건 요약으로 fallback한다.
     """
-    logger.info(f"\n{'=' * 60}")
-    logger.info(f"🤖 {len(articles)}개 기사 요약 시작")
-    logger.info(f"{'=' * 60}\n")
+    logger.info(
+        "🤖 뉴스 요약 시작: %s개 / max_length=%s / batch=%s",
+        len(articles),
+        max_length,
+        "on" if SUMMARY_BATCH_MODE else "off",
+    )
 
     if not articles:
         return []
 
     if SUMMARY_BATCH_MODE:
         try:
-            summaries = summarize_batch_with_llm(articles)
+            summaries = summarize_batch_with_llm(articles, max_length=max_length)
             total_tokens = sum(summary.get("tokens_used", 0) for summary in summaries)
-            logger.info(f"총 토큰: {total_tokens:,}")
-            logger.info("예상 비용은 OpenAI 응답 usage 기준 모델별 로그를 확인하세요.")
+            logger.info(f"✅ 뉴스 요약 완료: {len(summaries)}개 / 토큰 {total_tokens:,}")
             return summaries
         except Exception as e:
             logger.error(f"❌ 배치 요약 실패, 단건 요약으로 전환: {e}")
@@ -438,9 +476,9 @@ def summarize_batch(articles: List[Dict], delay: float = 1.0) -> List[Dict]:
     total_tokens = 0
 
     for i, article in enumerate(articles, 1):
-        logger.info(f"진행: {i}/{len(articles)}")
+        logger.debug(f"요약 진행: {i}/{len(articles)}")
 
-        summary = summarize_article(article)
+        summary = summarize_article(article, max_length=max_length)
         summaries.append(summary)
 
         total_tokens += summary.get("tokens_used", 0)
@@ -448,10 +486,6 @@ def summarize_batch(articles: List[Dict], delay: float = 1.0) -> List[Dict]:
         if i < len(articles):
             time.sleep(delay)
 
-    logger.info(f"\n{'=' * 60}")
-    logger.info("✅ 요약 완료")
-    logger.info(f"총 토큰: {total_tokens:,}")
-    logger.info("예상 비용은 OpenAI 응답 usage 기준 모델별 로그를 확인하세요.")
-    logger.info(f"{'=' * 60}\n")
+    logger.info(f"✅ 뉴스 요약 완료: {len(summaries)}개 / 토큰 {total_tokens:,}")
 
     return summaries

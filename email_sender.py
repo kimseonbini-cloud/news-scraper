@@ -49,6 +49,8 @@ SMTP_PORT = 587
 # ====================================
 MODEL = os.getenv("EMAIL_INSIGHT_MODEL", os.getenv("OPENAI_MODEL", "gpt-5-nano"))
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+EMAIL_INSIGHT_USE_AI_DEFAULT = os.getenv("EMAIL_INSIGHT_USE_AI", "false").lower() not in {"0", "false", "no", "off"}
+EMAIL_INSIGHT_MAX_COMPLETION_TOKENS = int(os.getenv("EMAIL_INSIGHT_MAX_COMPLETION_TOKENS", "900"))
 
 if OpenAI is not None and OPENAI_API_KEY:
     client = OpenAI(api_key=OPENAI_API_KEY)
@@ -100,6 +102,22 @@ def safe_count(value, default=0):
         return int(value)
     except Exception:
         return default
+
+
+def safe_bool(value, default=False):
+    if value is None:
+        return bool(default)
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value != 0
+
+    text = str(value).strip().lower()
+    if text in {"1", "true", "yes", "y", "on"}:
+        return True
+    if text in {"0", "false", "no", "n", "off"}:
+        return False
+    return bool(default)
 
 
 def format_korean_datetime(date_string):
@@ -357,90 +375,112 @@ def build_section_insights(section_title, summaries, scrape_stats=None):
             </table>
         """
 
-    news_text_list = []
+    use_ai_insight = safe_bool(
+        scrape_stats.get("email_insight_ai") if isinstance(scrape_stats, dict) else None,
+        EMAIL_INSIGHT_USE_AI_DEFAULT,
+    )
 
-    for i, news in enumerate(summaries, 1):
-        title = str(news.get("title", "")).strip()
-        summary = str(news.get("summary", "")).strip()
-        source = str(news.get("source", "언론사 미상")).strip()
-        importance_score = str(news.get("importance_score", "3")).strip()
-
-        news_text_list.append(
-            f"{i}. [{source} / 중요도 {importance_score}] {title}\n요약: {summary}"
-        )
-
-    news_text = "\n\n".join(news_text_list)
-
-    prompt = f"""
-아래는 "{section_title}" 섹션에 들어갈 뉴스 요약 목록입니다.
-
-이 섹션의 뉴스들만 보고, 메일 상단에 넣을 핵심 3줄을 작성하세요.
-
-[작성 기준]
-1. 뉴스 개수, 최상위 뉴스, 중요도 개수 같은 메타 정보는 쓰지 마세요.
-2. 이 섹션 뉴스 전체를 관통하는 흐름을 요약하세요.
-3. 각 줄은 너무 길지 않게 작성하세요.
-4. 반드시 정확히 3줄만 작성하세요.
-5. 각 줄은 "1. ", "2. ", "3. "으로 시작하세요.
-6. 기사 요약에 없는 사실은 추가하지 마세요.
-7. 추측하지 말고, 제공된 뉴스 요약 안에서만 정리하세요.
-
-[뉴스 목록]
-{news_text}
-"""
-
-    try:
-        if client is None:
-            raise ValueError("OPENAI_API_KEY가 없거나 OpenAI 클라이언트를 초기화할 수 없습니다.")
-
-        response = client.chat.completions.create(
-            model=MODEL,
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "뉴스 목록 전체를 보고 해당 섹션의 핵심 흐름을 3줄로 요약합니다. "
-                        "원문 요약에 없는 사실은 추가하지 않습니다."
-                    )
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            **openai_temperature_kwargs(MODEL, 0.2),
-            **openai_reasoning_effort_kwargs(MODEL),
-            **openai_token_limit_kwargs(MODEL, 1600 if is_gpt5_model(MODEL) else 350)
-        )
-
-        insight_text = response.choices[0].message.content.strip()
-        usage_info = record_openai_usage(
-            logger,
-            f"[{section_title}] 메일 핵심 3줄",
-            MODEL,
-            response.usage,
-        )
-        insight_tokens = usage_info["total_tokens"]
-        if isinstance(scrape_stats, dict):
-            scrape_stats["insight_tokens"] = safe_count(scrape_stats.get("insight_tokens", 0)) + insight_tokens
-        logger.info(f"🧾 [{section_title}] 메일 핵심 3줄 토큰 사용량: {insight_tokens}")
-        lines = [line.strip() for line in insight_text.split("\n") if line.strip()]
-        lines = lines[:3]
-
-        if not lines:
-            raise ValueError("핵심 3줄 응답이 비어 있습니다.")
-
-    except Exception as e:
-        logger.error(f"❌ [{section_title}] 핵심 3줄 생성 실패: {e}")
-
+    if not use_ai_insight:
         lines = []
-        for i, news in enumerate(summaries[:3], 1):
+        sorted_summaries = sorted(
+            summaries,
+            key=lambda news: safe_int(news.get("importance_score", 3)),
+            reverse=True,
+        )
+        for i, news in enumerate(sorted_summaries[:3], 1):
             summary = str(news.get("summary", "")).strip()
-            if summary:
-                lines.append(f"{i}. {summary}")
+            title = str(news.get("title", "")).strip()
+            line_text = summary or title
+            if line_text:
+                lines.append(f"{i}. {line_text}")
 
         if not lines:
             lines = ["1. 이 섹션의 핵심 요약을 생성하지 못했습니다."]
+    else:
+        news_text_list = []
+
+        for i, news in enumerate(summaries, 1):
+            title = str(news.get("title", "")).strip()
+            summary = str(news.get("summary", "")).strip()
+            source = str(news.get("source", "언론사 미상")).strip()
+            importance_score = str(news.get("importance_score", "3")).strip()
+
+            news_text_list.append(
+                f"{i}. [{source} / 중요도 {importance_score}] {title}\n요약: {summary}"
+            )
+
+        news_text = "\n\n".join(news_text_list)
+
+        prompt = f"""
+"{section_title}" 섹션 뉴스만 보고 메일 상단 핵심 3줄을 작성하세요.
+
+규칙:
+1. 제공된 제목/요약에 있는 사실만 사용합니다.
+2. 뉴스 개수, 중요도 개수 같은 메타 설명은 쓰지 않습니다.
+3. 섹션 전체 흐름을 3줄로 정리하되, 각 줄은 짧게 씁니다.
+4. 반드시 "1. ", "2. ", "3. "으로 시작하는 정확히 3줄만 출력합니다.
+
+뉴스:
+{news_text}
+"""
+
+        try:
+            if client is None:
+                raise ValueError("OPENAI_API_KEY가 없거나 OpenAI 클라이언트를 초기화할 수 없습니다.")
+
+            response = client.chat.completions.create(
+                model=MODEL,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "뉴스 목록만 근거로 섹션의 핵심 흐름을 정확히 3줄로 요약합니다. "
+                            "추측이나 원문에 없는 사실은 추가하지 않습니다."
+                        )
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                **openai_temperature_kwargs(MODEL, 0.2),
+                **openai_reasoning_effort_kwargs(MODEL),
+                **openai_token_limit_kwargs(
+                    MODEL,
+                    EMAIL_INSIGHT_MAX_COMPLETION_TOKENS
+                    if is_gpt5_model(MODEL)
+                    else min(300, EMAIL_INSIGHT_MAX_COMPLETION_TOKENS)
+                )
+            )
+
+            insight_text = response.choices[0].message.content.strip()
+            usage_info = record_openai_usage(
+                logger,
+                f"[{section_title}] 메일 핵심 3줄",
+                MODEL,
+                response.usage,
+            )
+            insight_tokens = usage_info["total_tokens"]
+            if isinstance(scrape_stats, dict):
+                scrape_stats["insight_tokens"] = safe_count(scrape_stats.get("insight_tokens", 0)) + insight_tokens
+            logger.info(f"🧾 [{section_title}] 메일 핵심 3줄 토큰 사용량: {insight_tokens}")
+            lines = [line.strip() for line in insight_text.split("\n") if line.strip()]
+            lines = lines[:3]
+
+            if not lines:
+                raise ValueError("핵심 3줄 응답이 비어 있습니다.")
+
+        except Exception as e:
+            logger.error(f"❌ [{section_title}] 핵심 3줄 생성 실패: {e}")
+
+            lines = []
+            for i, news in enumerate(summaries[:3], 1):
+                summary = str(news.get("summary", "")).strip()
+                if summary:
+                    lines.append(f"{i}. {summary}")
+
+            if not lines:
+                lines = ["1. 이 섹션의 핵심 요약을 생성하지 못했습니다."]
 
     html_lines = ""
 
@@ -771,8 +811,11 @@ def send_email(
         success_count = 0
         failed_list = []
 
-        logger.info(f"📧 이메일 개별 발송 시작: {len(receiver_list)}명")
-        logger.info(f"📮 사용 수신자 환경변수: {selected_receiver_env_name}")
+        logger.info(
+            "📧 이메일 발송 시작: 수신자 %s명 / env=%s",
+            len(receiver_list),
+            selected_receiver_env_name,
+        )
 
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
             server.starttls()
@@ -821,7 +864,7 @@ def send_email(
                     msg.attach(html_part)
 
                     server.send_message(msg)
-                    logger.info(f"   ✅ {receiver_name} ({receiver_email}) 발송 완료")
+                    logger.debug(f"이메일 발송 완료: {receiver_name} ({receiver_email})")
                     success_count += 1
 
                 except Exception as e:

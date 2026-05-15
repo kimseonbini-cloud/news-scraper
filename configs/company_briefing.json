@@ -2,6 +2,9 @@
   "briefing_name": "사내용 뉴스 브리핑",
   "subject_prefix": "IT·롯데 뉴스 브리핑",
   "receiver_env": "EMAIL_RECEIVER",
+  "selector_candidate_group_limit": 45,
+  "summary_max_length": 170,
+  "email_insight_ai": false,
   "sections": [
     {
       "section_name": "IT·테크 뉴스 브리핑",
