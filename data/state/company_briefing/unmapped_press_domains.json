@@ -1,13 +1,14 @@
 {
-  "updated_at": "2026-05-18T08:00:50.415411+09:00",
-  "total_count": 12,
-  "current_run_count": 3,
-  "new_count": 0,
+  "updated_at": "2026-05-19T08:02:52.760966+09:00",
+  "total_count": 15,
+  "current_run_count": 1,
+  "new_count": 1,
   "domains": [
     "busanmbc.co.kr",
     "cio.com",
     "danbinews.com",
     "game.dailyesports.com",
+    "interview365.com",
     "jtv.co.kr",
     "kmecnews.co.kr",
     "maniareport.com",
@@ -15,6 +16,8 @@
     "seouland.com",
     "spochoo.com",
     "stnsports.co.kr",
-    "thebilliards.kr"
+    "technoa.co.kr",
+    "thebilliards.kr",
+    "thegolftimes.co.kr"
   ]
 }
