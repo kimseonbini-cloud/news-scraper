@@ -268,9 +268,9 @@ def _build_related_page_html(
             border: 1px solid #d4d4d8;
             border-radius: 6px;
         }}
-        .news-card:target {{
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
+        body.related-filtered section:not(.selected-section),
+        body.related-filtered .news-card:not(.selected-related) {{
+            display: none;
         }}
         .meta {{
             margin: 0 0 6px 0;
@@ -324,10 +324,58 @@ def _build_related_page_html(
     <main>
         <header>
             <h1>{_safe_text(title)}</h1>
-            <p>메일의 관련보도 전체 목록입니다. 이 페이지는 자동 생성되며 일정 기간 후 삭제됩니다.</p>
+            <p>메일에서 선택한 뉴스의 관련보도 목록입니다. 이 페이지는 자동 생성되며 일정 기간 후 삭제됩니다.</p>
         </header>
         {section_html}
     </main>
+    <script>
+        (function () {{
+            function getHashId() {{
+                var raw = window.location.hash ? window.location.hash.slice(1) : "";
+                try {{
+                    return decodeURIComponent(raw);
+                }} catch (error) {{
+                    return raw;
+                }}
+            }}
+
+            function filterSelectedNews() {{
+                var id = getHashId();
+                var cards = document.querySelectorAll(".news-card");
+                var sections = document.querySelectorAll("section");
+
+                document.body.classList.remove("related-filtered");
+                cards.forEach(function (card) {{
+                    card.classList.remove("selected-related");
+                }});
+                sections.forEach(function (section) {{
+                    section.classList.remove("selected-section");
+                }});
+
+                if (!id) {{
+                    return;
+                }}
+
+                var selected = document.getElementById(id);
+                if (!selected || !selected.classList.contains("news-card")) {{
+                    return;
+                }}
+
+                document.body.classList.add("related-filtered");
+                selected.classList.add("selected-related");
+
+                var section = selected.closest("section");
+                if (section) {{
+                    section.classList.add("selected-section");
+                }}
+
+                window.scrollTo(0, 0);
+            }}
+
+            window.addEventListener("DOMContentLoaded", filterSelectedNews);
+            window.addEventListener("hashchange", filterSelectedNews);
+        }})();
+    </script>
 </body>
 </html>
 """
