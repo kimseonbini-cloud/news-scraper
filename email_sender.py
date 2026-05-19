@@ -368,13 +368,12 @@ def build_related_reports_html(news, toggle_id=None):
             related_count_text = f"{related_count_text}건"
 
         return f"""
-                                <div style="margin:8px 0 0 0;">
+                                    <span>　</span>
                                     <a href="{safe_url(related_url)}" target="_blank"
                                        style="font-size:11px; line-height:1.5;
                                               font-weight:800; color:#2563eb; text-decoration:none;">
                                         관련보도 {safe_text(related_count_text)} 보기
                                     </a>
-                                </div>
         """
 
     titles = news.get("group_article_titles") or []
@@ -904,6 +903,7 @@ def build_news_section(section_result, section_index):
                                     <span style="font-weight:800;">{source}</span>
                                     <span>　</span>
                                     <span style="font-weight:800; color:#ea580c;">중요도 {importance_score}</span>
+                                    {related_reports_html}
                                     <span>　</span>
                                     <span>{published_date}</span>
                                 </div>
@@ -911,7 +911,6 @@ def build_news_section(section_result, section_index):
                                 <div style="font-size:13px; line-height:1.65; margin:0; padding:0; word-break:keep-all;">
                                     {summary_html}
                                 </div>
-                                {related_reports_html}
                             </td>
                         </tr>
                     </table>
