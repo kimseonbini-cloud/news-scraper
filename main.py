@@ -21,6 +21,7 @@ import news_grouper
 import summarizer
 import email_sender
 import issue_history
+import related_pages
 from openai_usage import reset_openai_usage_totals, log_openai_usage_summary
 
 
@@ -64,6 +65,10 @@ DEFAULT_ISSUE_HISTORY_DAYS = 3
 
 # 발송 성공 후 seen_issues.json에 저장할지 여부
 DEFAULT_SAVE_ISSUE_HISTORY = True
+
+# 관련보도 상세 페이지 생성 설정
+DEFAULT_RELATED_PAGE_ENABLED = True
+DEFAULT_RELATED_PAGE_KEEP_DAYS = 7
 
 
 # ====================================
@@ -708,6 +713,14 @@ def main():
     if args.no_save_history:
         save_issue_history = False
 
+    related_page_enabled = normalize_bool(
+        config.get("related_page_enabled", DEFAULT_RELATED_PAGE_ENABLED),
+        DEFAULT_RELATED_PAGE_ENABLED
+    )
+    related_page_keep_days = int(
+        config.get("related_page_keep_days", DEFAULT_RELATED_PAGE_KEEP_DAYS)
+    )
+
     recent_hours = int(config.get("recent_hours", DEFAULT_RECENT_HOURS))
     issue_history_days = int(config.get("issue_history_days", DEFAULT_ISSUE_HISTORY_DAYS))
 
@@ -721,7 +734,7 @@ def main():
         config_path,
     )
     logger.info(
-        "⚙️ 기본값: recent=%sh / issue_history=%s일 / max_total=%s / select=%s / ai_groups=%s / send_mode=%s / save_history=%s",
+        "⚙️ 기본값: recent=%sh / issue_history=%s일 / max_total=%s / select=%s / ai_groups=%s / send_mode=%s / save_history=%s / related_page=%s(%s일)",
         recent_hours,
         issue_history_days,
         max_total_news,
@@ -729,6 +742,8 @@ def main():
         selector_candidate_group_limit,
         email_send_mode,
         save_issue_history,
+        related_page_enabled,
+        related_page_keep_days,
     )
 
     section_results = []
@@ -819,6 +834,29 @@ def main():
             final_dedup_result.get("after_count", 0),
             final_dedup_result.get("excluded_count", 0),
         )
+
+    if related_page_enabled:
+        related_page_result = related_pages.generate_related_page(
+            config=config,
+            config_slug=state_paths["config_slug"],
+            briefing_name=briefing_name,
+            subject_prefix=subject_prefix,
+            section_results=section_results,
+            keep_days=related_page_keep_days,
+        )
+        if related_page_result.get("generated"):
+            logger.info(
+                "🔗 관련보도 상세 페이지 생성 완료: %s / 연결 뉴스 %s개 / 오래된 페이지 삭제 %s개",
+                related_page_result.get("path"),
+                related_page_result.get("linked_count", 0),
+                related_page_result.get("removed_count", 0),
+            )
+        else:
+            logger.info(
+                "🔗 관련보도 상세 페이지 생성 건너뜀: %s / 오래된 페이지 삭제 %s개",
+                related_page_result.get("reason"),
+                related_page_result.get("removed_count", 0),
+            )
 
     # ====================================
     # 이메일 발송

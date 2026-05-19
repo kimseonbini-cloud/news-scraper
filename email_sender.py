@@ -350,13 +350,33 @@ def _normalize_url_for_compare(value):
     return text.rstrip("/")
 
 
-def build_related_reports_html(news):
+def build_related_reports_html(news, toggle_id=None):
     """
     관련보도 제목/링크 목록 HTML 생성.
 
-    메일에서는 JS가 막히므로 details/summary 기반 접기 UI를 사용한다.
-    details를 지원하지 않는 클라이언트에서는 이너박스가 그대로 보일 수 있다.
+    메일 내부 토글은 클라이언트별 지원이 불안정하므로, 생성된
+    GitHub Pages 상세 페이지 링크를 우선 사용한다. 상세 페이지 URL이
+    없을 때만 상위 3건을 fallback으로 표시한다.
     """
+    related_url = str(news.get("related_reports_url") or "").strip()
+    related_count_from_page = safe_count(news.get("related_reports_count"), 0)
+    if related_url and related_url != "#":
+        related_count_text = related_count_from_page or safe_count(news.get("group_article_count"), 0)
+        if related_count_text <= 0:
+            related_count_text = "전체"
+        else:
+            related_count_text = f"{related_count_text}건"
+
+        return f"""
+                                <div style="margin:8px 0 0 0;">
+                                    <a href="{safe_url(related_url)}" target="_blank"
+                                       style="font-size:11px; line-height:1.5;
+                                              font-weight:800; color:#2563eb; text-decoration:none;">
+                                        관련보도 {safe_text(related_count_text)} 보기
+                                    </a>
+                                </div>
+        """
+
     titles = news.get("group_article_titles") or []
     urls = news.get("group_article_urls") or []
     main_url = _normalize_url_for_compare(news.get("url"))
@@ -390,9 +410,11 @@ def build_related_reports_html(news):
         return ""
 
     related_count = len(related_items)
+    visible_items = related_items[:3]
+    hidden_count = max(related_count - len(visible_items), 0)
     item_html = ""
 
-    for index, item in enumerate(related_items, 1):
+    for index, item in enumerate(visible_items, 1):
         main_label = ""
         if item.get("is_main"):
             main_label = """
@@ -417,27 +439,39 @@ def build_related_reports_html(news):
                                         </tr>
         """
 
+    hidden_notice_html = ""
+    if hidden_count:
+        hidden_notice_html = f"""
+                                        <tr>
+                                            <td colspan="2"
+                                                style="padding:5px 0 2px 22px; font-size:11px; line-height:1.45; color:#71717a;">
+                                                외 {hidden_count}건 더 있음
+                                            </td>
+                                        </tr>
+        """
+
     return f"""
                                 <div style="margin:8px 0 0 0;">
-                                    <details style="margin:0;">
-                                        <summary style="cursor:pointer; display:inline-block;
+                                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                                           style="border-collapse:collapse; margin:0;
+                                                  background:#f8fafc; border:1px solid #e5e7eb;">
+                                        <tr>
+                                            <td style="padding:7px 9px 4px 9px;
                                                        font-size:11px; line-height:1.5;
                                                        font-weight:800; color:#2563eb;">
-                                            관련보도 {related_count}건
-                                        </summary>
-                                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
-                                               style="border-collapse:collapse; margin:7px 0 0 0;
-                                                      background:#f8fafc; border:1px solid #e5e7eb;">
-                                            <tr>
-                                                <td style="padding:7px 9px;">
-                                                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
-                                                           style="border-collapse:collapse;">
-                                                        {item_html}
-                                                    </table>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </details>
+                                                관련보도 {related_count}건
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding:0 9px 7px 9px;">
+                                                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                                                       style="border-collapse:collapse;">
+                                                    {item_html}
+                                                    {hidden_notice_html}
+                                                </table>
+                                            </td>
+                                        </tr>
+                                    </table>
                                 </div>
     """
 
@@ -849,7 +883,10 @@ def build_news_section(section_result, section_index):
         importance_score = safe_int(news.get("importance_score", 3))
         related_reports_html = ""
         if safe_count(news.get("group_article_count"), 1) > 1:
-            related_reports_html = build_related_reports_html(news)
+            related_reports_html = build_related_reports_html(
+                news,
+                toggle_id=f"related_{section_index + 1}_{i}",
+            )
 
         html_body += f"""
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
