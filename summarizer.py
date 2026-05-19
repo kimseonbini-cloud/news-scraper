@@ -50,11 +50,11 @@ SUMMARY_BATCH_MODE = os.getenv("SUMMARY_BATCH_MODE", "true").lower() not in {"0"
 # GPT-5 계열은 max_completion_tokens 안에 숨은 reasoning token도 포함된다.
 # 기본 한도는 동적으로 더 작게 잡고, 빈 응답/JSON 실패 때만 더 크게 재시도한다.
 # 첫 시도에서 reasoning token이 출력 한도를 모두 써버리면 같은 요청을 재시도하게 된다.
-# 기본 한도를 5200으로 둬서 gpt-5-nano 배치 요약의 불필요한 2회 호출을 줄인다.
+# 기본 한도를 넉넉히 둬서 2~3문장 요약에서도 불필요한 2회 호출을 줄인다.
 # max_completion_tokens는 상한값이라 실제 비용은 사용된 토큰 기준으로만 발생한다.
-SUMMARY_BATCH_COMPLETION_LIMIT = int(os.getenv("SUMMARY_BATCH_MAX_COMPLETION_TOKENS", "5200"))
+SUMMARY_BATCH_COMPLETION_LIMIT = int(os.getenv("SUMMARY_BATCH_MAX_COMPLETION_TOKENS", "8000"))
 SUMMARY_SINGLE_COMPLETION_LIMIT = int(os.getenv("SUMMARY_SINGLE_MAX_COMPLETION_TOKENS", "1600"))
-SUMMARY_INPUT_CONTENT_LIMIT = int(os.getenv("SUMMARY_INPUT_CONTENT_CHARS", "520"))
+SUMMARY_INPUT_CONTENT_LIMIT = int(os.getenv("SUMMARY_INPUT_CONTENT_CHARS", "900"))
 
 
 def _message_content(response: Any) -> str:
@@ -173,11 +173,16 @@ def _clip_text(value: Any, limit: int) -> str:
     return text[:limit].rstrip() + "..."
 
 
+def _summary_min_length(max_length: int) -> int:
+    max_length = max(int(max_length or 220), 80)
+    return min(max(int(max_length * 0.6), 120), max_length)
+
+
 def _batch_completion_limits(article_count: int, max_length: int) -> List[int]:
     article_count = max(int(article_count or 1), 1)
     max_length = max(int(max_length or 180), 80)
-    per_article_budget = max(220, min(max_length + 160, 420))
-    first_limit = max(1200, 600 + article_count * per_article_budget)
+    per_article_budget = max(300, min(max_length + 260, 760))
+    first_limit = max(1600, 700 + article_count * per_article_budget)
 
     if is_gpt5_model(MODEL):
         # GPT-5 계열은 reasoning token도 max_completion_tokens 안에 포함된다.
@@ -257,14 +262,16 @@ def summarize_article(article: Dict, max_length: int = 220) -> Dict:
         )
 
     try:
+        min_length = _summary_min_length(max_length)
         prompt = f"""
-뉴스를 {max_length}자 이내, 1~2문장으로 요약하세요.
+뉴스를 {min_length}~{max_length}자, 2~3문장으로 요약하세요.
 
 규칙:
 1. 제목/내용에 있는 사실만 사용합니다.
 2. 기업명, 서비스명, 수치, 일정은 원문에 있을 때만 포함합니다.
 3. 추측, 전망, 평가를 새로 만들지 않습니다.
-4. 내용이 부족하면 제목을 바탕으로 확인 가능한 사실만 씁니다.
+4. 첫 문장에는 핵심 사건/발표를, 이어지는 문장에는 배경·수치·영향·다음 일정 중 원문에 있는 정보를 담습니다.
+5. 내용이 부족하면 억지로 늘리지 말고 제목을 바탕으로 확인 가능한 사실만 씁니다.
 
 제목: {title}
 내용: {content}
@@ -280,7 +287,8 @@ def summarize_article(article: Dict, max_length: int = 220) -> Dict:
                 {
                     "role": "system",
                     "content": (
-                        "뉴스 기사를 간결하고 정확하게 요약합니다. "
+                        "뉴스 기사를 사실 중심으로 요약합니다. "
+                        "핵심 사건과 확인 가능한 배경을 함께 담고, "
                         "원문에 없는 사실을 추가하지 않습니다."
                     )
                 },
@@ -364,15 +372,17 @@ def summarize_batch_with_llm(articles: List[Dict], max_length: int = 220) -> Lis
 """.strip()
         )
 
+    min_length = _summary_min_length(max_length)
     prompt = f"""
-아래 뉴스들을 각각 {max_length}자 이내, 1~2문장으로 요약하세요.
+아래 뉴스들을 각각 {min_length}~{max_length}자, 2~3문장으로 요약하세요.
 
 요약 규칙:
 1. 제목/내용에 있는 사실만 사용합니다.
 2. 기업명, 서비스명, 수치, 일정은 원문에 있을 때만 포함합니다.
 3. 추측, 전망, 평가를 새로 만들지 않습니다.
-4. 내용이 부족하면 제목을 바탕으로 확인 가능한 사실만 씁니다.
-5. 모든 index를 정확히 한 번씩 포함하고 summary는 빈 문자열로 두지 않습니다.
+4. 첫 문장에는 핵심 사건/발표를, 이어지는 문장에는 배경·수치·영향·다음 일정 중 원문에 있는 정보를 담습니다.
+5. 내용이 부족하면 억지로 늘리지 말고 제목을 바탕으로 확인 가능한 사실만 씁니다.
+6. 모든 index를 정확히 한 번씩 포함하고 summary는 빈 문자열로 두지 않습니다.
 
 출력은 JSON 객체 하나만:
 {{"summaries":[{{"index":1,"summary":"요약문"}}]}}
@@ -396,7 +406,8 @@ def summarize_batch_with_llm(articles: List[Dict], max_length: int = 220) -> Lis
                 {
                     "role": "system",
                     "content": (
-                        "뉴스 기사를 정확하게 요약하는 편집자입니다. "
+                        "뉴스 기사를 사실 중심으로 요약하는 편집자입니다. "
+                        "핵심 사건과 확인 가능한 배경을 함께 담고, "
                         "원문에 없는 사실을 추가하지 않고, 반드시 JSON만 출력합니다."
                     )
                 },

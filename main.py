@@ -51,7 +51,7 @@ DEFAULT_SELECT_LIMIT = 10
 DEFAULT_SELECTOR_CANDIDATE_GROUP_LIMIT = 45
 
 # 요약 최대 길이. 설정 파일/섹션별로 조절 가능하다.
-DEFAULT_SUMMARY_MAX_LENGTH = 180
+DEFAULT_SUMMARY_MAX_LENGTH = 360
 
 # 메일 상단 3줄 흐름 요약을 별도 AI 호출로 만들지 여부.
 # 기본은 꺼서 섹션당 1회씩 추가되는 AI 호출을 줄인다.
