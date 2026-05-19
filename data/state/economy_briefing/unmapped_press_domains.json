@@ -1,6 +1,6 @@
 {
-  "updated_at": "2026-05-19T08:17:10.885389+09:00",
-  "total_count": 11,
+  "updated_at": "2026-05-20T08:18:33.503630+09:00",
+  "total_count": 13,
   "current_run_count": 1,
   "new_count": 0,
   "domains": [
@@ -9,10 +9,12 @@
     "ferrotimes.com",
     "gobalnews.com",
     "koscaj.com",
+    "lawtv.kr",
     "m-joongang.com",
     "news.ebs.co.kr",
     "taxwatch.co.kr",
     "thegolftimes.co.kr",
+    "theopiniontimes.news",
     "usmbc.co.kr",
     "web.ubc.co.kr"
   ]
