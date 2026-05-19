@@ -56,8 +56,14 @@ DEFAULT_SUMMARY_MAX_LENGTH = 180
 # 기본은 꺼서 섹션당 1회씩 추가되는 AI 호출을 줄인다.
 DEFAULT_EMAIL_INSIGHT_AI = False
 
+# 이메일 발송 방식: individual=수신자별 개별 발송, bulk=수신자 전체에게 1회 발송
+DEFAULT_EMAIL_SEND_MODE = "individual"
+
 # 최근 며칠간 이미 다룬 이슈를 비교할지
 DEFAULT_ISSUE_HISTORY_DAYS = 3
+
+# 발송 성공 후 seen_issues.json에 저장할지 여부
+DEFAULT_SAVE_ISSUE_HISTORY = True
 
 
 # ====================================
@@ -90,6 +96,12 @@ def parse_args():
         "--config",
         default=DEFAULT_CONFIG_PATH,
         help=f"브리핑 설정 JSON 파일 경로. 기본값: {DEFAULT_CONFIG_PATH}"
+    )
+
+    parser.add_argument(
+        "--no-save-history",
+        action="store_true",
+        help="테스트 실행용. 이메일 발송 성공 후 seen_issues.json 저장을 건너뜁니다."
     )
 
     return parser.parse_args()
@@ -245,6 +257,31 @@ def normalize_bool(value, default=False):
         return False
 
     return bool(default)
+
+
+def normalize_email_send_mode(value, default=DEFAULT_EMAIL_SEND_MODE):
+    """
+    설정 파일의 이메일 발송 방식을 안전하게 변환한다.
+
+    지원:
+    - individual: 수신자별 개별 발송
+    - bulk: 전체 수신자를 To에 넣어 한 번에 발송
+    """
+    default = str(default or DEFAULT_EMAIL_SEND_MODE).strip().lower()
+    if default not in {"individual", "bulk"}:
+        default = DEFAULT_EMAIL_SEND_MODE
+
+    text = str(value or default).strip().lower()
+    bulk_values = {"bulk", "all", "group", "combined", "single", "전체", "전체발송"}
+    individual_values = {"individual", "separate", "each", "personal", "개별", "개별발송"}
+
+    if text in bulk_values:
+        return "bulk"
+    if text in individual_values:
+        return "individual"
+
+    logger.warning("⚠️ 알 수 없는 email_send_mode=%s 값입니다. 기본값 %s를 사용합니다.", value, default)
+    return default
 
 
 def apply_exclude_keywords(news_list, exclude_keywords, section_name):
@@ -660,6 +697,17 @@ def main():
         config.get("email_insight_ai", DEFAULT_EMAIL_INSIGHT_AI),
         DEFAULT_EMAIL_INSIGHT_AI
     )
+    email_send_mode = normalize_email_send_mode(
+        config.get("email_send_mode", DEFAULT_EMAIL_SEND_MODE),
+        DEFAULT_EMAIL_SEND_MODE
+    )
+    save_issue_history = normalize_bool(
+        config.get("save_issue_history", DEFAULT_SAVE_ISSUE_HISTORY),
+        DEFAULT_SAVE_ISSUE_HISTORY
+    )
+    if args.no_save_history:
+        save_issue_history = False
+
     recent_hours = int(config.get("recent_hours", DEFAULT_RECENT_HOURS))
     issue_history_days = int(config.get("issue_history_days", DEFAULT_ISSUE_HISTORY_DAYS))
 
@@ -673,12 +721,14 @@ def main():
         config_path,
     )
     logger.info(
-        "⚙️ 기본값: recent=%sh / issue_history=%s일 / max_total=%s / select=%s / ai_groups=%s",
+        "⚙️ 기본값: recent=%sh / issue_history=%s일 / max_total=%s / select=%s / ai_groups=%s / send_mode=%s / save_history=%s",
         recent_hours,
         issue_history_days,
         max_total_news,
         select_limit,
         selector_candidate_group_limit,
+        email_send_mode,
+        save_issue_history,
     )
 
     section_results = []
@@ -779,27 +829,31 @@ def main():
         briefing_name=briefing_name,
         subject_prefix=subject_prefix,
         section_results=section_results,
-        receiver_env_name=receiver_env
+        receiver_env_name=receiver_env,
+        send_mode=email_send_mode
     )
 
     if result["success"]:
         logger.info(f"✅ {result['message']}")
 
-        history_result = issue_history.append_sent_issues(
-            briefing_name=briefing_name,
-            subject_prefix=subject_prefix,
-            receiver_env=receiver_env,
-            section_results=section_results,
-            file_path=issue_history_file_path,
-            keep_days=issue_history_days
-        )
+        if save_issue_history:
+            history_result = issue_history.append_sent_issues(
+                briefing_name=briefing_name,
+                subject_prefix=subject_prefix,
+                receiver_env=receiver_env,
+                section_results=section_results,
+                file_path=issue_history_file_path,
+                keep_days=issue_history_days
+            )
 
-        logger.info(
-            f"🗂️ 이슈 히스토리 저장 완료: "
-            f"신규 {history_result['saved_count']}개 / "
-            f"오래된 이슈 삭제 {history_result.get('pruned_count', 0)}개 / "
-            f"누적 {history_result['total_count']}개"
-        )
+            logger.info(
+                f"🗂️ 이슈 히스토리 저장 완료: "
+                f"신규 {history_result['saved_count']}개 / "
+                f"오래된 이슈 삭제 {history_result.get('pruned_count', 0)}개 / "
+                f"누적 {history_result['total_count']}개"
+            )
+        else:
+            logger.info("🧪 테스트 실행 옵션으로 이슈 히스토리 저장을 건너뜁니다: %s", issue_history_file_path)
 
     else:
         logger.error(f"❌ {result['message']}")

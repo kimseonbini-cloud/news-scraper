@@ -24,6 +24,7 @@ except Exception:
     OpenAI = None
 from dotenv import load_dotenv
 from openai_usage import (
+    create_chat_completion,
     record_openai_usage,
     openai_token_limit_kwargs,
     openai_temperature_kwargs,
@@ -439,7 +440,9 @@ def _deduplicate_by_llm_event_group(
 """
 
     try:
-        response = client.chat.completions.create(
+        response = create_chat_completion(
+            client,
+            logger,
             model=MODEL,
             messages=[
                 {
@@ -707,7 +710,9 @@ importance_score:
 """
 
     try:
-        response = client.chat.completions.create(
+        response = create_chat_completion(
+            client,
+            logger,
             model=MODEL,
             messages=[
                 {
@@ -1561,7 +1566,9 @@ importance_score:
 """
 
     try:
-        response = client.chat.completions.create(
+        response = create_chat_completion(
+            client,
+            logger,
             model=SELECTOR_MODEL,
             messages=[
                 {

@@ -20,6 +20,7 @@ except Exception:
 
 from dotenv import load_dotenv
 from openai_usage import (
+    create_chat_completion as create_openai_chat_completion,
     record_openai_usage,
     openai_token_limit_kwargs,
     openai_temperature_kwargs,
@@ -77,7 +78,7 @@ def _summary_reasoning_effort_kwargs() -> Dict[str, str]:
     기본값은 minimal이다.
     - SUMMARY_REASONING_EFFORT=none 으로 두면 파라미터를 보내지 않는다.
     - OPENAI_REASONING_EFFORT보다 SUMMARY_REASONING_EFFORT를 우선한다.
-    - 구버전 SDK에서 reasoning_effort를 지원하지 않으면 호출 wrapper가 자동으로 제거 후 재시도한다.
+    - 구버전 SDK에서 reasoning_effort를 직접 지원하지 않으면 호출 wrapper가 extra_body로 옮긴다.
     """
     if not is_gpt5_model(MODEL):
         return {}
@@ -96,17 +97,9 @@ def _summary_reasoning_effort_kwargs() -> Dict[str, str]:
 def _create_chat_completion(**kwargs):
     """
     Chat Completions 호출 wrapper.
-    reasoning_effort 미지원 SDK/런타임에서는 해당 인자만 제거하고 즉시 재시도한다.
-    이 fallback은 TypeError 단계에서 발생하므로 API 토큰을 추가로 쓰지 않는다.
+    OpenAI SDK 버전에 따라 신규 body 필드를 extra_body로 옮겨 호환 호출한다.
     """
-    try:
-        return client.chat.completions.create(**kwargs)
-    except TypeError as e:
-        if "reasoning_effort" in str(e):
-            kwargs.pop("reasoning_effort", None)
-            logger.warning("⚠️ 현재 OpenAI SDK가 reasoning_effort를 지원하지 않아 해당 옵션 없이 재시도합니다.")
-            return client.chat.completions.create(**kwargs)
-        raise
+    return create_openai_chat_completion(client, logger, **kwargs)
 
 
 def _safe_text(value: Any) -> str:

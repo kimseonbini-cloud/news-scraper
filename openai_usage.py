@@ -15,6 +15,7 @@ OpenAI 사용량/비용 로깅 유틸리티
 from __future__ import annotations
 
 import logging
+import inspect
 import os
 import re
 from copy import deepcopy
@@ -101,6 +102,12 @@ DEFAULT_MODEL_PRICES: Dict[str, Dict[str, float]] = {
 
 # 모델별 누적 사용량
 USAGE_TOTALS_BY_MODEL: Dict[str, Dict[str, float]] = {}
+
+CHAT_COMPLETION_EXTRA_BODY_COMPAT_PARAMS = {
+    "max_completion_tokens",
+    "reasoning_effort",
+    "verbosity",
+}
 
 
 def normalize_model_env_key(model: str) -> str:
@@ -217,6 +224,142 @@ def openai_reasoning_effort_kwargs(model: str) -> Dict[str, str]:
 def openai_json_response_format_kwargs() -> Dict[str, Dict[str, str]]:
     """JSON만 받아야 하는 호출에서 JSON mode를 켠다."""
     return {"response_format": {"type": "json_object"}}
+
+
+def _chat_completion_create_params(client: Any) -> Optional[Dict[str, inspect.Parameter]]:
+    try:
+        return dict(inspect.signature(client.chat.completions.create).parameters)
+    except Exception:
+        return None
+
+
+def _create_accepts_kwargs(params: Optional[Dict[str, inspect.Parameter]]) -> bool:
+    if not params:
+        return False
+    return any(param.kind == inspect.Parameter.VAR_KEYWORD for param in params.values())
+
+
+def _merge_extra_body(kwargs: Dict[str, Any], extra_values: Dict[str, Any]) -> None:
+    if not extra_values:
+        return
+
+    current_extra_body = kwargs.get("extra_body")
+    if current_extra_body is None:
+        extra_body = {}
+    else:
+        try:
+            extra_body = dict(current_extra_body)
+        except Exception:
+            extra_body = {}
+
+    extra_body.update(extra_values)
+    kwargs["extra_body"] = extra_body
+
+
+def _prepare_chat_completion_kwargs_for_sdk(
+    client: Any,
+    kwargs: Dict[str, Any],
+) -> Dict[str, Any]:
+    """
+    구버전 OpenAI SDK가 아직 정식 인자로 모르는 Chat Completions 필드를
+    extra_body로 옮긴다.
+
+    openai==1.12.x처럼 max_completion_tokens/reasoning_effort를 시그니처에서
+    받지 않는 SDK도 extra_body는 요청 JSON에 병합하므로 GPT-5 계열 호출을
+    유지할 수 있다.
+    """
+    params = _chat_completion_create_params(client)
+    if not params or _create_accepts_kwargs(params):
+        return kwargs
+
+    moved_values = {}
+    for name in CHAT_COMPLETION_EXTRA_BODY_COMPAT_PARAMS:
+        if name in kwargs and name not in params:
+            moved_values[name] = kwargs.pop(name)
+
+    if moved_values and "extra_body" in params:
+        _merge_extra_body(kwargs, moved_values)
+        return kwargs
+
+    # 아주 오래된 SDK가 extra_body도 지원하지 않으면 최후의 호환 처리만 한다.
+    # GPT-5 모델에서는 서버가 max_tokens를 거절할 수 있으므로, 가능한 환경에서는
+    # extra_body 지원 SDK를 쓰는 것이 가장 안전하다.
+    if "max_completion_tokens" in moved_values and "max_tokens" in params:
+        kwargs["max_tokens"] = moved_values["max_completion_tokens"]
+
+    return kwargs
+
+
+def _retry_chat_completion_after_unexpected_kwarg(
+    create_fn: Any,
+    kwargs: Dict[str, Any],
+    unexpected_name: str,
+    log: Optional[logging.Logger],
+) -> Any:
+    retry_kwargs = dict(kwargs)
+
+    if unexpected_name in retry_kwargs:
+        value = retry_kwargs.pop(unexpected_name)
+        if "extra_body" in _chat_completion_create_params_from_fn(create_fn):
+            _merge_extra_body(retry_kwargs, {unexpected_name: value})
+            if log is not None:
+                log.warning(
+                    "⚠️ 현재 OpenAI SDK가 %s 인자를 직접 지원하지 않아 extra_body로 재시도합니다.",
+                    unexpected_name,
+                )
+            return create_fn(**retry_kwargs)
+
+        if unexpected_name == "max_completion_tokens":
+            retry_kwargs["max_tokens"] = value
+            if log is not None:
+                log.warning(
+                    "⚠️ 현재 OpenAI SDK가 max_completion_tokens를 지원하지 않아 max_tokens로 재시도합니다."
+                )
+            return create_fn(**retry_kwargs)
+
+    if unexpected_name == "extra_body":
+        retry_kwargs.pop("extra_body", None)
+        if log is not None:
+            log.warning("⚠️ 현재 OpenAI SDK가 extra_body를 지원하지 않아 해당 옵션 없이 재시도합니다.")
+        return create_fn(**retry_kwargs)
+
+    raise TypeError(f"unexpected keyword argument {unexpected_name}")
+
+
+def _chat_completion_create_params_from_fn(create_fn: Any) -> Dict[str, inspect.Parameter]:
+    try:
+        return dict(inspect.signature(create_fn).parameters)
+    except Exception:
+        return {}
+
+
+def create_chat_completion(client: Any, log: Optional[logging.Logger] = None, **kwargs: Any) -> Any:
+    """
+    Chat Completions 호출 호환 wrapper.
+
+    최신 SDK에서는 인자를 그대로 보내고, 구버전 SDK에서는 GPT-5 계열에 필요한
+    max_completion_tokens/reasoning_effort 같은 신규 body 필드를 extra_body로 옮겨
+    TypeError 없이 호출한다.
+    """
+    if client is None:
+        raise ValueError("OpenAI 클라이언트를 초기화할 수 없습니다.")
+
+    create_fn = client.chat.completions.create
+    prepared_kwargs = _prepare_chat_completion_kwargs_for_sdk(client, dict(kwargs))
+
+    try:
+        return create_fn(**prepared_kwargs)
+    except TypeError as e:
+        message = str(e)
+        match = re.search(r"unexpected keyword argument ['\"]([^'\"]+)['\"]", message)
+        if match:
+            return _retry_chat_completion_after_unexpected_kwarg(
+                create_fn=create_fn,
+                kwargs=prepared_kwargs,
+                unexpected_name=match.group(1),
+                log=log,
+            )
+        raise
 
 
 def get_model_prices(model: str) -> Dict[str, float]:

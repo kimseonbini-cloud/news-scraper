@@ -2,6 +2,7 @@
   "briefing_name": "경제 뉴스 브리핑",
   "subject_prefix": "경제·부동산·증권 뉴스 브리핑",
   "receiver_env": "EMAIL_RECEIVER_ECONOMY",
+  "email_send_mode": "individual",
   "selector_candidate_group_limit": 45,
   "summary_max_length": 180,
   "email_insight_ai": true,

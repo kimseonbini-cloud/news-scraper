@@ -11,6 +11,7 @@ from email.utils import parsedate_to_datetime, formataddr
 from datetime import datetime
 from dotenv import load_dotenv
 from openai_usage import (
+    create_chat_completion as create_openai_chat_completion,
     record_openai_usage,
     openai_token_limit_kwargs,
     openai_temperature_kwargs,
@@ -263,6 +264,184 @@ def get_receiver_list(receiver_env_name=None):
     return receivers
 
 
+def normalize_email_send_mode(value, default="individual"):
+    """
+    이메일 발송 방식 변환.
+
+    - individual: 수신자별 개별 발송
+    - bulk: 전체 수신자를 To에 넣어 한 번에 발송
+    """
+    default = str(default or "individual").strip().lower()
+    if default not in {"individual", "bulk"}:
+        default = "individual"
+
+    text = str(value or default).strip().lower()
+    if text in {"bulk", "all", "group", "combined", "single", "전체", "전체발송"}:
+        return "bulk"
+    if text in {"individual", "separate", "each", "personal", "개별", "개별발송"}:
+        return "individual"
+
+    logger.warning("⚠️ 알 수 없는 이메일 발송 방식입니다: %s. 기본값 %s를 사용합니다.", value, default)
+    return default
+
+
+def normalize_receiver_info(receiver_info):
+    """
+    dict 또는 문자열 수신자 정보를 {name, email, display} 구조로 변환한다.
+    """
+    receiver_name = ""
+    receiver_email = ""
+    receiver_display = ""
+
+    if isinstance(receiver_info, dict):
+        receiver_name = str(receiver_info.get("name") or "").strip()
+        receiver_email = str(receiver_info.get("email") or "").strip()
+        receiver_display = str(receiver_info.get("display") or "").strip()
+    else:
+        raw_receiver = str(receiver_info or "").strip()
+
+        if "|" in raw_receiver:
+            receiver_name, receiver_email = raw_receiver.split("|", 1)
+            receiver_name = receiver_name.strip()
+            receiver_email = receiver_email.strip()
+        else:
+            receiver_email = raw_receiver
+            receiver_name = receiver_email
+
+    if not receiver_email:
+        raise ValueError("수신자 이메일이 비어 있습니다.")
+
+    if not receiver_name:
+        receiver_name = receiver_email
+
+    if not receiver_display:
+        receiver_display = formataddr((receiver_name, receiver_email)) if receiver_name else receiver_email
+
+    return {
+        "name": receiver_name,
+        "email": receiver_email,
+        "display": receiver_display,
+    }
+
+
+def build_email_message(subject, html_body, to_header):
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = EMAIL_SENDER
+    msg["To"] = to_header
+
+    plain_body = f"{subject}\n\nHTML 메일을 지원하는 환경에서 뉴스 브리핑을 확인해 주세요."
+
+    text_part = MIMEText(plain_body, "plain", "utf-8")
+    html_part = MIMEText(html_body, "html", "utf-8")
+
+    msg.attach(text_part)
+    msg.attach(html_part)
+
+    return msg
+
+
+def _normalize_url_for_compare(value):
+    text = str(value or "").strip().lower()
+    if not text:
+        return ""
+    text = re.sub(r"^https?://", "", text)
+    text = re.sub(r"^www\.", "", text)
+    return text.rstrip("/")
+
+
+def build_related_reports_html(news):
+    """
+    관련보도 제목/링크 목록 HTML 생성.
+
+    메일에서는 JS가 막히므로 details/summary 기반 접기 UI를 사용한다.
+    details를 지원하지 않는 클라이언트에서는 이너박스가 그대로 보일 수 있다.
+    """
+    titles = news.get("group_article_titles") or []
+    urls = news.get("group_article_urls") or []
+    main_url = _normalize_url_for_compare(news.get("url"))
+
+    related_items = []
+    seen_urls = set()
+    seen_titles = set()
+
+    for title, url in zip(titles, urls):
+        title_text = str(title or "").strip()
+        url_text = str(url or "").strip()
+        normalized_url = _normalize_url_for_compare(url_text)
+        normalized_title = re.sub(r"\s+", " ", title_text).strip().lower()
+
+        if not title_text or not url_text or url_text == "#":
+            continue
+        if normalized_url and normalized_url in seen_urls:
+            continue
+        if normalized_title and normalized_title in seen_titles:
+            continue
+
+        seen_urls.add(normalized_url)
+        seen_titles.add(normalized_title)
+        related_items.append({
+            "title": title_text,
+            "url": url_text,
+            "is_main": bool(main_url and normalized_url == main_url),
+        })
+
+    if not related_items:
+        return ""
+
+    related_count = len(related_items)
+    item_html = ""
+
+    for index, item in enumerate(related_items, 1):
+        main_label = ""
+        if item.get("is_main"):
+            main_label = """
+                                                    <span style="font-size:10px; color:#737373; font-weight:700;">
+                                                        대표
+                                                    </span>
+            """
+
+        item_html += f"""
+                                        <tr>
+                                            <td valign="top" width="22"
+                                                style="padding:4px 0 4px 0; font-size:11px; line-height:1.45; color:#71717a;">
+                                                {index}.
+                                            </td>
+                                            <td style="padding:4px 0 4px 0; font-size:12px; line-height:1.45;">
+                                                <a href="{safe_url(item.get("url"))}" target="_blank"
+                                                   style="font-weight:700; text-decoration:none; color:#1d4ed8;">
+                                                    {safe_text(item.get("title"))}
+                                                </a>
+                                                {main_label}
+                                            </td>
+                                        </tr>
+        """
+
+    return f"""
+                                <div style="margin:8px 0 0 0;">
+                                    <details style="margin:0;">
+                                        <summary style="cursor:pointer; display:inline-block;
+                                                       font-size:11px; line-height:1.5;
+                                                       font-weight:800; color:#2563eb;">
+                                            관련보도 {related_count}건
+                                        </summary>
+                                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                                               style="border-collapse:collapse; margin:7px 0 0 0;
+                                                      background:#f8fafc; border:1px solid #e5e7eb;">
+                                            <tr>
+                                                <td style="padding:7px 9px;">
+                                                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                                                           style="border-collapse:collapse;">
+                                                        {item_html}
+                                                    </table>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </details>
+                                </div>
+    """
+
+
 def build_section_dashboard(section_result):
     """
     섹션 제목 아래, 핵심요약 3줄 위에 표시할 간단 대시보드.
@@ -365,7 +544,7 @@ def _email_insight_reasoning_effort_kwargs(model: str) -> dict:
     """
     메일 핵심 3줄 생성은 깊은 추론보다 짧은 종합이 중요하므로
     GPT-5 계열에서는 reasoning_effort를 가장 낮게 시도한다.
-    구버전 SDK가 이 인자를 지원하지 않으면 호출 wrapper에서 자동 제거한다.
+    구버전 SDK가 이 인자를 직접 지원하지 않으면 호출 wrapper가 extra_body로 옮긴다.
     """
     if not is_gpt5_model(model):
         return {}
@@ -379,16 +558,9 @@ def _email_insight_reasoning_effort_kwargs(model: str) -> dict:
 def _create_chat_completion_for_email_insight(**kwargs):
     """
     OpenAI SDK/모델 호환성 방어용 호출 wrapper.
-    reasoning_effort를 지원하지 않는 런타임에서는 해당 옵션만 제거하고 재시도한다.
+    신규 Chat Completions body 필드를 직접 받지 않는 SDK에서도 호출되게 한다.
     """
-    try:
-        return client.chat.completions.create(**kwargs)
-    except TypeError as e:
-        if "reasoning_effort" in str(e):
-            kwargs.pop("reasoning_effort", None)
-            logger.warning("⚠️ 현재 OpenAI SDK가 reasoning_effort를 지원하지 않아 메일 핵심 3줄 호출에서 해당 옵션 없이 재시도합니다.")
-            return client.chat.completions.create(**kwargs)
-        raise
+    return create_openai_chat_completion(client, logger, **kwargs)
 
 
 def _response_content(response) -> str:
@@ -675,18 +847,9 @@ def build_news_section(section_result, section_index):
 
         source = safe_text(news.get("source", "언론사 미상") or "언론사 미상")
         importance_score = safe_int(news.get("importance_score", 3))
-        related_article_count = safe_count(news.get("group_article_count"), 1)
-        related_source_count = safe_count(news.get("group_source_count"), 1)
-
-        related_meta_html = ""
-        if related_article_count > 1:
-            related_parts = [f"관련보도 {related_article_count}건"]
-            if related_source_count > 1:
-                related_parts.append(f"언론사 {related_source_count}곳")
-            related_meta_html = f"""
-                                    <span>　</span>
-                                    <span style="font-weight:800; color:#2563eb;">{safe_text(" · ".join(related_parts))}</span>
-            """
+        related_reports_html = ""
+        if safe_count(news.get("group_article_count"), 1) > 1:
+            related_reports_html = build_related_reports_html(news)
 
         html_body += f"""
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
@@ -704,7 +867,6 @@ def build_news_section(section_result, section_index):
                                     <span style="font-weight:800;">{source}</span>
                                     <span>　</span>
                                     <span style="font-weight:800; color:#ea580c;">중요도 {importance_score}</span>
-                                    {related_meta_html}
                                     <span>　</span>
                                     <span>{published_date}</span>
                                 </div>
@@ -712,6 +874,7 @@ def build_news_section(section_result, section_index):
                                 <div style="font-size:13px; line-height:1.65; margin:0; padding:0; word-break:keep-all;">
                                     {summary_html}
                                 </div>
+                                {related_reports_html}
                             </td>
                         </tr>
                     </table>
@@ -861,7 +1024,8 @@ def send_email(
     briefing_name=None,
     subject_prefix=None,
     section_results=None,
-    receiver_env_name=None
+    receiver_env_name=None,
+    send_mode="individual"
 ):
     """
     이메일로 뉴스 요약 발송
@@ -901,6 +1065,7 @@ def send_email(
         )
 
         receiver_list = get_receiver_list(selected_receiver_env_name)
+        selected_send_mode = normalize_email_send_mode(send_mode)
 
         if not receiver_list:
             logger.error(f"❌ 수신자 이메일이 설정되지 않았습니다: {selected_receiver_env_name}")
@@ -923,65 +1088,91 @@ def send_email(
         failed_list = []
 
         logger.info(
-            "📧 이메일 발송 시작: 수신자 %s명 / env=%s",
+            "📧 이메일 발송 시작: 수신자 %s명 / env=%s / mode=%s",
             len(receiver_list),
             selected_receiver_env_name,
+            selected_send_mode,
         )
 
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
             server.starttls()
             server.login(EMAIL_SENDER, EMAIL_PASSWORD)
 
-            for receiver_info in receiver_list:
-                receiver_name = ""
-                receiver_email = ""
-                receiver_display = ""
+            if selected_send_mode == "bulk":
+                normalized_receivers = []
 
-                try:
-                    if isinstance(receiver_info, dict):
-                        receiver_name = receiver_info.get("name") or ""
-                        receiver_email = receiver_info.get("email") or ""
-                        receiver_display = receiver_info.get("display") or receiver_email
-                    else:
-                        raw_receiver = str(receiver_info).strip()
+                for receiver_info in receiver_list:
+                    try:
+                        normalized_receivers.append(normalize_receiver_info(receiver_info))
+                    except Exception as e:
+                        display_name = str(receiver_info)
+                        logger.error(f"   ❌ {display_name} 수신자 정보 오류: {str(e)}")
+                        failed_list.append(display_name)
 
-                        if "|" in raw_receiver:
-                            receiver_name, receiver_email = raw_receiver.split("|", 1)
-                            receiver_name = receiver_name.strip()
-                            receiver_email = receiver_email.strip()
-                            receiver_display = formataddr((receiver_name, receiver_email))
-                        else:
-                            receiver_email = raw_receiver
-                            receiver_display = receiver_email
-                            receiver_name = receiver_email
+                if normalized_receivers:
+                    receiver_emails = [receiver["email"] for receiver in normalized_receivers]
+                    to_header = ", ".join(receiver["display"] for receiver in normalized_receivers)
 
-                    if not receiver_email:
-                        raise ValueError("수신자 이메일이 비어 있습니다.")
+                    msg = build_email_message(
+                        subject=subject,
+                        html_body=html_body,
+                        to_header=to_header,
+                    )
 
-                    if not receiver_name:
-                        receiver_name = receiver_email
+                    server.send_message(
+                        msg,
+                        from_addr=EMAIL_SENDER,
+                        to_addrs=receiver_emails,
+                    )
+                    success_count = len(normalized_receivers)
+                    logger.debug("전체 이메일 발송 완료: %s", ", ".join(receiver_emails))
 
-                    msg = MIMEMultipart("alternative")
-                    msg["Subject"] = subject
-                    msg["From"] = EMAIL_SENDER
-                    msg["To"] = receiver_display
+            else:
+                for receiver_info in receiver_list:
+                    receiver_name = ""
+                    receiver_email = ""
 
-                    plain_body = f"{subject}\n\nHTML 메일을 지원하는 환경에서 뉴스 브리핑을 확인해 주세요."
+                    try:
+                        normalized_receiver = normalize_receiver_info(receiver_info)
+                        receiver_name = normalized_receiver["name"]
+                        receiver_email = normalized_receiver["email"]
+                        receiver_display = normalized_receiver["display"]
 
-                    text_part = MIMEText(plain_body, "plain", "utf-8")
-                    html_part = MIMEText(html_body, "html", "utf-8")
+                        msg = build_email_message(
+                            subject=subject,
+                            html_body=html_body,
+                            to_header=receiver_display,
+                        )
 
-                    msg.attach(text_part)
-                    msg.attach(html_part)
+                        server.send_message(msg)
+                        logger.debug(f"이메일 발송 완료: {receiver_name} ({receiver_email})")
+                        success_count += 1
 
-                    server.send_message(msg)
-                    logger.debug(f"이메일 발송 완료: {receiver_name} ({receiver_email})")
-                    success_count += 1
+                    except Exception as e:
+                        display_name = receiver_name or receiver_email or str(receiver_info)
+                        logger.error(f"   ❌ {display_name} 발송 실패: {str(e)}")
+                        failed_list.append(display_name)
 
-                except Exception as e:
-                    display_name = receiver_name or receiver_email or str(receiver_info)
-                    logger.error(f"   ❌ {display_name} 발송 실패: {str(e)}")
-                    failed_list.append(display_name)
+        if selected_send_mode == "bulk" and success_count == len(receiver_list):
+            logger.info(f"🎉 전체 이메일 발송 완료! ({success_count}명)")
+            return {
+                "success": True,
+                "message": f"{success_count}명에게 전체 발송 완료"
+            }
+
+        if selected_send_mode == "bulk" and success_count > 0:
+            logger.warning(f"⚠️ 전체 발송 일부 완료: {success_count}/{len(receiver_list)}명")
+            return {
+                "success": True,
+                "message": f"전체 발송 {success_count}명 성공, {len(failed_list)}명 실패: {', '.join(failed_list)}"
+            }
+
+        if selected_send_mode == "bulk":
+            logger.error("❌ 전체 이메일 발송 실패")
+            return {
+                "success": False,
+                "message": f"전체 발송 실패: {', '.join(failed_list)}"
+            }
 
         if success_count == len(receiver_list):
             logger.info(f"🎉 모든 이메일 발송 완료! ({success_count}명)")
