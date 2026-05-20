@@ -1,8 +1,8 @@
 {
-  "updated_at": "2026-05-20T08:04:29.073447+09:00",
-  "total_count": 16,
-  "current_run_count": 2,
-  "new_count": 1,
+  "updated_at": "2026-05-21T08:06:19.318943+09:00",
+  "total_count": 17,
+  "current_run_count": 1,
+  "new_count": 0,
   "domains": [
     "busanmbc.co.kr",
     "cio.com",
@@ -19,6 +19,7 @@
     "stnsports.co.kr",
     "technoa.co.kr",
     "thebilliards.kr",
-    "thegolftimes.co.kr"
+    "thegolftimes.co.kr",
+    "welfarenews.net"
   ]
 }
