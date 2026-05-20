@@ -1,3 +1,12 @@
+# =============================================================================
+# [파일 설명]
+# - 수행 기능: OpenAI SDK 호출 파라미터 호환성, 토큰 사용량 추출, 비용 계산, 누적 사용량 로그를 담당합니다.
+# - 프로세스: 모델별 옵션 정규화 -> SDK 호출 파라미터 보정 -> 사용량 추출 -> 비용 계산 -> 누적/로그 출력
+# - 호출하는 곳: email_sender.py, main.py, news_selector.py, summarizer.py
+# - 주요 파라미터/입력: OpenAI 모델명, SDK 응답 usage, 가격표, completion 생성 파라미터
+# - 리턴값/출력: 호환 kwargs, usage/cost dict, 누적 사용량 요약 dict를 반환합니다.
+# =============================================================================
+
 """
 OpenAI 사용량/비용 로깅 유틸리티
 
@@ -110,6 +119,12 @@ CHAT_COMPLETION_EXTRA_BODY_COMPAT_PARAMS = {
 }
 
 
+# [코드 이해 주석]
+# - 역할: 환경변수 키에 사용할 수 있도록 모델명을 정규화한다.
+# - 호출하는 곳: openai_usage.get_model_prices
+# - 파라미터: model: str
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 빈 값과 자료형을 보정합니다 -> 비교용 불필요 요소를 제거합니다 -> 표준화된 값을 반환합니다.
 def normalize_model_env_key(model: str) -> str:
     """
     환경변수 키에 사용할 수 있도록 모델명을 정규화한다.
@@ -124,6 +139,12 @@ def normalize_model_env_key(model: str) -> str:
     return value or "UNKNOWN"
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: openai_usage.get_model_prices
+# - 파라미터: value: Any, default: float
+# - 리턴값: float 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _to_float(value: Any, default: float) -> float:
     try:
         if value is None or str(value).strip() == "":
@@ -133,6 +154,12 @@ def _to_float(value: Any, default: float) -> float:
         return default
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: openai_usage.extract_usage
+# - 파라미터: obj: Any, name: str, default: Any = 0
+# - 리턴값: Any 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _get_attr_or_key(obj: Any, name: str, default: Any = 0) -> Any:
     if obj is None:
         return default
@@ -141,6 +168,13 @@ def _get_attr_or_key(obj: Any, name: str, default: Any = 0) -> Any:
     return getattr(obj, name, default)
 
 
+# [코드 이해 주석]
+# - 역할: 날짜 스냅샷 모델명을 기본 모델명으로 변환한다.
+# - 호출하는 곳: openai_usage.get_model_prices, openai_usage.is_gpt5_model, openai_usage.openai_reasoning_effort_kwargs,
+# openai_usage.openai_temperature_kwargs, openai_usage.openai_token_limit_kwargs
+# - 파라미터: model: str
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _base_model_name(model: str) -> str:
     """
     날짜 스냅샷 모델명을 기본 모델명으로 변환한다.
@@ -156,6 +190,13 @@ def _base_model_name(model: str) -> str:
     return model
 
 
+# [코드 이해 주석]
+# - 역할: 모델별 출력 토큰 제한 파라미터를 반환한다.
+# - 호출하는 곳: email_sender.build_section_insights, news_selector.select_important_news_groups,
+# summarizer.summarize_article, summarizer.summarize_batch_with_llm
+# - 파라미터: model: str, limit: int
+# - 리턴값: Dict[str, int] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def openai_token_limit_kwargs(model: str, limit: int) -> Dict[str, int]:
     """
     모델별 출력 토큰 제한 파라미터를 반환한다.
@@ -173,6 +214,14 @@ def openai_token_limit_kwargs(model: str, limit: int) -> Dict[str, int]:
 
 
 
+# [코드 이해 주석]
+# - 역할: 모델별 temperature 파라미터를 반환한다.
+# - 호출하는 곳: email_sender.build_section_insights, news_selector._deduplicate_by_llm_event_group,
+# news_selector.select_important_news, news_selector.select_important_news_groups, summarizer.summarize_article,
+# summarizer.summarize_batch_with_llm
+# - 파라미터: model: str, temperature: float
+# - 리턴값: Dict[str, float] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def openai_temperature_kwargs(model: str, temperature: float) -> Dict[str, float]:
     """
     모델별 temperature 파라미터를 반환한다.
@@ -191,11 +240,26 @@ def openai_temperature_kwargs(model: str, temperature: float) -> Dict[str, float
 
 
 
+# [코드 이해 주석]
+# - 역할: GPT-5 계열 여부를 반환한다.
+# - 호출하는 곳: email_sender._email_insight_reasoning_effort_kwargs, email_sender.build_section_insights,
+# news_selector._deduplicate_by_llm_event_group, news_selector.select_important_news,
+# news_selector.select_important_news_groups, openai_usage.openai_reasoning_effort_kwargs 외 3곳
+# - 파라미터: model: str
+# - 리턴값: bool 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 정규화합니다 -> 조건식을 평가합니다 -> True/False를 반환합니다.
 def is_gpt5_model(model: str) -> bool:
     """GPT-5 계열 여부를 반환한다."""
     return _base_model_name(model).lower().startswith("gpt-5")
 
 
+# [코드 이해 주석]
+# - 역할: GPT-5 계열 Chat Completions의 reasoning effort를 낮춰 숨은 reasoning token 소모를 줄인다.
+# - 호출하는 곳: news_selector._deduplicate_by_llm_event_group, news_selector.select_important_news,
+# news_selector.select_important_news_groups
+# - 파라미터: model: str
+# - 리턴값: Dict[str, str] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def openai_reasoning_effort_kwargs(model: str) -> Dict[str, str]:
     """
     GPT-5 계열 Chat Completions의 reasoning effort를 낮춰 숨은 reasoning token 소모를 줄인다.
@@ -221,11 +285,24 @@ def openai_reasoning_effort_kwargs(model: str) -> Dict[str, str]:
     return {"reasoning_effort": effort}
 
 
+# [코드 이해 주석]
+# - 역할: JSON만 받아야 하는 호출에서 JSON mode를 켠다.
+# - 호출하는 곳: news_selector._deduplicate_by_llm_event_group, news_selector.select_important_news,
+# news_selector.select_important_news_groups, summarizer.summarize_batch_with_llm
+# - 파라미터: 없음
+# - 리턴값: Dict[str, Dict[str, str]] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def openai_json_response_format_kwargs() -> Dict[str, Dict[str, str]]:
     """JSON만 받아야 하는 호출에서 JSON mode를 켠다."""
     return {"response_format": {"type": "json_object"}}
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: openai_usage._prepare_chat_completion_kwargs_for_sdk
+# - 파라미터: client: Any
+# - 리턴값: Optional[Dict[str, inspect.Parameter]] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _chat_completion_create_params(client: Any) -> Optional[Dict[str, inspect.Parameter]]:
     try:
         return dict(inspect.signature(client.chat.completions.create).parameters)
@@ -233,12 +310,25 @@ def _chat_completion_create_params(client: Any) -> Optional[Dict[str, inspect.Pa
         return None
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: openai_usage._prepare_chat_completion_kwargs_for_sdk
+# - 파라미터: params: Optional[Dict[str, inspect.Parameter]]
+# - 리턴값: bool 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _create_accepts_kwargs(params: Optional[Dict[str, inspect.Parameter]]) -> bool:
     if not params:
         return False
     return any(param.kind == inspect.Parameter.VAR_KEYWORD for param in params.values())
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: openai_usage._prepare_chat_completion_kwargs_for_sdk,
+# openai_usage._retry_chat_completion_after_unexpected_kwarg
+# - 파라미터: kwargs: Dict[str, Any], extra_values: Dict[str, Any]
+# - 리턴값: None 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _merge_extra_body(kwargs: Dict[str, Any], extra_values: Dict[str, Any]) -> None:
     if not extra_values:
         return
@@ -256,6 +346,12 @@ def _merge_extra_body(kwargs: Dict[str, Any], extra_values: Dict[str, Any]) -> N
     kwargs["extra_body"] = extra_body
 
 
+# [코드 이해 주석]
+# - 역할: 구버전 OpenAI SDK가 아직 정식 인자로 모르는 Chat Completions 필드를.
+# - 호출하는 곳: openai_usage.create_chat_completion
+# - 파라미터: client: Any, kwargs: Dict[str, Any]
+# - 리턴값: Dict[str, Any] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _prepare_chat_completion_kwargs_for_sdk(
     client: Any,
     kwargs: Dict[str, Any],
@@ -290,6 +386,12 @@ def _prepare_chat_completion_kwargs_for_sdk(
     return kwargs
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: openai_usage.create_chat_completion
+# - 파라미터: create_fn: Any, kwargs: Dict[str, Any], unexpected_name: str, log: Optional[logging.Logger]
+# - 리턴값: Any 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _retry_chat_completion_after_unexpected_kwarg(
     create_fn: Any,
     kwargs: Dict[str, Any],
@@ -326,6 +428,12 @@ def _retry_chat_completion_after_unexpected_kwarg(
     raise TypeError(f"unexpected keyword argument {unexpected_name}")
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: openai_usage._retry_chat_completion_after_unexpected_kwarg
+# - 파라미터: create_fn: Any
+# - 리턴값: Dict[str, inspect.Parameter] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _chat_completion_create_params_from_fn(create_fn: Any) -> Dict[str, inspect.Parameter]:
     try:
         return dict(inspect.signature(create_fn).parameters)
@@ -333,6 +441,13 @@ def _chat_completion_create_params_from_fn(create_fn: Any) -> Dict[str, inspect.
         return {}
 
 
+# [코드 이해 주석]
+# - 역할: Chat Completions 호출 호환 wrapper.
+# - 호출하는 곳: email_sender._create_chat_completion_for_email_insight, news_selector._deduplicate_by_llm_event_group,
+# news_selector.select_important_news, news_selector.select_important_news_groups, summarizer._create_chat_completion
+# - 파라미터: client: Any, log: Optional[logging.Logger] = None, **kwargs: Any
+# - 리턴값: Any 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def create_chat_completion(client: Any, log: Optional[logging.Logger] = None, **kwargs: Any) -> Any:
     """
     Chat Completions 호출 호환 wrapper.
@@ -362,6 +477,12 @@ def create_chat_completion(client: Any, log: Optional[logging.Logger] = None, **
         raise
 
 
+# [코드 이해 주석]
+# - 역할: 모델별 단가를 반환한다.
+# - 호출하는 곳: openai_usage.calculate_cost
+# - 파라미터: model: str
+# - 리턴값: Dict[str, float] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력 dict 또는 전역 상태를 확인합니다 -> 기본값을 보정합니다 -> 호출자가 바로 쓸 값을 반환합니다.
 def get_model_prices(model: str) -> Dict[str, float]:
     """
     모델별 단가를 반환한다.
@@ -413,6 +534,12 @@ def get_model_prices(model: str) -> Dict[str, float]:
     }
 
 
+# [코드 이해 주석]
+# - 역할: OpenAI response.usage에서 입력/출력/총 토큰을 안전하게 추출한다.
+# - 호출하는 곳: openai_usage.record_openai_usage
+# - 파라미터: usage: Any
+# - 리턴값: Dict[str, int] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력 텍스트/객체를 검사합니다 -> 필요한 부분만 골라냅니다 -> 중복/빈 값을 정리해 반환합니다.
 def extract_usage(usage: Any) -> Dict[str, int]:
     """
     OpenAI response.usage에서 입력/출력/총 토큰을 안전하게 추출한다.
@@ -454,6 +581,12 @@ def extract_usage(usage: Any) -> Dict[str, int]:
     }
 
 
+# [코드 이해 주석]
+# - 역할: 입력 숫자와 가격표를 바탕으로 비용이나 점수를 계산합니다.
+# - 호출하는 곳: openai_usage.record_openai_usage
+# - 파라미터: model: str, usage_info: Dict[str, int]
+# - 리턴값: Dict[str, float] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def calculate_cost(model: str, usage_info: Dict[str, int]) -> Dict[str, float]:
     prices = get_model_prices(model)
 
@@ -478,10 +611,22 @@ def calculate_cost(model: str, usage_info: Dict[str, int]) -> Dict[str, float]:
     }
 
 
+# [코드 이해 주석]
+# - 역할: 누적 통계나 상태 값을 초기 상태로 되돌립니다.
+# - 호출하는 곳: main.main
+# - 파라미터: 없음
+# - 리턴값: None 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def reset_openai_usage_totals() -> None:
     USAGE_TOTALS_BY_MODEL.clear()
 
 
+# [코드 이해 주석]
+# - 역할: 누적 통계나 그룹에 새 값을 더합니다.
+# - 호출하는 곳: openai_usage.record_openai_usage
+# - 파라미터: model: str, usage_info: Dict[str, int], cost_info: Dict[str, float]
+# - 리턴값: None 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def add_openai_usage(model: str, usage_info: Dict[str, int], cost_info: Dict[str, float]) -> None:
     model = str(model or "unknown").strip() or "unknown"
     if model not in USAGE_TOTALS_BY_MODEL:
@@ -511,6 +656,12 @@ def add_openai_usage(model: str, usage_info: Dict[str, int], cost_info: Dict[str
     item["total_cost_usd"] += float(cost_info.get("total_cost_usd", 0.0) or 0.0)
 
 
+# [코드 이해 주석]
+# - 역할: 현재 상태, 설정, 입력 dict에서 필요한 값을 조회합니다.
+# - 호출하는 곳: openai_usage.log_openai_usage_summary
+# - 파라미터: 없음
+# - 리턴값: Dict[str, Any] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력 dict 또는 전역 상태를 확인합니다 -> 기본값을 보정합니다 -> 호출자가 바로 쓸 값을 반환합니다.
 def get_openai_usage_totals() -> Dict[str, Any]:
     by_model = deepcopy(USAGE_TOTALS_BY_MODEL)
     grand_total = {
@@ -536,6 +687,14 @@ def get_openai_usage_totals() -> Dict[str, Any]:
     }
 
 
+# [코드 이해 주석]
+# - 역할: 사용량 추출 → 비용 계산 → 누적 → 로그 출력을 한 번에 수행한다.
+# - 호출하는 곳: email_sender.build_section_insights, news_selector._deduplicate_by_llm_event_group,
+# news_selector.select_important_news, news_selector.select_important_news_groups, summarizer.summarize_article,
+# summarizer.summarize_batch_with_llm
+# - 파라미터: log: Optional[logging.Logger], label: str, model: str, usage: Any
+# - 리턴값: Dict[str, Any] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def record_openai_usage(
     log: Optional[logging.Logger],
     label: str,
@@ -570,6 +729,12 @@ def record_openai_usage(
     }
 
 
+# [코드 이해 주석]
+# - 역할: 운영자가 확인할 수 있도록 처리 결과를 로그로 출력합니다.
+# - 호출하는 곳: main.main
+# - 파라미터: log: Optional[logging.Logger] = None
+# - 리턴값: Dict[str, Any] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def log_openai_usage_summary(log: Optional[logging.Logger] = None) -> Dict[str, Any]:
     if log is None:
         log = logger

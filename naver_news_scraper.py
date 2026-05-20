@@ -1,3 +1,12 @@
+# =============================================================================
+# [파일 설명]
+# - 수행 기능: 네이버 뉴스 API를 호출하고, HTML/날짜/언론사/URL을 정리한 뒤 섹션별 후보 뉴스를 수집합니다.
+# - 프로세스: 키워드별 API 요청 -> 응답 항목 정규화 -> 최근성/샘플링 적용 -> 통계 갱신 -> 후보 목록 반환
+# - 호출하는 곳: main.py
+# - 주요 파라미터/입력: 네이버 API 환경변수, 검색 키워드, 정렬/페이지/시간 필터 설정
+# - 리턴값/출력: 뉴스 dict 목록과 LAST_SCRAPE_STATS 기반 수집 통계를 제공합니다.
+# =============================================================================
+
 """
 네이버 뉴스 검색 API 스크래퍼
 
@@ -55,6 +64,13 @@ DEFAULT_UNMAPPED_PRESS_DOMAINS_FILE_PATH = "data/unmapped_press_domains.json"
 LAST_SCRAPE_STATS = {}
 
 
+# [코드 이해 주석]
+# - 역할: 현재 한국 시간 반환.
+# - 호출하는 곳: naver_news_scraper.is_within_last_hours, naver_news_scraper.sample_news_by_time_bucket,
+# naver_news_scraper.save_unmapped_press_domains, naver_news_scraper.search_multiple_keywords
+# - 파라미터: 없음
+# - 리턴값: datetime 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력 dict 또는 전역 상태를 확인합니다 -> 기본값을 보정합니다 -> 호출자가 바로 쓸 값을 반환합니다.
 def get_now_kst() -> datetime:
     """
     현재 한국 시간 반환
@@ -62,6 +78,12 @@ def get_now_kst() -> datetime:
     return datetime.now(KST)
 
 
+# [코드 이해 주석]
+# - 역할: 마지막 search_multiple_keywords 실행 통계를 반환한다.
+# - 호출하는 곳: main.collect_select_and_summarize
+# - 파라미터: 없음
+# - 리턴값: dict 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력 dict 또는 전역 상태를 확인합니다 -> 기본값을 보정합니다 -> 호출자가 바로 쓸 값을 반환합니다.
 def get_last_scrape_stats() -> dict:
     """
     마지막 search_multiple_keywords 실행 통계를 반환한다.
@@ -71,6 +93,13 @@ def get_last_scrape_stats() -> dict:
     return dict(LAST_SCRAPE_STATS)
 
 
+# [코드 이해 주석]
+# - 역할: 네이버 뉴스 pubDate 문자열을 datetime으로 변환.
+# - 호출하는 곳: naver_news_scraper.get_news_date_range, naver_news_scraper.is_within_last_hours,
+# naver_news_scraper.search_multiple_keywords
+# - 파라미터: pub_date: str
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 문자열/설정을 읽습니다 -> 가능한 형식으로 변환을 시도합니다 -> 실패 시 안전한 기본값을 반환합니다.
 def parse_naver_pubdate(pub_date: str):
     """
     네이버 뉴스 pubDate 문자열을 datetime으로 변환
@@ -91,6 +120,12 @@ def parse_naver_pubdate(pub_date: str):
         logger.warning(f"⚠️ pubDate 파싱 실패: {pub_date} / {e}")
         return None
 
+# [코드 이해 주석]
+# - 역할: 뉴스 목록에서 가장 최근 발행일과 가장 오래된 발행일을 반환한다.
+# - 호출하는 곳: naver_news_scraper.search_multiple_keywords, naver_news_scraper.search_naver_news
+# - 파라미터: news_list: list
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력 dict 또는 전역 상태를 확인합니다 -> 기본값을 보정합니다 -> 호출자가 바로 쓸 값을 반환합니다.
 def get_news_date_range(news_list: list):
     """
     뉴스 목록에서 가장 최근 발행일과 가장 오래된 발행일을 반환한다.
@@ -136,6 +171,12 @@ def get_news_date_range(news_list: list):
     }
 
 
+# [코드 이해 주석]
+# - 역할: 날짜 범위 로그 문자열 생성.
+# - 호출하는 곳: naver_news_scraper.search_multiple_keywords, naver_news_scraper.search_naver_news
+# - 파라미터: date_range: dict
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def format_date_range_for_log(date_range: dict) -> str:
     """
     날짜 범위 로그 문자열 생성
@@ -151,6 +192,12 @@ def format_date_range_for_log(date_range: dict) -> str:
         f"가장 오래됨 {oldest.strftime('%Y-%m-%d %H:%M')}"
     )
 
+# [코드 이해 주석]
+# - 역할: 뉴스 발행일이 현재 시각 기준 최근 N시간 이내인지 확인.
+# - 호출하는 곳: 외부 모듈에서 import해 호출할 수 있는 공개 함수입니다. 정적 직접 호출은 없습니다.
+# - 파라미터: pub_date: str, hours: int = 24
+# - 리턴값: bool 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 정규화합니다 -> 조건식을 평가합니다 -> True/False를 반환합니다.
 def is_within_last_hours(pub_date: str, hours: int = 24) -> bool:
     """
     뉴스 발행일이 현재 시각 기준 최근 N시간 이내인지 확인
@@ -166,6 +213,12 @@ def is_within_last_hours(pub_date: str, hours: int = 24) -> bool:
     return cutoff_dt <= published_dt <= now_kst
 
 
+# [코드 이해 주석]
+# - 역할: HTML 태그 제거.
+# - 호출하는 곳: naver_news_scraper.search_naver_news
+# - 파라미터: text: str
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def remove_html_tags(text: str) -> str:
     """
     HTML 태그 제거
@@ -181,6 +234,12 @@ def remove_html_tags(text: str) -> str:
     return clean.strip()
 
 
+# [코드 이해 주석]
+# - 역할: 중복 제거용 URL 정규화.
+# - 호출하는 곳: naver_news_scraper.search_multiple_keywords
+# - 파라미터: url: str
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 빈 값과 자료형을 보정합니다 -> 비교용 불필요 요소를 제거합니다 -> 표준화된 값을 반환합니다.
 def normalize_news_url(url: str) -> str:
     """
     중복 제거용 URL 정규화
@@ -208,6 +267,12 @@ def normalize_news_url(url: str) -> str:
         return str(url).lower().strip().rstrip("/")
 
 
+# [코드 이해 주석]
+# - 역할: 네이버 뉴스 API 응답에는 언론사명 전용 필드가 없으므로,.
+# - 호출하는 곳: naver_news_scraper.search_multiple_keywords, naver_news_scraper.search_naver_news
+# - 파라미터: item: dict
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력 텍스트/객체를 검사합니다 -> 필요한 부분만 골라냅니다 -> 중복/빈 값을 정리해 반환합니다.
 def extract_press_name(item: dict) -> str:
     """
     네이버 뉴스 API 응답에는 언론사명 전용 필드가 없으므로,
@@ -267,6 +332,12 @@ def extract_press_name(item: dict) -> str:
         return "언론사 미상"
 
 
+# [코드 이해 주석]
+# - 역할: 매핑되지 않은 언론사 도메인을 누적 저장한다.
+# - 호출하는 곳: main.main, naver_news_scraper.search_multiple_keywords
+# - 파라미터: filename: str = DEFAULT_UNMAPPED_PRESS_DOMAINS_FILE_PATH
+# - 리턴값: 명시 반환값은 없으며 None 또는 내부 상태 변경/부수 효과를 사용합니다.
+# - 프로세스 흐름: 저장할 구조를 준비합니다 -> 대상 파일에 기록합니다 -> 실패 시 로그/예외 흐름에 맡깁니다.
 def save_unmapped_press_domains(filename: str = DEFAULT_UNMAPPED_PRESS_DOMAINS_FILE_PATH):
     """
     매핑되지 않은 언론사 도메인을 누적 저장한다.
@@ -319,6 +390,12 @@ def save_unmapped_press_domains(filename: str = DEFAULT_UNMAPPED_PRESS_DOMAINS_F
     )
 
 
+# [코드 이해 주석]
+# - 역할: 네이버 뉴스 검색.
+# - 호출하는 곳: naver_news_scraper.search_multiple_keywords
+# - 파라미터: query: str, display: int = 100, sort: str = 'date', start: int = 1
+# - 리턴값: dict 타입 값을 반환합니다.
+# - 프로세스 흐름: 요청 파라미터를 준비합니다 -> 외부 API를 호출합니다 -> 응답을 정규화하고 통계를 갱신합니다.
 def search_naver_news(
     query: str,
     display: int = 100,
@@ -411,6 +488,13 @@ def search_naver_news(
         return {"success": False, "error": str(e)}
 
 
+# [코드 이해 주석]
+# - 역할: 시간대별 비례 샘플링.
+# - 호출하는 곳: main.collect_select_and_summarize, naver_news_scraper.search_multiple_keywords
+# - 파라미터: news_list: list, bucket_hours: int = 4, max_total_news: int = 100, min_per_bucket: int = 0, recent_hours:
+# int = 24
+# - 리턴값: list 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def sample_news_by_time_bucket(
     news_list: list,
     bucket_hours: int = 4,
@@ -642,6 +726,15 @@ def sample_news_by_time_bucket(
     return sampled_news
 
 
+# [코드 이해 주석]
+# - 역할: 여러 키워드로 뉴스 검색.
+# - 호출하는 곳: main.collect_select_and_summarize
+# - 파라미터: keywords: list, display_per_keyword: int = 100, recent_hours: int = 24, sorts: list = None,
+# pages_per_keyword: int = 3, enable_time_bucket_sampling: bool = True, bucket_hours: int = 4, max_total_news: int =
+# 100, min_per_bucket: int = 0, unmapped_press_domains_file_path: str = None, save_unmapped_domains_at_end: bool =
+# True
+# - 리턴값: list 타입 값을 반환합니다.
+# - 프로세스 흐름: 요청 파라미터를 준비합니다 -> 외부 API를 호출합니다 -> 응답을 정규화하고 통계를 갱신합니다.
 def search_multiple_keywords(
     keywords: list,
     display_per_keyword: int = 100,
@@ -917,6 +1010,13 @@ def search_multiple_keywords(
     return all_news
 
 
+# [코드 이해 주석]
+# - 역할: main.py에서 반복 이슈 필터 후 시간대 샘플링을 적용한 결과를.
+# - 호출하는 곳: main.collect_select_and_summarize
+# - 파라미터: before_issue_filter_count: int, after_issue_filter_count: int, before_sampling_count: int,
+# after_sampling_count: int
+# - 리턴값: 명시 반환값은 없으며 None 또는 내부 상태 변경/부수 효과를 사용합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def update_post_issue_filter_sampling_stats(
     before_issue_filter_count: int,
     after_issue_filter_count: int,

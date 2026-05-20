@@ -1,3 +1,12 @@
+# =============================================================================
+# [파일 설명]
+# - 수행 기능: 그룹화된 후보 또는 원본 후보 중 메일에 보낼 핵심 뉴스를 OpenAI와 로컬 규칙으로 선별합니다.
+# - 프로세스: 후보 텍스트 구성 -> OpenAI 선별 요청 -> 사건 단위 중복 제거 -> 부족분 보충 -> 선택 통계 기록
+# - 호출하는 곳: main.py
+# - 주요 파라미터/입력: 후보 뉴스/그룹 목록, 섹션명, 선별 개수, OpenAI 모델/토큰 설정
+# - 리턴값/출력: 요약 단계로 넘길 대표 뉴스 dict 목록과 LAST_SELECTION_STATS 통계를 제공합니다.
+# =============================================================================
+
 """
 OpenAI API를 사용한 뉴스 선별 모듈
 
@@ -64,6 +73,12 @@ LAST_SELECTION_STATS = {
 }
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: 현재 모듈 내부 전용 보조 함수입니다. 정적 직접 호출이 없으면 조건부 흐름에서 사용될 수 있습니다.
+# - 파라미터: name: str, default: int, min_value: int = 1, max_value: Optional[int] = None
+# - 리턴값: int 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _env_int(name: str, default: int, min_value: int = 1, max_value: Optional[int] = None) -> int:
     try:
         value = int(os.getenv(name, str(default)))
@@ -85,6 +100,12 @@ GROUP_CANDIDATE_SOURCES_CHARS = _env_int("SELECTOR_GROUP_SOURCES_CHARS", 30, 20,
 GROUP_CANDIDATE_KEYWORDS_CHARS = _env_int("SELECTOR_GROUP_KEYWORDS_CHARS", 30, 10, 100)
 
 
+# [코드 이해 주석]
+# - 역할: 누적 통계나 상태 값을 초기 상태로 되돌립니다.
+# - 호출하는 곳: news_selector.select_important_news, news_selector.select_important_news_groups
+# - 파라미터: 없음
+# - 리턴값: 명시 반환값은 없으며 None 또는 내부 상태 변경/부수 효과를 사용합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def reset_selection_stats():
     global LAST_SELECTION_STATS
     LAST_SELECTION_STATS = {
@@ -96,6 +117,13 @@ def reset_selection_stats():
     }
 
 
+# [코드 이해 주석]
+# - 역할: 누적 통계나 그룹에 새 값을 더합니다.
+# - 호출하는 곳: news_selector._deduplicate_by_llm_event_group, news_selector.select_important_news,
+# news_selector.select_important_news_groups
+# - 파라미터: key: str, value: int
+# - 리턴값: 명시 반환값은 없으며 None 또는 내부 상태 변경/부수 효과를 사용합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def add_selection_tokens(key: str, value: int):
     try:
         token_count = int(value or 0)
@@ -104,10 +132,24 @@ def add_selection_tokens(key: str, value: int):
     LAST_SELECTION_STATS[key] = int(LAST_SELECTION_STATS.get(key, 0)) + token_count
 
 
+# [코드 이해 주석]
+# - 역할: 현재 상태, 설정, 입력 dict에서 필요한 값을 조회합니다.
+# - 호출하는 곳: main.collect_select_and_summarize
+# - 파라미터: 없음
+# - 리턴값: Dict[str, int] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력 dict 또는 전역 상태를 확인합니다 -> 기본값을 보정합니다 -> 호출자가 바로 쓸 값을 반환합니다.
 def get_last_selection_stats() -> Dict[str, int]:
     return dict(LAST_SELECTION_STATS)
 
 
+# [코드 이해 주석]
+# - 역할: None 방지용 문자열 변환.
+# - 호출하는 곳: news_selector._build_candidate_text, news_selector._build_event_dedup_text,
+# news_selector._build_final_dedup_payload, news_selector._build_group_candidate_text, news_selector._clip_text,
+# news_selector._extract_final_anchor_tokens 외 13곳
+# - 파라미터: value: Any
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _safe_text(value: Any) -> str:
     """
     None 방지용 문자열 변환
@@ -117,6 +159,12 @@ def _safe_text(value: Any) -> str:
     return str(value).strip()
 
 
+# [코드 이해 주석]
+# - 역할: 중요도 점수 안전 변환.
+# - 호출하는 곳: news_selector._estimate_importance_score_from_news, news_selector._prepare_selected_news
+# - 파라미터: value: Any, default: int = 3, min_value: int = 1, max_value: int = 5
+# - 리턴값: int 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _safe_int(value: Any, default: int = 3, min_value: int = 1, max_value: int = 5) -> int:
     """
     중요도 점수 안전 변환
@@ -135,6 +183,13 @@ def _safe_int(value: Any, default: int = 3, min_value: int = 1, max_value: int =
     return number
 
 
+# [코드 이해 주석]
+# - 역할: LLM 입력 토큰 절감을 위해 긴 설명을 적정 길이로 자른다.
+# - 호출하는 곳: news_selector._build_candidate_text, news_selector._build_event_dedup_text,
+# news_selector._build_group_candidate_text
+# - 파라미터: value: Any, limit: int = 180
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _clip_text(value: Any, limit: int = 180) -> str:
     """
     LLM 입력 토큰 절감을 위해 긴 설명을 적정 길이로 자른다.
@@ -147,6 +202,12 @@ def _clip_text(value: Any, limit: int = 180) -> str:
 
 
 
+# [코드 이해 주석]
+# - 역할: 모델별 출력 토큰 제한 파라미터를 반환한다.
+# - 호출하는 곳: news_selector._deduplicate_by_llm_event_group, news_selector.select_important_news
+# - 파라미터: model: str, limit: int
+# - 리턴값: Dict[str, int] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _openai_token_limit_kwargs(model: str, limit: int) -> Dict[str, int]:
     """
     모델별 출력 토큰 제한 파라미터를 반환한다.
@@ -163,6 +224,12 @@ def _openai_token_limit_kwargs(model: str, limit: int) -> Dict[str, int]:
     return {"max_tokens": int(limit)}
 
 
+# [코드 이해 주석]
+# - 역할: URL 완전 중복 비교용 정규화.
+# - 호출하는 곳: news_selector._deduplicate_by_url
+# - 파라미터: url: Any
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 빈 값과 자료형을 보정합니다 -> 비교용 불필요 요소를 제거합니다 -> 표준화된 값을 반환합니다.
 def _normalize_url(url: Any) -> str:
     """
     URL 완전 중복 비교용 정규화
@@ -195,6 +262,12 @@ def _normalize_url(url: Any) -> str:
         return url.lower().strip().rstrip("/")
 
 
+# [코드 이해 주석]
+# - 역할: URL이 완전히 같은 기사만 제거한다.
+# - 호출하는 곳: news_selector._fallback_select, news_selector.select_important_news
+# - 파라미터: news_list: List[Dict], log_prefix: str = '후보'
+# - 리턴값: List[Dict] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _deduplicate_by_url(news_list: List[Dict], log_prefix: str = "후보") -> List[Dict]:
     """
     URL이 완전히 같은 기사만 제거한다.
@@ -236,6 +309,12 @@ def _deduplicate_by_url(news_list: List[Dict], log_prefix: str = "후보") -> Li
     return deduped_news
 
 
+# [코드 이해 주석]
+# - 역할: OpenAI에 전달할 뉴스 후보 목록 텍스트 생성.
+# - 호출하는 곳: news_selector.select_important_news
+# - 파라미터: news_list: List[Dict]
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 필요한 입력값을 안전하게 정리합니다 -> 내부용 문자열/dict 구조를 조립합니다 -> 완성된 결과를 반환합니다.
 def _build_candidate_text(news_list: List[Dict]) -> str:
     """
     OpenAI에 전달할 뉴스 후보 목록 텍스트 생성
@@ -264,6 +343,12 @@ def _build_candidate_text(news_list: List[Dict]) -> str:
     return "\n\n".join(lines)
 
 
+# [코드 이해 주석]
+# - 역할: LLM 사건 중복 제거용 뉴스 목록 텍스트 생성.
+# - 호출하는 곳: news_selector._deduplicate_by_llm_event_group
+# - 파라미터: news_list: List[Dict]
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 필요한 입력값을 안전하게 정리합니다 -> 내부용 문자열/dict 구조를 조립합니다 -> 완성된 결과를 반환합니다.
 def _build_event_dedup_text(news_list: List[Dict]) -> str:
     """
     LLM 사건 중복 제거용 뉴스 목록 텍스트 생성
@@ -296,6 +381,13 @@ def _build_event_dedup_text(news_list: List[Dict]) -> str:
     return "\n\n".join(lines)
 
 
+# [코드 이해 주석]
+# - 역할: OpenAI 응답에서 JSON 파싱.
+# - 호출하는 곳: news_selector._deduplicate_by_llm_event_group, news_selector.select_important_news,
+# news_selector.select_important_news_groups
+# - 파라미터: content: str
+# - 리턴값: Dict 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _extract_json(content: str) -> Dict:
     """
     OpenAI 응답에서 JSON 파싱.
@@ -309,6 +401,13 @@ def _extract_json(content: str) -> Dict:
     return json.loads(content)
 
 
+# [코드 이해 주석]
+# - 역할: 모델이 JSON 배열이나 문자열을 반환해도 호출부에서 AttributeError가 나지 않게 한다.
+# - 호출하는 곳: news_selector._deduplicate_by_llm_event_group, news_selector.select_important_news,
+# news_selector.select_important_news_groups
+# - 파라미터: result: Any
+# - 리턴값: Dict[str, Any] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _ensure_json_object(result: Any) -> Dict[str, Any]:
     """
     모델이 JSON 배열이나 문자열을 반환해도 호출부에서 AttributeError가 나지 않게 한다.
@@ -318,12 +417,27 @@ def _ensure_json_object(result: Any) -> Dict[str, Any]:
     return {}
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: news_selector._deduplicate_by_llm_event_group, news_selector.select_important_news,
+# news_selector.select_important_news_groups
+# - 파라미터: value: Any
+# - 리턴값: List[Any] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _ensure_json_list(value: Any) -> List[Any]:
     if isinstance(value, list):
         return value
     return []
 
 
+# [코드 이해 주석]
+# - 역할: 요약 단계로 넘기기 전에 필요한 필드 보강.
+# - 호출하는 곳: news_selector._fallback_select, news_selector._fallback_select_groups,
+# news_selector._supplement_after_dedup, news_selector._supplement_final_news_after_dedup,
+# news_selector.select_important_news, news_selector.select_important_news_groups
+# - 파라미터: news: Dict, importance_score: Any = 3
+# - 리턴값: Dict 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _prepare_selected_news(
     news: Dict,
     importance_score: Any = 3
@@ -337,6 +451,12 @@ def _prepare_selected_news(
     return news
 
 
+# [코드 이해 주석]
+# - 역할: OpenAI 선별 실패 시 안전 fallback.
+# - 호출하는 곳: news_selector.select_important_news
+# - 파라미터: news_list: List[Dict], limit: int
+# - 리턴값: List[Dict] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _fallback_select(news_list: List[Dict], limit: int) -> List[Dict]:
     """
     OpenAI 선별 실패 시 안전 fallback.
@@ -355,6 +475,12 @@ def _fallback_select(news_list: List[Dict], limit: int) -> List[Dict]:
     return fallback_news
 
 
+# [코드 이해 주석]
+# - 역할: LLM을 사용해 모든 뉴스를 사건 단위로 그룹화하고,.
+# - 호출하는 곳: news_selector._supplement_after_dedup, news_selector.select_important_news
+# - 파라미터: news_list: List[Dict], limit: int
+# - 리턴값: List[Dict] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _deduplicate_by_llm_event_group(
     news_list: List[Dict],
     limit: int
@@ -555,6 +681,12 @@ def _deduplicate_by_llm_event_group(
         logger.warning("⚠️ 중복 제거 실패로 기존 선택 결과를 유지합니다.")
         return news_list[:limit]
 
+# [코드 이해 주석]
+# - 역할: 사건 중복 제거 후 뉴스 수가 limit보다 적을 경우,.
+# - 호출하는 곳: news_selector.select_important_news
+# - 파라미터: selected_news: List[Dict], candidate_pool: List[Dict], used_indexes: set, limit: int
+# - 리턴값: List[Dict] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _supplement_after_dedup(
     selected_news: List[Dict],
     candidate_pool: List[Dict],
@@ -627,6 +759,12 @@ def _supplement_after_dedup(
     return final_news[:limit]
 
 
+# [코드 이해 주석]
+# - 역할: 전체 뉴스 후보 중 OpenAI가 중요하고 주제에 맞는 뉴스만 선택.
+# - 호출하는 곳: 외부 모듈에서 import해 호출할 수 있는 공개 함수입니다. 정적 직접 호출은 없습니다.
+# - 파라미터: news_list: List[Dict], topic_name: str, topic_description: str, limit: int = 10
+# - 리턴값: List[Dict] 타입 값을 반환합니다.
+# - 프로세스 흐름: 후보를 압축해 입력 텍스트를 만듭니다 -> AI/규칙으로 고릅니다 -> 중복 제거와 보충을 수행합니다.
 def select_important_news(
     news_list: List[Dict],
     topic_name: str,
@@ -849,6 +987,13 @@ _FINAL_DEDUP_STOPWORDS = {
 }
 
 
+# [코드 이해 주석]
+# - 역할: 비교와 저장에 일관되게 사용할 수 있도록 값을 표준 형태로 정규화하는 내부 보조 함수입니다.
+# - 호출하는 곳: news_selector._build_final_dedup_payload, news_selector._extract_final_dedup_tokens,
+# news_selector._extract_final_title_tokens, news_selector._normalize_final_dedup_title
+# - 파라미터: value: Any
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 빈 값과 자료형을 보정합니다 -> 비교용 불필요 요소를 제거합니다 -> 표준화된 값을 반환합니다.
 def _normalize_final_dedup_text(value: Any) -> str:
     text = _safe_text(value).lower()
     text = re.sub(r"<.*?>", " ", text)
@@ -863,6 +1008,12 @@ def _normalize_final_dedup_text(value: Any) -> str:
     return text.strip()
 
 
+# [코드 이해 주석]
+# - 역할: 비교와 저장에 일관되게 사용할 수 있도록 값을 표준 형태로 정규화하는 내부 보조 함수입니다.
+# - 호출하는 곳: news_selector._build_final_dedup_payload
+# - 파라미터: value: Any
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 빈 값과 자료형을 보정합니다 -> 비교용 불필요 요소를 제거합니다 -> 표준화된 값을 반환합니다.
 def _normalize_final_dedup_title(value: Any) -> str:
     text = _normalize_final_dedup_text(value)
     text = re.sub(r"\s+", "", text)
@@ -870,10 +1021,22 @@ def _normalize_final_dedup_title(value: Any) -> str:
     return text.strip()
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: news_selector._is_final_duplicate_news
+# - 파라미터: value: Any
+# - 리턴값: set 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _extract_final_number_tokens(value: Any) -> set:
     return set(re.findall(r"\d+(?:\.\d+)?", _safe_text(value)))
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: news_selector._build_final_dedup_payload
+# - 파라미터: news: Dict[str, Any], max_tokens: int = 90
+# - 리턴값: List[str] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _extract_final_dedup_tokens(news: Dict[str, Any], max_tokens: int = 90) -> List[str]:
     title = _safe_text(news.get("title"))
     description = _safe_text(news.get("description") or news.get("summary") or news.get("content"))
@@ -897,6 +1060,12 @@ def _extract_final_dedup_tokens(news: Dict[str, Any], max_tokens: int = 90) -> L
     return tokens
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: news_selector._is_final_duplicate_news
+# - 파라미터: tokens_a: List[str], tokens_b: List[str]
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _final_token_overlap(tokens_a: List[str], tokens_b: List[str]):
     set_a = set(tokens_a or [])
     set_b = set(tokens_b or [])
@@ -907,11 +1076,23 @@ def _final_token_overlap(tokens_a: List[str], tokens_b: List[str]):
     return len(common) / denominator, len(common)
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: news_selector._make_final_simhash
+# - 파라미터: token: str
+# - 리턴값: int 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _stable_final_token_hash(token: str) -> int:
     digest = hashlib.md5(token.encode("utf-8")).hexdigest()
     return int(digest[:16], 16)
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: news_selector._build_final_dedup_payload
+# - 파라미터: tokens: List[str]
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _make_final_simhash(tokens: List[str]) -> str:
     if not tokens:
         return ""
@@ -930,6 +1111,12 @@ def _make_final_simhash(tokens: List[str]) -> str:
     return f"{fingerprint:016x}"
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: news_selector._is_final_duplicate_news
+# - 파라미터: a: str, b: str
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _final_simhash_distance(a: str, b: str):
     if not a or not b:
         return None
@@ -941,6 +1128,12 @@ def _final_simhash_distance(a: str, b: str):
 
 
 
+# [코드 이해 주석]
+# - 역할: 외부 형태소 분석기 없이 조사/어미 차이만 가볍게 줄인다.
+# - 호출하는 곳: news_selector._extract_final_dedup_tokens, news_selector._extract_final_title_tokens
+# - 파라미터: token: str
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 빈 값과 자료형을 보정합니다 -> 비교용 불필요 요소를 제거합니다 -> 표준화된 값을 반환합니다.
 def _normalize_final_token(token: str) -> str:
     """
     외부 형태소 분석기 없이 조사/어미 차이만 가볍게 줄인다.
@@ -967,6 +1160,12 @@ def _normalize_final_token(token: str) -> str:
 
     return token.strip()
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: news_selector._build_final_dedup_payload
+# - 파라미터: title: Any
+# - 리턴값: List[str] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _extract_final_title_tokens(title: Any) -> List[str]:
     normalized = _normalize_final_dedup_text(title)
     tokens = []
@@ -982,6 +1181,12 @@ def _extract_final_title_tokens(title: Any) -> List[str]:
     return tokens
 
 
+# [코드 이해 주석]
+# - 역할: 최종 선별 후 중복 제거용 핵심 토큰.
+# - 호출하는 곳: news_selector._build_final_dedup_payload
+# - 파라미터: tokens: List[str]
+# - 리턴값: List[str] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _extract_final_anchor_tokens(tokens: List[str]) -> List[str]:
     """
     최종 선별 후 중복 제거용 핵심 토큰.
@@ -1002,6 +1207,13 @@ def _extract_final_anchor_tokens(tokens: List[str]) -> List[str]:
     return anchors
 
 
+# [코드 이해 주석]
+# - 역할: 입력 데이터를 조합해 내부에서 사용할 출력 구조를 만드는 보조 함수입니다.
+# - 호출하는 곳: news_selector._deduplicate_final_selected_news, news_selector._find_final_duplicate_info,
+# news_selector._is_final_duplicate_news, news_selector._supplement_final_news_after_dedup
+# - 파라미터: news: Dict[str, Any]
+# - 리턴값: Dict[str, Any] 타입 값을 반환합니다.
+# - 프로세스 흐름: 필요한 입력값을 안전하게 정리합니다 -> 내부용 문자열/dict 구조를 조립합니다 -> 완성된 결과를 반환합니다.
 def _build_final_dedup_payload(news: Dict[str, Any]) -> Dict[str, Any]:
     title = _safe_text(news.get("title"))
     description = _safe_text(news.get("description") or news.get("summary") or news.get("content"))
@@ -1022,6 +1234,12 @@ def _build_final_dedup_payload(news: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: news_selector._is_final_duplicate_news
+# - 파라미터: cand_payload: Dict[str, Any], kept_payload: Dict[str, Any]
+# - 리턴값: bool 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _has_shared_final_anchor(cand_payload: Dict[str, Any], kept_payload: Dict[str, Any]) -> bool:
     cand_anchors = set(cand_payload.get("anchor_tokens") or [])
     kept_anchors = set(kept_payload.get("anchor_tokens") or [])
@@ -1030,6 +1248,12 @@ def _has_shared_final_anchor(cand_payload: Dict[str, Any], kept_payload: Dict[st
     return bool(cand_anchors & kept_anchors)
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: news_selector._find_final_duplicate_info
+# - 파라미터: candidate: Dict[str, Any], kept: Dict[str, Any]
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _is_final_duplicate_news(candidate: Dict[str, Any], kept: Dict[str, Any]):
     cand_payload = candidate.get("_final_dedup_payload") or _build_final_dedup_payload(candidate)
     kept_payload = kept.get("_final_dedup_payload") or _build_final_dedup_payload(kept)
@@ -1104,6 +1328,12 @@ def _is_final_duplicate_news(candidate: Dict[str, Any], kept: Dict[str, Any]):
     return False, "", max(title_similarity, text_similarity, overlap, title_overlap)
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: news_selector._deduplicate_final_selected_news, news_selector._supplement_final_news_after_dedup
+# - 파라미터: candidate: Dict[str, Any], kept_news: List[Dict[str, Any]]
+# - 리턴값: Optional[Dict[str, Any]] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _find_final_duplicate_info(
     candidate: Dict[str, Any],
     kept_news: List[Dict[str, Any]],
@@ -1125,6 +1355,12 @@ def _find_final_duplicate_info(
     return None
 
 
+# [코드 이해 주석]
+# - 역할: OpenAI가 고른 최종 후보 안에서만 코드 규칙으로 중복을 제거한다.
+# - 호출하는 곳: news_selector._fallback_select_groups, news_selector.select_important_news_groups
+# - 파라미터: news_list: List[Dict[str, Any]]
+# - 리턴값: List[Dict[str, Any]] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _deduplicate_final_selected_news(news_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
     OpenAI가 고른 최종 후보 안에서만 코드 규칙으로 중복을 제거한다.
@@ -1163,6 +1399,13 @@ def _deduplicate_final_selected_news(news_list: List[Dict[str, Any]]) -> List[Di
     return kept_news
 
 
+# [코드 이해 주석]
+# - 역할: 최종 중복 제거 후 limit보다 적으면 남은 후보에서 중복이 아닌 뉴스만 보충한다.
+# - 호출하는 곳: news_selector._fallback_select_groups, news_selector.select_important_news_groups
+# - 파라미터: selected_news: List[Dict[str, Any]], candidate_news: List[Dict[str, Any]], limit: int, used_group_ids:
+# Optional[set] = None
+# - 리턴값: List[Dict[str, Any]] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _supplement_final_news_after_dedup(
     selected_news: List[Dict[str, Any]],
     candidate_news: List[Dict[str, Any]],
@@ -1229,6 +1472,12 @@ def _supplement_final_news_after_dedup(
     return final_news[:limit]
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: 현재 모듈 내부 전용 보조 함수입니다. 정적 직접 호출이 없으면 조건부 흐름에서 사용될 수 있습니다.
+# - 파라미터: group: Dict[str, Any]
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _group_sort_key(group: Dict[str, Any]):
     rep = group.get("representative") or {}
     return (
@@ -1239,6 +1488,12 @@ def _group_sort_key(group: Dict[str, Any]):
     )
 
 
+# [코드 이해 주석]
+# - 역할: 로컬 점수로 넓게 정렬하되, AI에는 설정된 수만 넘긴다.
+# - 호출하는 곳: news_selector.select_important_news_groups
+# - 파라미터: group_list: List[Dict[str, Any]], final_limit: int, candidate_group_limit: Optional[int] = None
+# - 리턴값: List[Dict[str, Any]] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _shortlist_groups_for_ai(
     group_list: List[Dict[str, Any]],
     final_limit: int,
@@ -1262,6 +1517,12 @@ def _shortlist_groups_for_ai(
     selected: List[Dict[str, Any]] = []
     seen_group_ids = set()
 
+    # [코드 이해 주석]
+    # - 역할: 누적 통계나 그룹에 새 값을 더합니다.
+    # - 호출하는 곳: news_selector._shortlist_groups_for_ai
+    # - 파라미터: group: Dict[str, Any]
+    # - 리턴값: bool 타입 값을 반환합니다.
+    # - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
     def add_group(group: Dict[str, Any]) -> bool:
         if len(selected) >= target:
             return False
@@ -1309,6 +1570,12 @@ def _shortlist_groups_for_ai(
     return selected[:target]
 
 
+# [코드 이해 주석]
+# - 역할: Python 그룹화 결과를 OpenAI가 읽기 쉬운 짧은 후보 목록으로 변환한다.
+# - 호출하는 곳: news_selector.select_important_news_groups
+# - 파라미터: group_list: List[Dict[str, Any]]
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 필요한 입력값을 안전하게 정리합니다 -> 내부용 문자열/dict 구조를 조립합니다 -> 완성된 결과를 반환합니다.
 def _build_group_candidate_text(group_list: List[Dict[str, Any]]) -> str:
     """
     Python 그룹화 결과를 OpenAI가 읽기 쉬운 짧은 후보 목록으로 변환한다.
@@ -1339,6 +1606,13 @@ def _build_group_candidate_text(group_list: List[Dict[str, Any]]) -> str:
     return "\n\n".join(lines)
 
 
+# [코드 이해 주석]
+# - 역할: AI 점수가 없는 fallback/보충 후보의 중요도를 로컬 그룹 신호로 추정한다.
+# - 호출하는 곳: news_selector._estimate_importance_score_from_news, news_selector._fallback_select_groups,
+# news_selector._representative_news_from_group, news_selector.select_important_news_groups
+# - 파라미터: group: Dict[str, Any]
+# - 리턴값: int 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _estimate_importance_score_from_group(group: Dict[str, Any]) -> int:
     """
     AI 점수가 없는 fallback/보충 후보의 중요도를 로컬 그룹 신호로 추정한다.
@@ -1368,6 +1642,12 @@ def _estimate_importance_score_from_group(group: Dict[str, Any]) -> int:
     return 3
 
 
+# [코드 이해 주석]
+# - 역할: 그룹 dict가 아닌 대표 기사 dict만 있을 때의 fallback 중요도 추정.
+# - 호출하는 곳: news_selector._fallback_select_groups, news_selector.select_important_news_groups
+# - 파라미터: news: Dict[str, Any]
+# - 리턴값: int 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _estimate_importance_score_from_news(news: Dict[str, Any]) -> int:
     """
     그룹 dict가 아닌 대표 기사 dict만 있을 때의 fallback 중요도 추정.
@@ -1392,6 +1672,12 @@ def _estimate_importance_score_from_news(news: Dict[str, Any]) -> int:
     })
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: news_selector._fallback_select_groups, news_selector.select_important_news_groups
+# - 파라미터: group: Dict[str, Any]
+# - 리턴값: Dict[str, Any] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _representative_news_from_group(group: Dict[str, Any]) -> Dict[str, Any]:
     rep = dict(group.get("representative") or {})
     articles = group.get("articles") or []
@@ -1434,6 +1720,12 @@ def _representative_news_from_group(group: Dict[str, Any]) -> Dict[str, Any]:
     return rep
 
 
+# [코드 이해 주석]
+# - 역할: 그룹 단위 OpenAI 선별 실패 시 로컬 우선순위 순서대로 대표 기사 사용.
+# - 호출하는 곳: news_selector.select_important_news_groups
+# - 파라미터: group_list: List[Dict[str, Any]], fallback_news_list: List[Dict[str, Any]], limit: int
+# - 리턴값: List[Dict[str, Any]] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _fallback_select_groups(
     group_list: List[Dict[str, Any]],
     fallback_news_list: List[Dict[str, Any]],
@@ -1483,6 +1775,13 @@ def _fallback_select_groups(
     )
 
 
+# [코드 이해 주석]
+# - 역할: Python 규칙 기반으로 묶인 사건 그룹 중 OpenAI가 중요한 그룹만 선택한다.
+# - 호출하는 곳: main.collect_select_and_summarize
+# - 파라미터: group_list: List[Dict[str, Any]], fallback_news_list: List[Dict[str, Any]], topic_name: str,
+# topic_description: str, limit: int = 10, candidate_group_limit: Optional[int] = None
+# - 리턴값: List[Dict] 타입 값을 반환합니다.
+# - 프로세스 흐름: 후보를 압축해 입력 텍스트를 만듭니다 -> AI/규칙으로 고릅니다 -> 중복 제거와 보충을 수행합니다.
 def select_important_news_groups(
     group_list: List[Dict[str, Any]],
     fallback_news_list: List[Dict[str, Any]],

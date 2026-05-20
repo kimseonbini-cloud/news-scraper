@@ -1,3 +1,12 @@
+# =============================================================================
+# [파일 설명]
+# - 수행 기능: 최근 발송 이슈를 저장하고, 새 후보가 이미 다룬 사건인지 규칙/LLM으로 판정합니다.
+# - 프로세스: 텍스트/URL 정규화 -> 사건 서명 생성 -> 과거 이슈 색인 구성 -> 중복 판정 -> 히스토리 저장/정리
+# - 호출하는 곳: main.py
+# - 주요 파라미터/입력: 요약 뉴스, seen_issues.json, 브리핑/수신자/섹션 범위, 비교 일수
+# - 리턴값/출력: 필터링된 뉴스/제외 목록/히스토리 dict와 중복 제거 통계를 반환합니다.
+# =============================================================================
+
 """
 뉴스 이슈 히스토리 관리
 
@@ -181,15 +190,34 @@ STRONG_ACTION_TOKENS = {
     "갱신", "인증", "재편", "영업이익", "영업손실", "매출"
 }
 
+# [코드 이해 주석]
+# - 역할: 누적 통계나 상태 값을 초기 상태로 되돌립니다.
+# - 호출하는 곳: issue_history.filter_seen_issues_with_llm
+# - 파라미터: 없음
+# - 리턴값: 명시 반환값은 없으며 None 또는 내부 상태 변경/부수 효과를 사용합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def reset_token_stats():
     LAST_TOKEN_STATS["issue_key_tokens"] = 0
     LAST_TOKEN_STATS["llm_duplicate_tokens"] = 0
 
 
+# [코드 이해 주석]
+# - 역할: 현재 상태, 설정, 입력 dict에서 필요한 값을 조회합니다.
+# - 호출하는 곳: issue_history.filter_seen_issues_with_llm
+# - 파라미터: 없음
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력 dict 또는 전역 상태를 확인합니다 -> 기본값을 보정합니다 -> 호출자가 바로 쓸 값을 반환합니다.
 def get_last_token_stats():
     return dict(LAST_TOKEN_STATS)
 
 
+# [코드 이해 주석]
+# - 역할: 현재 상태, 설정, 입력 dict에서 필요한 값을 조회합니다.
+# - 호출하는 곳: issue_history.append_sent_issues, issue_history.build_issue_record,
+# issue_history.get_recent_issues_for_section, issue_history.prune_old_issues
+# - 파라미터: 없음
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력 dict 또는 전역 상태를 확인합니다 -> 기본값을 보정합니다 -> 호출자가 바로 쓸 값을 반환합니다.
 def get_now_kst():
     return datetime.now(KST)
 
@@ -197,6 +225,14 @@ def get_now_kst():
 # ====================================
 # 정규화 유틸
 # ====================================
+# [코드 이해 주석]
+# - 역할: 기사 URL 비교용 정규화.
+# - 호출하는 곳: issue_history.build_issue_record, issue_history.deduplicate_section_results,
+# issue_history.filter_seen_issues_with_llm, issue_history.get_issue_normalized_url,
+# issue_history.get_news_alias_urls, issue_history.make_issue_id
+# - 파라미터: url: str
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 빈 값과 자료형을 보정합니다 -> 비교용 불필요 요소를 제거합니다 -> 표준화된 값을 반환합니다.
 def normalize_url(url: str) -> str:
     """
     기사 URL 비교용 정규화.
@@ -226,6 +262,12 @@ def normalize_url(url: str) -> str:
         return str(url).lower().strip().rstrip("/")
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: issue_history.normalize_compare_text, issue_history.normalize_title
+# - 파라미터: text: str
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def strip_html_entities(text: str) -> str:
     if text is None:
         return ""
@@ -238,6 +280,13 @@ def strip_html_entities(text: str) -> str:
     return text.strip()
 
 
+# [코드 이해 주석]
+# - 역할: 비교와 저장에 일관되게 사용할 수 있도록 값을 표준 형태로 정규화합니다.
+# - 호출하는 곳: issue_history.build_compare_payload, issue_history.build_event_signature,
+# issue_history.get_issue_compare_payload
+# - 파라미터: title: str
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 빈 값과 자료형을 보정합니다 -> 비교용 불필요 요소를 제거합니다 -> 표준화된 값을 반환합니다.
 def normalize_title(title: str) -> str:
     if not title:
         return ""
@@ -249,6 +298,12 @@ def normalize_title(title: str) -> str:
     return text.strip()
 
 
+# [코드 이해 주석]
+# - 역할: 같은 기관/서비스의 표기 차이를 규칙 기반으로 정규화한다.
+# - 호출하는 곳: issue_history.normalize_compare_text
+# - 파라미터: text: str
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def apply_entity_aliases(text: str) -> str:
     """
     같은 기관/서비스의 표기 차이를 규칙 기반으로 정규화한다.
@@ -267,6 +322,12 @@ def apply_entity_aliases(text: str) -> str:
     return value
 
 
+# [코드 이해 주석]
+# - 역할: 비교와 저장에 일관되게 사용할 수 있도록 값을 표준 형태로 정규화합니다.
+# - 호출하는 곳: issue_history.build_compare_payload, issue_history.compact_compare_text, issue_history.extract_tokens
+# - 파라미터: text: str
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 빈 값과 자료형을 보정합니다 -> 비교용 불필요 요소를 제거합니다 -> 표준화된 값을 반환합니다.
 def normalize_compare_text(text: str) -> str:
     if not text:
         return ""
@@ -279,12 +340,25 @@ def normalize_compare_text(text: str) -> str:
     return text.strip()
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: issue_history.build_compare_payload
+# - 파라미터: text: str
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def compact_compare_text(text: str) -> str:
     text = normalize_compare_text(text)
     text = re.sub(r"\s+", "", text)
     return text
 
 
+# [코드 이해 주석]
+# - 역할: 비교와 저장에 일관되게 사용할 수 있도록 값을 표준 형태로 정규화합니다.
+# - 호출하는 곳: issue_history.extract_anchor_tokens, issue_history.extract_tokens, issue_history.is_strong_anchor_token,
+# issue_history.is_weak_anchor_token, issue_history.normalize_action_token, issue_history.soft_common_tokens 외 1곳
+# - 파라미터: token: str
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 빈 값과 자료형을 보정합니다 -> 비교용 불필요 요소를 제거합니다 -> 표준화된 값을 반환합니다.
 def normalize_token(token: str) -> str:
     token = str(token or "").lower().strip()
     if not token:
@@ -301,6 +375,13 @@ def normalize_token(token: str) -> str:
     return token.strip()
 
 
+# [코드 이해 주석]
+# - 역할: 외부 형태소 분석기 없이 동작하는 간단 토큰 추출.
+# - 호출하는 곳: issue_history.build_compare_payload, issue_history.build_event_signature,
+# issue_history.extract_title_tokens
+# - 파라미터: text: str, max_tokens: int = 80
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력 텍스트/객체를 검사합니다 -> 필요한 부분만 골라냅니다 -> 중복/빈 값을 정리해 반환합니다.
 def extract_tokens(text: str, max_tokens: int = 80):
     """
     외부 형태소 분석기 없이 동작하는 간단 토큰 추출.
@@ -332,10 +413,22 @@ def extract_tokens(text: str, max_tokens: int = 80):
     return tokens
 
 
+# [코드 이해 주석]
+# - 역할: 입력 데이터에서 필요한 토큰, URL, 날짜, 사용량 같은 핵심 값을 추출합니다.
+# - 호출하는 곳: issue_history.build_compare_payload
+# - 파라미터: title: str
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력 텍스트/객체를 검사합니다 -> 필요한 부분만 골라냅니다 -> 중복/빈 값을 정리해 반환합니다.
 def extract_title_tokens(title: str):
     return extract_tokens(title, max_tokens=30)
 
 
+# [코드 이해 주석]
+# - 역할: 입력 데이터에서 필요한 토큰, URL, 날짜, 사용량 같은 핵심 값을 추출합니다.
+# - 호출하는 곳: issue_history.build_compare_payload, issue_history.build_event_signature
+# - 파라미터: tokens: Any
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력 텍스트/객체를 검사합니다 -> 필요한 부분만 골라냅니다 -> 중복/빈 값을 정리해 반환합니다.
 def extract_anchor_tokens(tokens):
     anchors = []
     seen = set()
@@ -352,10 +445,23 @@ def extract_anchor_tokens(tokens):
     return anchors[:20]
 
 
+# [코드 이해 주석]
+# - 역할: 입력 데이터에서 필요한 토큰, URL, 날짜, 사용량 같은 핵심 값을 추출합니다.
+# - 호출하는 곳: issue_history.build_compare_payload
+# - 파라미터: value: str
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력 텍스트/객체를 검사합니다 -> 필요한 부분만 골라냅니다 -> 중복/빈 값을 정리해 반환합니다.
 def extract_number_tokens(value: str):
     return set(re.findall(r"\d+(?:\.\d+)?", str(value or "")))
 
 
+# [코드 이해 주석]
+# - 역할: 비교와 저장에 일관되게 사용할 수 있도록 값을 표준 형태로 정규화합니다.
+# - 호출하는 곳: issue_history.extract_action_tokens, issue_history.extract_tokens, issue_history.has_specific_action,
+# issue_history.soft_common_tokens
+# - 파라미터: token: str
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 빈 값과 자료형을 보정합니다 -> 비교용 불필요 요소를 제거합니다 -> 표준화된 값을 반환합니다.
 def normalize_action_token(token: str) -> str:
     token = normalize_token(token)
     if not token:
@@ -368,6 +474,13 @@ def normalize_action_token(token: str) -> str:
     return ""
 
 
+# [코드 이해 주석]
+# - 역할: 입력 데이터에서 필요한 토큰, URL, 날짜, 사용량 같은 핵심 값을 추출합니다.
+# - 호출하는 곳: issue_history.build_compare_payload, issue_history.build_event_signature,
+# issue_history.build_rule_event_key_from_payload, issue_history.get_issue_compare_payload
+# - 파라미터: tokens: Any
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력 텍스트/객체를 검사합니다 -> 필요한 부분만 골라냅니다 -> 중복/빈 값을 정리해 반환합니다.
 def extract_action_tokens(tokens):
     actions = []
     seen = set()
@@ -380,6 +493,12 @@ def extract_action_tokens(tokens):
     return actions[:6]
 
 
+# [코드 이해 주석]
+# - 역할: 입력값이 특정 조건을 만족하는지 bool로 판정합니다.
+# - 호출하는 곳: issue_history.is_strong_anchor_token
+# - 파라미터: token: str
+# - 리턴값: bool 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 정규화합니다 -> 조건식을 평가합니다 -> True/False를 반환합니다.
 def is_weak_anchor_token(token: str) -> bool:
     token = normalize_token(token)
     if not token:
@@ -394,6 +513,12 @@ def is_weak_anchor_token(token: str) -> bool:
     return False
 
 
+# [코드 이해 주석]
+# - 역할: 입력값이 특정 조건을 만족하는지 bool로 판정합니다.
+# - 호출하는 곳: issue_history.strong_common_anchor_tokens
+# - 파라미터: token: str
+# - 리턴값: bool 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 정규화합니다 -> 조건식을 평가합니다 -> True/False를 반환합니다.
 def is_strong_anchor_token(token: str) -> bool:
     token = normalize_token(token)
     if not token or is_weak_anchor_token(token):
@@ -403,10 +528,22 @@ def is_strong_anchor_token(token: str) -> bool:
     return has_alpha or (has_korean and len(token) >= 3) or len(token) >= 5
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: issue_history.build_rule_event_key_from_payload, issue_history.judge_duplicate_by_payload
+# - 파라미터: tokens: Any
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def strong_common_anchor_tokens(tokens):
     return unique_nonempty([token for token in tokens or [] if is_strong_anchor_token(token)], limit=20)
 
 
+# [코드 이해 주석]
+# - 역할: 입력 데이터에 특정 특징이나 조건이 있는지 bool로 판정합니다.
+# - 호출하는 곳: issue_history.judge_duplicate_by_payload
+# - 파라미터: action_tokens: Any
+# - 리턴값: bool 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력 목록/토큰을 검사합니다 -> 조건 충족 여부를 계산합니다 -> True/False를 반환합니다.
 def has_specific_action(action_tokens) -> bool:
     for action in action_tokens or []:
         action = normalize_action_token(action) or str(action or "").strip()
@@ -415,6 +552,13 @@ def has_specific_action(action_tokens) -> bool:
     return False
 
 
+# [코드 이해 주석]
+# - 역할: 기관/핵심 앵커 + 행위어 + 숫자 일부로 사건 키를 만든다.
+# - 호출하는 곳: issue_history.build_compare_payload, issue_history.build_event_signature,
+# issue_history.get_issue_compare_payload
+# - 파라미터: payload: Any
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 필요한 입력값을 안전하게 정리합니다 -> 문자열/dict/HTML 구조를 조립합니다 -> 완성된 결과를 반환합니다.
 def build_rule_event_key_from_payload(payload):
     """
     기관/핵심 앵커 + 행위어 + 숫자 일부로 사건 키를 만든다.
@@ -438,6 +582,14 @@ def build_rule_event_key_from_payload(payload):
     return "|".join(unique_nonempty(key_parts, limit=7))
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: issue_history.append_sent_issues, issue_history.build_event_signature,
+# issue_history.build_rule_event_key_from_payload, issue_history.get_issue_compare_payload,
+# issue_history.get_news_alias_titles, issue_history.get_news_alias_urls 외 4곳
+# - 파라미터: values: Any, limit: Any = None
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def unique_nonempty(values, limit=None):
     seen = set()
     result = []
@@ -452,27 +604,57 @@ def unique_nonempty(values, limit=None):
     return result
 
 
+# [코드 이해 주석]
+# - 역할: 현재 상태, 설정, 입력 dict에서 필요한 값을 조회합니다.
+# - 호출하는 곳: issue_history.build_event_signature
+# - 파라미터: news: dict
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력 dict 또는 전역 상태를 확인합니다 -> 기본값을 보정합니다 -> 호출자가 바로 쓸 값을 반환합니다.
 def get_news_alias_titles(news: dict):
     titles = [get_news_title(news)]
     titles.extend(news.get("group_article_titles") or [])
     return unique_nonempty(titles, limit=16)
 
 
+# [코드 이해 주석]
+# - 역할: 현재 상태, 설정, 입력 dict에서 필요한 값을 조회합니다.
+# - 호출하는 곳: issue_history.build_event_signature
+# - 파라미터: news: dict
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력 dict 또는 전역 상태를 확인합니다 -> 기본값을 보정합니다 -> 호출자가 바로 쓸 값을 반환합니다.
 def get_news_alias_urls(news: dict):
     urls = [get_news_url(news)]
     urls.extend(news.get("group_article_urls") or [])
     return unique_nonempty([normalize_url(url) for url in urls], limit=16)
 
 
+# [코드 이해 주석]
+# - 역할: 여러 입력 값을 조합해 식별자, 해시, 키 같은 파생 값을 만듭니다.
+# - 호출하는 곳: issue_history.make_issue_id
+# - 파라미터: value: str
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def make_hash(value: str) -> str:
     return hashlib.sha256(str(value or "").encode("utf-8")).hexdigest()
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: issue_history.make_simhash
+# - 파라미터: token: str
+# - 리턴값: int 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def stable_token_hash(token: str) -> int:
     digest = hashlib.md5(token.encode("utf-8")).hexdigest()
     return int(digest[:16], 16)
 
 
+# [코드 이해 주석]
+# - 역할: 64비트 SimHash를 16자리 hex 문자열로 반환한다.
+# - 호출하는 곳: issue_history.build_compare_payload
+# - 파라미터: tokens: Any
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def make_simhash(tokens) -> str:
     """
     64비트 SimHash를 16자리 hex 문자열로 반환한다.
@@ -497,6 +679,12 @@ def make_simhash(tokens) -> str:
     return f"{fingerprint:016x}"
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: issue_history.judge_duplicate_by_payload
+# - 파라미터: a: str, b: str
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def simhash_distance(a: str, b: str):
     if not a or not b:
         return None
@@ -507,6 +695,12 @@ def simhash_distance(a: str, b: str):
         return None
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: issue_history.judge_duplicate_by_payload
+# - 파라미터: tokens_a: Any, tokens_b: Any
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def token_overlap_score(tokens_a, tokens_b):
     set_a = set(tokens_a or [])
     set_b = set(tokens_b or [])
@@ -518,6 +712,12 @@ def token_overlap_score(tokens_a, tokens_b):
     return len(common) / denominator, len(common)
 
 
+# [코드 이해 주석]
+# - 역할: 완전 일치가 아니어도 같은 고유명사/행사명 변형으로 볼 수 있는지 판단한다.
+# - 호출하는 곳: issue_history.soft_common_tokens
+# - 파라미터: token_a: Any, token_b: Any
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def tokens_are_related(token_a, token_b):
     """
     완전 일치가 아니어도 같은 고유명사/행사명 변형으로 볼 수 있는지 판단한다.
@@ -541,6 +741,12 @@ def tokens_are_related(token_a, token_b):
     return False
 
 
+# [코드 이해 주석]
+# - 역할: 토큰 목록 간 완전 일치 + 부분 일치 기반 공통 토큰을 계산한다.
+# - 호출하는 곳: issue_history.judge_duplicate_by_payload, issue_history.soft_token_overlap_score
+# - 파라미터: tokens_a: Any, tokens_b: Any, ignore_stopwords: Any = True
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def soft_common_tokens(tokens_a, tokens_b, ignore_stopwords=True):
     """
     토큰 목록 간 완전 일치 + 부분 일치 기반 공통 토큰을 계산한다.
@@ -579,6 +785,12 @@ def soft_common_tokens(tokens_a, tokens_b, ignore_stopwords=True):
     return unique_nonempty(common)
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: issue_history.judge_duplicate_by_payload
+# - 파라미터: tokens_a: Any, tokens_b: Any, ignore_stopwords: Any = True
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def soft_token_overlap_score(tokens_a, tokens_b, ignore_stopwords=True):
     common = soft_common_tokens(tokens_a, tokens_b, ignore_stopwords=ignore_stopwords)
     len_a = len(unique_nonempty(tokens_a or []))
@@ -589,6 +801,13 @@ def soft_token_overlap_score(tokens_a, tokens_b, ignore_stopwords=True):
     return len(common) / denominator, len(common), common
 
 
+# [코드 이해 주석]
+# - 역할: 현재 상태, 설정, 입력 dict에서 필요한 값을 조회합니다.
+# - 호출하는 곳: issue_history.build_issue_record, issue_history.deduplicate_section_results,
+# issue_history.filter_seen_issues_with_llm, issue_history.get_news_alias_urls, issue_history.make_excluded_item
+# - 파라미터: news: dict
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력 dict 또는 전역 상태를 확인합니다 -> 기본값을 보정합니다 -> 호출자가 바로 쓸 값을 반환합니다.
 def get_news_url(news: dict) -> str:
     if not isinstance(news, dict):
         return ""
@@ -599,12 +818,27 @@ def get_news_url(news: dict) -> str:
     )
 
 
+# [코드 이해 주석]
+# - 역할: 현재 상태, 설정, 입력 dict에서 필요한 값을 조회합니다.
+# - 호출하는 곳: issue_history.build_event_signature, issue_history.build_issue_record,
+# issue_history.deduplicate_section_results, issue_history.filter_seen_issues_with_llm,
+# issue_history.get_news_alias_titles, issue_history.make_excluded_item
+# - 파라미터: news: dict
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력 dict 또는 전역 상태를 확인합니다 -> 기본값을 보정합니다 -> 호출자가 바로 쓸 값을 반환합니다.
 def get_news_title(news: dict) -> str:
     if not isinstance(news, dict):
         return ""
     return str(news.get("title") or "").strip()
 
 
+# [코드 이해 주석]
+# - 역할: 현재 상태, 설정, 입력 dict에서 필요한 값을 조회합니다.
+# - 호출하는 곳: issue_history.build_event_signature, issue_history.build_issue_record,
+# issue_history.filter_seen_issues_with_llm
+# - 파라미터: news: dict
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력 dict 또는 전역 상태를 확인합니다 -> 기본값을 보정합니다 -> 호출자가 바로 쓸 값을 반환합니다.
 def get_news_summary_or_description(news: dict) -> str:
     if not isinstance(news, dict):
         return ""
@@ -615,6 +849,12 @@ def get_news_summary_or_description(news: dict) -> str:
     )
 
 
+# [코드 이해 주석]
+# - 역할: 현재 상태, 설정, 입력 dict에서 필요한 값을 조회합니다.
+# - 호출하는 곳: issue_history.build_event_signature, issue_history.build_issue_record
+# - 파라미터: news: dict
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력 dict 또는 전역 상태를 확인합니다 -> 기본값을 보정합니다 -> 호출자가 바로 쓸 값을 반환합니다.
 def get_news_compare_text(news: dict) -> str:
     if not isinstance(news, dict):
         return ""
@@ -643,6 +883,12 @@ def get_news_compare_text(news: dict) -> str:
     return " ".join(cleaned)
 
 
+# [코드 이해 주석]
+# - 역할: 입력 데이터를 조합해 HTML, payload, 메시지, 결과 dict 같은 출력 구조를 만듭니다.
+# - 호출하는 곳: issue_history.build_event_signature, issue_history.get_issue_compare_payload, issue_history.make_issue_id
+# - 파라미터: title: str, summary: str
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 필요한 입력값을 안전하게 정리합니다 -> 문자열/dict/HTML 구조를 조립합니다 -> 완성된 결과를 반환합니다.
 def build_compare_payload(title: str, summary: str):
     compare_text = normalize_compare_text(f"{title} {summary}")
     compact_text = compact_compare_text(compare_text)
@@ -662,6 +908,13 @@ def build_compare_payload(title: str, summary: str):
     return payload
 
 
+# [코드 이해 주석]
+# - 역할: 입력 데이터를 조합해 HTML, payload, 메시지, 결과 dict 같은 출력 구조를 만듭니다.
+# - 호출하는 곳: issue_history.build_issue_record, issue_history.deduplicate_section_results,
+# issue_history.filter_seen_issues_with_llm
+# - 파라미터: news: dict
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 필요한 입력값을 안전하게 정리합니다 -> 문자열/dict/HTML 구조를 조립합니다 -> 완성된 결과를 반환합니다.
 def build_event_signature(news: dict):
     title = get_news_title(news)
     compare_text = get_news_compare_text(news) or get_news_summary_or_description(news)
@@ -698,6 +951,12 @@ def build_event_signature(news: dict):
 # ====================================
 # 파일 입출력
 # ====================================
+# [코드 이해 주석]
+# - 역할: 파일이나 환경에서 데이터를 읽어 기본 구조로 적재합니다.
+# - 호출하는 곳: issue_history.append_sent_issues, issue_history.get_recent_issues_for_section
+# - 파라미터: file_path: Any = HISTORY_FILE_PATH
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 파일 경로를 확인합니다 -> JSON/환경 값을 읽습니다 -> 없거나 깨진 값은 기본 구조로 보정합니다.
 def load_issue_history(file_path=HISTORY_FILE_PATH):
     if not os.path.exists(file_path):
         return {"version": 3, "issues": []}
@@ -715,6 +974,12 @@ def load_issue_history(file_path=HISTORY_FILE_PATH):
         return {"version": 3, "issues": []}
 
 
+# [코드 이해 주석]
+# - 역할: 메모리의 데이터를 파일이나 외부 저장소에 기록합니다.
+# - 호출하는 곳: issue_history.append_sent_issues
+# - 파라미터: data: Any, file_path: Any = HISTORY_FILE_PATH
+# - 리턴값: 명시 반환값은 없으며 None 또는 내부 상태 변경/부수 효과를 사용합니다.
+# - 프로세스 흐름: 저장할 구조를 준비합니다 -> 대상 파일에 기록합니다 -> 실패 시 로그/예외 흐름에 맡깁니다.
 def save_issue_history(data, file_path=HISTORY_FILE_PATH):
     dirname = os.path.dirname(file_path)
     if dirname:
@@ -727,6 +992,12 @@ def save_issue_history(data, file_path=HISTORY_FILE_PATH):
 
 
 
+# [코드 이해 주석]
+# - 역할: 보존 기간이 지난 오래된 데이터를 제거합니다.
+# - 호출하는 곳: issue_history.append_sent_issues
+# - 파라미터: history: Any, days: Any = 3
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def prune_old_issues(history, days=3):
     if not isinstance(history, dict):
         return {"version": 3, "issues": []}, 0
@@ -765,6 +1036,12 @@ def prune_old_issues(history, days=3):
 # ====================================
 # 히스토리 record 생성/조회
 # ====================================
+# [코드 이해 주석]
+# - 역할: 여러 입력 값을 조합해 식별자, 해시, 키 같은 파생 값을 만듭니다.
+# - 호출하는 곳: issue_history.append_sent_issues, issue_history.get_recent_issues_for_section, issue_history.make_issue_id
+# - 파라미터: briefing_name: Any, receiver_env: Any, section_name: Any = None, scope_mode: Any = None
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def make_history_scope(briefing_name, receiver_env, section_name=None, scope_mode=None):
     mode = str(scope_mode or HISTORY_MATCH_SCOPE or "briefing").strip().lower()
     if mode == "receiver":
@@ -782,6 +1059,12 @@ def make_history_scope(briefing_name, receiver_env, section_name=None, scope_mod
     ])
 
 
+# [코드 이해 주석]
+# - 역할: 여러 입력 값을 조합해 식별자, 해시, 키 같은 파생 값을 만듭니다.
+# - 호출하는 곳: issue_history.build_issue_record
+# - 파라미터: briefing_name: Any, receiver_env: Any, section_name: Any, title: Any, summary: Any, url: Any = None
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def make_issue_id(briefing_name, receiver_env, section_name, title, summary, url=None):
     normalized_url = normalize_url(url)
     scope = make_history_scope(
@@ -805,6 +1088,12 @@ def make_issue_id(briefing_name, receiver_env, section_name, title, summary, url
     return make_hash(raw)
 
 
+# [코드 이해 주석]
+# - 역할: 입력 데이터를 조합해 HTML, payload, 메시지, 결과 dict 같은 출력 구조를 만듭니다.
+# - 호출하는 곳: issue_history.append_sent_issues
+# - 파라미터: briefing_name: Any, subject_prefix: Any, receiver_env: Any, section_name: Any, news: Any
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 필요한 입력값을 안전하게 정리합니다 -> 문자열/dict/HTML 구조를 조립합니다 -> 완성된 결과를 반환합니다.
 def build_issue_record(
     briefing_name, subject_prefix, receiver_env, section_name, news
 ):
@@ -873,12 +1162,25 @@ def build_issue_record(
     }
 
 
+# [코드 이해 주석]
+# - 역할: 현재 상태, 설정, 입력 dict에서 필요한 값을 조회합니다.
+# - 호출하는 곳: issue_history.append_sent_issues, issue_history.build_past_issue_indexes,
+# issue_history.get_issue_compare_payload
+# - 파라미터: issue: dict
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력 dict 또는 전역 상태를 확인합니다 -> 기본값을 보정합니다 -> 호출자가 바로 쓸 값을 반환합니다.
 def get_issue_normalized_url(issue: dict) -> str:
     if not isinstance(issue, dict):
         return ""
     return str(issue.get("normalized_url") or "").strip() or normalize_url(issue.get("url") or "")
 
 
+# [코드 이해 주석]
+# - 역할: 현재 상태, 설정, 입력 dict에서 필요한 값을 조회합니다.
+# - 호출하는 곳: issue_history.append_sent_issues, issue_history.build_past_issue_indexes
+# - 파라미터: issue: dict
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력 dict 또는 전역 상태를 확인합니다 -> 기본값을 보정합니다 -> 호출자가 바로 쓸 값을 반환합니다.
 def get_issue_compare_payload(issue: dict):
     if not isinstance(issue, dict):
         issue = {}
@@ -976,6 +1278,13 @@ def get_issue_compare_payload(issue: dict):
     }
 
 
+# [코드 이해 주석]
+# - 역할: 메일에 실제 발송된 section_results의 summaries를 이슈 히스토리에 저장한다.
+# - 호출하는 곳: main.main
+# - 파라미터: briefing_name: Any, subject_prefix: Any, receiver_env: Any, section_results: Any, file_path: Any =
+# HISTORY_FILE_PATH, keep_days: Any = 3
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def append_sent_issues(
     briefing_name, subject_prefix, receiver_env,
     section_results, file_path=HISTORY_FILE_PATH, keep_days=3
@@ -1111,6 +1420,13 @@ def append_sent_issues(
 # ====================================
 # 최근 이슈 조회
 # ====================================
+# [코드 이해 주석]
+# - 역할: 최근 발송 이슈 조회.
+# - 호출하는 곳: issue_history.filter_seen_issues_with_llm
+# - 파라미터: briefing_name: Any, receiver_env: Any, section_name: Any, days: Any = 3, file_path: Any = HISTORY_FILE_PATH,
+# scope_mode: Any = None
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력 dict 또는 전역 상태를 확인합니다 -> 기본값을 보정합니다 -> 호출자가 바로 쓸 값을 반환합니다.
 def get_recent_issues_for_section(
     briefing_name, receiver_env, section_name,
     days=3, file_path=HISTORY_FILE_PATH, scope_mode=None
@@ -1159,6 +1475,12 @@ def get_recent_issues_for_section(
 # ====================================
 # 반복 이슈 필터
 # ====================================
+# [코드 이해 주석]
+# - 역할: 입력 데이터를 조합해 HTML, payload, 메시지, 결과 dict 같은 출력 구조를 만듭니다.
+# - 호출하는 곳: issue_history.filter_seen_issues_with_llm
+# - 파라미터: past_issues: Any
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 필요한 입력값을 안전하게 정리합니다 -> 문자열/dict/HTML 구조를 조립합니다 -> 완성된 결과를 반환합니다.
 def build_past_issue_indexes(past_issues):
     past_by_url = {}
     past_payloads = []
@@ -1195,6 +1517,12 @@ def build_past_issue_indexes(past_issues):
     }
 
 
+# [코드 이해 주석]
+# - 역할: 후보와 과거/오늘 유지 후보가 같은 반복 이슈인지 규칙 기반으로 판단한다.
+# - 호출하는 곳: issue_history.find_matching_payload
+# - 파라미터: candidate_payload: Any, past_payload: Any
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def judge_duplicate_by_payload(candidate_payload, past_payload):
     """
     후보와 과거/오늘 유지 후보가 같은 반복 이슈인지 규칙 기반으로 판단한다.
@@ -1429,6 +1757,12 @@ def judge_duplicate_by_payload(candidate_payload, past_payload):
 
     return False, "", ""
 
+# [코드 이해 주석]
+# - 역할: 목록 안에서 조건에 맞는 payload나 항목을 찾습니다.
+# - 호출하는 곳: issue_history.deduplicate_section_results, issue_history.filter_seen_issues_with_llm
+# - 파라미터: candidate_payload: Any, past_payloads: Any
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def find_matching_payload(candidate_payload, past_payloads):
     for past_payload in past_payloads or []:
         is_dup, method, detail = judge_duplicate_by_payload(candidate_payload, past_payload)
@@ -1437,6 +1771,13 @@ def find_matching_payload(candidate_payload, past_payloads):
     return None, "", ""
 
 
+# [코드 이해 주석]
+# - 역할: 반복/내부 중복으로 제외된 후보의 진단 정보를 표준 형태로 만든다.
+# - 호출하는 곳: issue_history.filter_seen_issues_with_llm
+# - 파라미터: index: Any, news: Any, method: Any, reason: Any, matched_title: Any = '', detail: Any = '',
+# candidate_payload: Any = None
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def make_excluded_item(
     index,
     news,
@@ -1471,6 +1812,13 @@ def make_excluded_item(
     }
 
 
+# [코드 이해 주석]
+# - 역할: 기존 함수명은 유지하지만 LLM을 사용하지 않는다.
+# - 호출하는 곳: main.collect_select_and_summarize
+# - 파라미터: briefing_name: Any, receiver_env: Any, section_name: Any, candidate_news: Any, days: Any = 3, file_path: Any
+# = HISTORY_FILE_PATH, remove_internal_duplicates: Any = True
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 후보를 순회합니다 -> 제외/중복 기준을 적용합니다 -> 유지 목록과 제외 사유를 반환합니다.
 def filter_seen_issues_with_llm(
     briefing_name, receiver_env, section_name,
     candidate_news, days=3, file_path=HISTORY_FILE_PATH,
@@ -1655,6 +2003,12 @@ def filter_seen_issues_with_llm(
     }
 
 
+# [코드 이해 주석]
+# - 역할: 메일 발송 직전 전체 섹션의 최종 요약 결과를 다시 한 번 사건 단위로 중복 제거한다.
+# - 호출하는 곳: main.main
+# - 파라미터: section_results: Any
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 각 항목의 비교 payload를 만듭니다 -> 이미 유지한 항목과 비교합니다 -> 대표 항목만 남깁니다.
 def deduplicate_section_results(section_results):
     """
     메일 발송 직전 전체 섹션의 최종 요약 결과를 다시 한 번 사건 단위로 중복 제거한다.

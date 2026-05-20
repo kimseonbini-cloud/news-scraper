@@ -1,3 +1,12 @@
+# =============================================================================
+# [파일 설명]
+# - 수행 기능: 메일의 관련보도 링크가 열 정적 HTML 상세 페이지를 생성하고 오래된 페이지를 정리합니다.
+# - 프로세스: 관련 기사 목록 수집 -> 페이지 URL 부착 -> HTML 렌더링 -> docs/briefings 저장 -> 보존 기간 초과 파일 삭제
+# - 호출하는 곳: main.py
+# - 주요 파라미터/입력: 브리핑 설정, section_results, GitHub Pages 기본 URL, 보존 기간
+# - 리턴값/출력: 페이지 생성 여부, 경로, URL, 연결된 뉴스 수, 삭제된 오래된 페이지 수를 담은 dict를 반환합니다.
+# =============================================================================
+
 """
 관련보도 상세 페이지 생성 모듈
 
@@ -20,10 +29,22 @@ DEFAULT_OUTPUT_ROOT = "docs"
 DEFAULT_KEEP_DAYS = 7
 
 
+# [코드 이해 주석]
+# - 역할: 입력값을 화면 표시나 후속 처리에 안전한 형태로 변환하는 내부 보조 함수입니다.
+# - 호출하는 곳: related_pages._build_related_page_html
+# - 파라미터: value: Any
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _safe_text(value: Any) -> str:
     return html.escape(str(value or "").strip())
 
 
+# [코드 이해 주석]
+# - 역할: 입력값을 화면 표시나 후속 처리에 안전한 형태로 변환하는 내부 보조 함수입니다.
+# - 호출하는 곳: related_pages._build_related_page_html
+# - 파라미터: value: Any
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _safe_url(value: Any) -> str:
     text = str(value or "").strip()
     if not text:
@@ -31,6 +52,12 @@ def _safe_url(value: Any) -> str:
     return html.escape(text, quote=True)
 
 
+# [코드 이해 주석]
+# - 역할: 입력값을 화면 표시나 후속 처리에 안전한 형태로 변환하는 내부 보조 함수입니다.
+# - 호출하는 곳: related_pages.generate_related_page
+# - 파라미터: value: Any, default: str = 'briefing'
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _safe_slug(value: Any, default: str = "briefing") -> str:
     text = str(value or "").strip().lower()
     text = re.sub(r"[^a-z0-9가-힣_-]+", "-", text)
@@ -38,6 +65,12 @@ def _safe_slug(value: Any, default: str = "briefing") -> str:
     return text or default
 
 
+# [코드 이해 주석]
+# - 역할: 비교와 저장에 일관되게 사용할 수 있도록 값을 표준 형태로 정규화하는 내부 보조 함수입니다.
+# - 호출하는 곳: related_pages.collect_related_items
+# - 파라미터: value: Any
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 빈 값과 자료형을 보정합니다 -> 비교용 불필요 요소를 제거합니다 -> 표준화된 값을 반환합니다.
 def _normalize_url_for_compare(value: Any) -> str:
     text = str(value or "").strip().lower()
     if not text:
@@ -47,6 +80,12 @@ def _normalize_url_for_compare(value: Any) -> str:
     return text.rstrip("/")
 
 
+# [코드 이해 주석]
+# - 역할: GitHub Pages 기본 URL 결정.
+# - 호출하는 곳: related_pages.generate_related_page
+# - 파라미터: config: Dict[str, Any]
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력 dict 또는 전역 상태를 확인합니다 -> 기본값을 보정합니다 -> 호출자가 바로 쓸 값을 반환합니다.
 def get_pages_base_url(config: Dict[str, Any]) -> str:
     """
     GitHub Pages 기본 URL 결정.
@@ -77,6 +116,12 @@ def get_pages_base_url(config: Dict[str, Any]) -> str:
     return f"https://{owner}.github.io/{repo}".rstrip("/")
 
 
+# [코드 이해 주석]
+# - 역할: 여러 입력에서 후속 단계에 필요한 항목을 모읍니다.
+# - 호출하는 곳: related_pages._build_related_page_html, related_pages.attach_related_page_urls
+# - 파라미터: news: Dict[str, Any]
+# - 리턴값: List[Dict[str, str]] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력 목록을 순회합니다 -> 조건에 맞는 항목을 모읍니다 -> 후속 단계가 사용할 목록/통계를 반환합니다.
 def collect_related_items(news: Dict[str, Any]) -> List[Dict[str, str]]:
     titles = news.get("group_article_titles") or []
     urls = news.get("group_article_urls") or []
@@ -118,6 +163,12 @@ def collect_related_items(news: Dict[str, Any]) -> List[Dict[str, str]]:
     return related_items
 
 
+# [코드 이해 주석]
+# - 역할: 생성된 URL이나 메타데이터를 뉴스 dict에 연결합니다.
+# - 호출하는 곳: related_pages.generate_related_page
+# - 파라미터: section_results: List[Dict[str, Any]], page_url: str
+# - 리턴값: int 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def attach_related_page_urls(
     section_results: List[Dict[str, Any]],
     page_url: str,
@@ -135,6 +186,12 @@ def attach_related_page_urls(
     return linked_count
 
 
+# [코드 이해 주석]
+# - 역할: 보존 기간을 지난 생성 파일을 삭제하고 정리 결과를 반환합니다.
+# - 호출하는 곳: related_pages.generate_related_page
+# - 파라미터: directory: str, keep_days: int = DEFAULT_KEEP_DAYS
+# - 리턴값: int 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def cleanup_old_pages(directory: str, keep_days: int = DEFAULT_KEEP_DAYS) -> int:
     if not os.path.isdir(directory):
         return 0
@@ -166,6 +223,12 @@ def cleanup_old_pages(directory: str, keep_days: int = DEFAULT_KEEP_DAYS) -> int
     return removed_count
 
 
+# [코드 이해 주석]
+# - 역할: 입력 데이터를 조합해 내부에서 사용할 출력 구조를 만드는 보조 함수입니다.
+# - 호출하는 곳: related_pages.generate_related_page
+# - 파라미터: briefing_name: str, subject_prefix: str, section_results: List[Dict[str, Any]], generated_at_text: str
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 필요한 입력값을 안전하게 정리합니다 -> 내부용 문자열/dict 구조를 조립합니다 -> 완성된 결과를 반환합니다.
 def _build_related_page_html(
     briefing_name: str,
     subject_prefix: str,
@@ -400,6 +463,13 @@ def _build_related_page_html(
 """
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: main.main
+# - 파라미터: config: Dict[str, Any], config_slug: str, briefing_name: str, subject_prefix: str, section_results:
+# List[Dict[str, Any]], output_root: str = DEFAULT_OUTPUT_ROOT, keep_days: int = DEFAULT_KEEP_DAYS
+# - 리턴값: Dict[str, Any] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def generate_related_page(
     *,
     config: Dict[str, Any],

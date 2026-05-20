@@ -1,3 +1,12 @@
+# =============================================================================
+# [파일 설명]
+# - 수행 기능: 선별된 뉴스를 OpenAI로 요약하고, 실패 시 안전한 fallback 요약을 만듭니다.
+# - 프로세스: 기사 입력 정리 -> 배치 요약 요청 -> JSON 응답 파싱 -> 길이/품질 검증 -> 표준 요약 dict 생성
+# - 호출하는 곳: main.py
+# - 주요 파라미터/입력: 선별 뉴스 목록, 요약 길이, OpenAI 모델/토큰 설정
+# - 리턴값/출력: 메일/히스토리/관련보도 페이지에서 사용할 요약 dict 목록을 반환합니다.
+# =============================================================================
+
 """
 OpenAI API를 사용한 뉴스 요약 모듈
 
@@ -57,6 +66,12 @@ SUMMARY_SINGLE_COMPLETION_LIMIT = int(os.getenv("SUMMARY_SINGLE_MAX_COMPLETION_T
 SUMMARY_INPUT_CONTENT_LIMIT = int(os.getenv("SUMMARY_INPUT_CONTENT_CHARS", "900"))
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: summarizer.summarize_article, summarizer.summarize_batch_with_llm
+# - 파라미터: response: Any
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _message_content(response: Any) -> str:
     try:
         return _safe_text(response.choices[0].message.content)
@@ -64,6 +79,12 @@ def _message_content(response: Any) -> str:
         return ""
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: summarizer.summarize_article, summarizer.summarize_batch_with_llm
+# - 파라미터: response: Any
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _finish_reason(response: Any) -> str:
     try:
         return _safe_text(response.choices[0].finish_reason)
@@ -71,6 +92,12 @@ def _finish_reason(response: Any) -> str:
         return ""
 
 
+# [코드 이해 주석]
+# - 역할: 요약 호출에서 GPT-5 계열의 숨은 reasoning token 소모를 줄이기 위한 설정.
+# - 호출하는 곳: summarizer.summarize_article, summarizer.summarize_batch_with_llm
+# - 파라미터: 없음
+# - 리턴값: Dict[str, str] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _summary_reasoning_effort_kwargs() -> Dict[str, str]:
     """
     요약 호출에서 GPT-5 계열의 숨은 reasoning token 소모를 줄이기 위한 설정.
@@ -94,6 +121,12 @@ def _summary_reasoning_effort_kwargs() -> Dict[str, str]:
     return {"reasoning_effort": effort}
 
 
+# [코드 이해 주석]
+# - 역할: Chat Completions 호출 wrapper.
+# - 호출하는 곳: summarizer.summarize_article, summarizer.summarize_batch_with_llm
+# - 파라미터: **kwargs: Any
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _create_chat_completion(**kwargs):
     """
     Chat Completions 호출 wrapper.
@@ -102,6 +135,13 @@ def _create_chat_completion(**kwargs):
     return create_openai_chat_completion(client, logger, **kwargs)
 
 
+# [코드 이해 주석]
+# - 역할: None 방지용 문자열 변환.
+# - 호출하는 곳: summarizer._build_fallback_summary, summarizer._build_summary_result, summarizer._clip_text,
+# summarizer._extract_json, summarizer._finish_reason, summarizer._message_content 외 2곳
+# - 파라미터: value: Any
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _safe_text(value: Any) -> str:
     """
     None 방지용 문자열 변환
@@ -111,6 +151,12 @@ def _safe_text(value: Any) -> str:
     return str(value).strip()
 
 
+# [코드 이해 주석]
+# - 역할: 중요도 점수 안전 변환.
+# - 호출하는 곳: summarizer._build_summary_result
+# - 파라미터: value: Any, default: int = 3, min_value: int = 1, max_value: int = 5
+# - 리턴값: int 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _safe_int(value: Any, default: int = 3, min_value: int = 1, max_value: int = 5) -> int:
     """
     중요도 점수 안전 변환
@@ -129,6 +175,12 @@ def _safe_int(value: Any, default: int = 3, min_value: int = 1, max_value: int =
     return number
 
 
+# [코드 이해 주석]
+# - 역할: OpenAI 응답에서 JSON 파싱.
+# - 호출하는 곳: summarizer.summarize_batch_with_llm
+# - 파라미터: content: str
+# - 리턴값: Dict 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _extract_json(content: str) -> Dict:
     """
     OpenAI 응답에서 JSON 파싱.
@@ -149,23 +201,47 @@ def _extract_json(content: str) -> Dict:
         return json.loads(content[start:end + 1])
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: summarizer.summarize_batch_with_llm
+# - 파라미터: result: Any
+# - 리턴값: Dict[str, Any] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _ensure_json_object(result: Any) -> Dict[str, Any]:
     if isinstance(result, dict):
         return result
     return {}
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: summarizer.summarize_batch_with_llm
+# - 파라미터: value: Any
+# - 리턴값: List[Any] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _ensure_json_list(value: Any) -> List[Any]:
     if isinstance(value, list):
         return value
     return []
 
 
+# [코드 이해 주석]
+# - 역할: 입력 데이터를 조합해 내부에서 사용할 출력 구조를 만드는 보조 함수입니다.
+# - 호출하는 곳: summarizer.summarize_article, summarizer.summarize_batch_with_llm
+# - 파라미터: article: Dict, max_length: int = 220
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 필요한 입력값을 안전하게 정리합니다 -> 내부용 문자열/dict 구조를 조립합니다 -> 완성된 결과를 반환합니다.
 def _build_fallback_summary(article: Dict, max_length: int = 220) -> str:
     content = _safe_text(article.get("content") or article.get("description"))
     return content[:max_length] + "..." if len(content) > max_length else content
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: summarizer.summarize_batch_with_llm
+# - 파라미터: value: Any, limit: int
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _clip_text(value: Any, limit: int) -> str:
     text = _safe_text(value)
     if len(text) <= limit:
@@ -173,11 +249,23 @@ def _clip_text(value: Any, limit: int) -> str:
     return text[:limit].rstrip() + "..."
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: summarizer.summarize_article, summarizer.summarize_batch_with_llm
+# - 파라미터: max_length: int
+# - 리턴값: int 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _summary_min_length(max_length: int) -> int:
     max_length = max(int(max_length or 220), 80)
     return min(max(int(max_length * 0.6), 120), max_length)
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: summarizer.summarize_batch_with_llm
+# - 파라미터: article_count: int, max_length: int
+# - 리턴값: List[int] 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _batch_completion_limits(article_count: int, max_length: int) -> List[int]:
     article_count = max(int(article_count or 1), 1)
     max_length = max(int(max_length or 180), 80)
@@ -197,6 +285,12 @@ def _batch_completion_limits(article_count: int, max_length: int) -> List[int]:
     return [min(first_limit, SUMMARY_BATCH_COMPLETION_LIMIT)]
 
 
+# [코드 이해 주석]
+# - 역할: 입력 데이터를 조합해 내부에서 사용할 출력 구조를 만드는 보조 함수입니다.
+# - 호출하는 곳: summarizer.summarize_article, summarizer.summarize_batch_with_llm
+# - 파라미터: article: Dict, summary: str, tokens_used: int = 0, error: str = None
+# - 리턴값: Dict 타입 값을 반환합니다.
+# - 프로세스 흐름: 필요한 입력값을 안전하게 정리합니다 -> 내부용 문자열/dict 구조를 조립합니다 -> 완성된 결과를 반환합니다.
 def _build_summary_result(article: Dict, summary: str, tokens_used: int = 0, error: str = None) -> Dict:
     title = _safe_text(article.get("title", "제목 없음"))
     url = _safe_text(article.get("url", "#"))
@@ -246,6 +340,12 @@ def _build_summary_result(article: Dict, summary: str, tokens_used: int = 0, err
     return result
 
 
+# [코드 이해 주석]
+# - 역할: 단일 기사 요약.
+# - 호출하는 곳: summarizer.summarize_batch
+# - 파라미터: article: Dict, max_length: int = 220
+# - 리턴값: Dict 타입 값을 반환합니다.
+# - 프로세스 흐름: 기사 입력을 정리합니다 -> AI 요약 또는 fallback을 실행합니다 -> 표준 요약 dict를 반환합니다.
 def summarize_article(article: Dict, max_length: int = 220) -> Dict:
     """
     단일 기사 요약.
@@ -337,6 +437,12 @@ def summarize_article(article: Dict, max_length: int = 220) -> Dict:
         )
 
 
+# [코드 이해 주석]
+# - 역할: 여러 기사를 한 번의 OpenAI 호출로 요약한다.
+# - 호출하는 곳: summarizer.summarize_batch
+# - 파라미터: articles: List[Dict], max_length: int = 220
+# - 리턴값: List[Dict] 타입 값을 반환합니다.
+# - 프로세스 흐름: 기사 입력을 정리합니다 -> AI 요약 또는 fallback을 실행합니다 -> 표준 요약 dict를 반환합니다.
 def summarize_batch_with_llm(articles: List[Dict], max_length: int = 220) -> List[Dict]:
     """
     여러 기사를 한 번의 OpenAI 호출로 요약한다.
@@ -499,6 +605,12 @@ def summarize_batch_with_llm(articles: List[Dict], max_length: int = 220) -> Lis
     return results
 
 
+# [코드 이해 주석]
+# - 역할: 여러 기사 일괄 요약.
+# - 호출하는 곳: main.collect_select_and_summarize
+# - 파라미터: articles: List[Dict], delay: float = 1.0, max_length: int = 220
+# - 리턴값: List[Dict] 타입 값을 반환합니다.
+# - 프로세스 흐름: 기사 입력을 정리합니다 -> AI 요약 또는 fallback을 실행합니다 -> 표준 요약 dict를 반환합니다.
 def summarize_batch(articles: List[Dict], delay: float = 1.0, max_length: int = 220) -> List[Dict]:
     """
     여러 기사 일괄 요약.

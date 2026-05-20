@@ -1,3 +1,12 @@
+# =============================================================================
+# [파일 설명]
+# - 수행 기능: 설정 파일을 기준으로 뉴스 수집, 중복 이슈 제거, 그룹화, AI 선별, 요약, 관련보도 페이지 생성, 이메일 발송, 히스토리 저장을 총괄합니다.
+# - 프로세스: CLI 인자/설정 로드 -> 섹션별 수집 및 선별/요약 -> 전체 중복 제거 -> 관련보도 페이지 연결 -> 이메일 발송 -> 이슈 히스토리/사용량 기록
+# - 호출하는 곳: 직접 실행 또는 수동 import
+# - 주요 파라미터/입력: 명령행 --config, configs/*.json, 환경변수, 네이버/OpenAI/SMTP 설정
+# - 리턴값/출력: main()은 정수 종료 코드 대신 로그와 파일/메일 발송 부수 효과를 남깁니다.
+# =============================================================================
+
 """
 뉴스 스크래퍼
 설정 파일 기반 뉴스 수집 → 최근 이슈 중복 제거 → OpenAI 뉴스 선별 → OpenAI 요약 → 이메일 발송 → 이슈 히스토리 저장
@@ -89,6 +98,12 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 
+# [코드 이해 주석]
+# - 역할: 실행 인자 파싱.
+# - 호출하는 곳: main.main, main.parse_args
+# - 파라미터: 없음
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 문자열/설정을 읽습니다 -> 가능한 형식으로 변환을 시도합니다 -> 실패 시 안전한 기본값을 반환합니다.
 def parse_args():
     """
     실행 인자 파싱
@@ -112,6 +127,12 @@ def parse_args():
     return parser.parse_args()
 
 
+# [코드 이해 주석]
+# - 역할: 브리핑 설정 파일 로드.
+# - 호출하는 곳: main.main
+# - 파라미터: config_path: Any
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 파일 경로를 확인합니다 -> JSON/환경 값을 읽습니다 -> 없거나 깨진 값은 기본 구조로 보정합니다.
 def load_config(config_path):
     """
     브리핑 설정 파일 로드
@@ -127,6 +148,12 @@ def load_config(config_path):
     return config
 
 
+# [코드 이해 주석]
+# - 역할: 설정 파일 필수값 검증.
+# - 호출하는 곳: main.load_config
+# - 파라미터: config: Any, config_path: Any
+# - 리턴값: 명시 반환값은 없으며 None 또는 내부 상태 변경/부수 효과를 사용합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def validate_config(config, config_path):
     """
     설정 파일 필수값 검증
@@ -149,6 +176,12 @@ def validate_config(config, config_path):
             raise ValueError(f"{config_path} sections[{idx}].keywords는 비어 있지 않은 리스트여야 합니다.")
 
 
+# [코드 이해 주석]
+# - 역할: 파일명에 안전한 문자열 생성.
+# - 호출하는 곳: main.get_config_slug
+# - 파라미터: value: Any
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def make_safe_filename(value):
     """
     파일명에 안전한 문자열 생성
@@ -164,6 +197,12 @@ def make_safe_filename(value):
     return value
 
 
+# [코드 이해 주석]
+# - 역할: 설정 파일 경로에서 상태 파일 구분용 slug를 생성한다.
+# - 호출하는 곳: main.get_state_file_paths
+# - 파라미터: config_path: Any
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력 dict 또는 전역 상태를 확인합니다 -> 기본값을 보정합니다 -> 호출자가 바로 쓸 값을 반환합니다.
 def get_config_slug(config_path):
     """
     설정 파일 경로에서 상태 파일 구분용 slug를 생성한다.
@@ -179,6 +218,12 @@ def get_config_slug(config_path):
     return make_safe_filename(config_base_name)
 
 
+# [코드 이해 주석]
+# - 역할: 설정 파일 기준으로 상태 파일 경로를 동적으로 생성한다.
+# - 호출하는 곳: main.main
+# - 파라미터: config_path: Any
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력 dict 또는 전역 상태를 확인합니다 -> 기본값을 보정합니다 -> 호출자가 바로 쓸 값을 반환합니다.
 def get_state_file_paths(config_path):
     """
     설정 파일 기준으로 상태 파일 경로를 동적으로 생성한다.
@@ -198,6 +243,12 @@ def get_state_file_paths(config_path):
     }
 
 
+# [코드 이해 주석]
+# - 역할: 설정 파일의 sorts 값을 안전하게 리스트로 변환한다.
+# - 호출하는 곳: main.collect_select_and_summarize, main.main
+# - 파라미터: value: Any
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 빈 값과 자료형을 보정합니다 -> 비교용 불필요 요소를 제거합니다 -> 표준화된 값을 반환합니다.
 def normalize_sorts(value):
     """
     설정 파일의 sorts 값을 안전하게 리스트로 변환한다.
@@ -228,6 +279,12 @@ def normalize_sorts(value):
 
 
 
+# [코드 이해 주석]
+# - 역할: 설정 파일의 exclude_keywords 값을 안전하게 리스트로 변환한다.
+# - 호출하는 곳: main.apply_exclude_keywords, main.main
+# - 파라미터: value: Any
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 빈 값과 자료형을 보정합니다 -> 비교용 불필요 요소를 제거합니다 -> 표준화된 값을 반환합니다.
 def normalize_exclude_keywords(value):
     """
     설정 파일의 exclude_keywords 값을 안전하게 리스트로 변환한다.
@@ -241,6 +298,12 @@ def normalize_exclude_keywords(value):
     return []
 
 
+# [코드 이해 주석]
+# - 역할: 설정 파일의 bool 값을 안전하게 변환한다.
+# - 호출하는 곳: main.main
+# - 파라미터: value: Any, default: Any = False
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 빈 값과 자료형을 보정합니다 -> 비교용 불필요 요소를 제거합니다 -> 표준화된 값을 반환합니다.
 def normalize_bool(value, default=False):
     """
     설정 파일의 bool 값을 안전하게 변환한다.
@@ -264,6 +327,12 @@ def normalize_bool(value, default=False):
     return bool(default)
 
 
+# [코드 이해 주석]
+# - 역할: 설정 파일의 이메일 발송 방식을 안전하게 변환한다.
+# - 호출하는 곳: main.main
+# - 파라미터: value: Any, default: Any = DEFAULT_EMAIL_SEND_MODE
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 빈 값과 자료형을 보정합니다 -> 비교용 불필요 요소를 제거합니다 -> 표준화된 값을 반환합니다.
 def normalize_email_send_mode(value, default=DEFAULT_EMAIL_SEND_MODE):
     """
     설정 파일의 이메일 발송 방식을 안전하게 변환한다.
@@ -289,6 +358,12 @@ def normalize_email_send_mode(value, default=DEFAULT_EMAIL_SEND_MODE):
     return default
 
 
+# [코드 이해 주석]
+# - 역할: AI 선별 전에 명백히 제외할 키워드를 포함한 뉴스를 제거한다.
+# - 호출하는 곳: main.collect_select_and_summarize
+# - 파라미터: news_list: Any, exclude_keywords: Any, section_name: Any
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def apply_exclude_keywords(news_list, exclude_keywords, section_name):
     """
     AI 선별 전에 명백히 제외할 키워드를 포함한 뉴스를 제거한다.
@@ -327,6 +402,19 @@ def apply_exclude_keywords(news_list, exclude_keywords, section_name):
     )
     return filtered, excluded_count
 
+# [코드 이해 주석]
+# - 역할: 섹션별 뉴스 수집 → 최근 반복 이슈 제거 → OpenAI 선별 → 요약 처리.
+# - 호출하는 곳: main.main
+# - 파라미터: briefing_name: Any, receiver_env: Any, section_name: Any, keywords: Any, topic_description: Any,
+# display_per_keyword: Any = DEFAULT_DISPLAY_PER_KEYWORD, pages_per_keyword: Any = DEFAULT_PAGES_PER_KEYWORD, sorts:
+# Any = None, max_total_news: Any = DEFAULT_MAX_TOTAL_NEWS, select_limit: Any = DEFAULT_SELECT_LIMIT, recent_hours:
+# Any = DEFAULT_RECENT_HOURS, issue_history_days: Any = DEFAULT_ISSUE_HISTORY_DAYS, issue_history_file_path: Any =
+# issue_history.HISTORY_FILE_PATH, unmapped_press_domains_file_path: Any = None, exclude_keywords: Any = None,
+# grouping_max_groups: Any = None, grouping_exclude_low_quality: Any = True, selector_candidate_group_limit: Any =
+# DEFAULT_SELECTOR_CANDIDATE_GROUP_LIMIT, summary_max_length: Any = DEFAULT_SUMMARY_MAX_LENGTH, email_insight_ai: Any
+# = DEFAULT_EMAIL_INSIGHT_AI
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력 목록을 순회합니다 -> 조건에 맞는 항목을 모읍니다 -> 후속 단계가 사용할 목록/통계를 반환합니다.
 def collect_select_and_summarize(
     briefing_name,
     receiver_env,
@@ -671,6 +759,12 @@ def collect_select_and_summarize(
     }
 
 
+# [코드 이해 주석]
+# - 역할: 메인 실행 함수.
+# - 호출하는 곳: python main.py 실행 시 __main__ 블록에서 호출합니다.
+# - 파라미터: 없음
+# - 리턴값: 명시 반환값은 없으며 None 또는 내부 상태 변경/부수 효과를 사용합니다.
+# - 프로세스 흐름: 인자/설정을 읽습니다 -> 섹션별 파이프라인을 실행합니다 -> 발송/저장/사용량 로그를 마무리합니다.
 def main():
     """
     메인 실행 함수

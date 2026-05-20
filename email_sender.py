@@ -1,3 +1,12 @@
+# =============================================================================
+# [파일 설명]
+# - 수행 기능: 뉴스 요약 결과를 HTML 이메일로 구성하고 SMTP를 통해 수신자에게 발송합니다.
+# - 프로세스: 수신자/발송 방식 정규화 -> 섹션 HTML 구성 -> 메일 MIME 생성 -> SMTP 로그인/발송 -> 성공 여부 반환
+# - 호출하는 곳: main.py
+# - 주요 파라미터/입력: section_results 또는 summaries, 제목/브리핑명, 수신자 환경변수, SMTP 환경변수
+# - 리턴값/출력: send_email()은 발송 성공 여부 bool을 반환하고, HTML 생성 함수들은 문자열을 반환합니다.
+# =============================================================================
+
 """
 이메일 자동 발송 모듈
 """
@@ -61,6 +70,13 @@ else:
     client = None
 
 
+# [코드 이해 주석]
+# - 역할: HTML 표시용 문자열 안전 변환.
+# - 호출하는 곳: email_sender.build_news_section, email_sender.build_related_reports_html,
+# email_sender.build_section_insights, email_sender.create_html_email, email_sender.format_korean_datetime
+# - 파라미터: value: Any
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def safe_text(value):
     """
     HTML 표시용 문자열 안전 변환
@@ -70,6 +86,12 @@ def safe_text(value):
     return html_lib.escape(str(value).strip())
 
 
+# [코드 이해 주석]
+# - 역할: 링크 URL 안전 변환.
+# - 호출하는 곳: email_sender.build_news_section, email_sender.build_related_reports_html
+# - 파라미터: value: Any
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def safe_url(value):
     """
     링크 URL 안전 변환
@@ -79,6 +101,12 @@ def safe_url(value):
     return html_lib.escape(str(value).strip(), quote=True)
 
 
+# [코드 이해 주석]
+# - 역할: 중요도 점수 안전 변환.
+# - 호출하는 곳: email_sender.build_news_section, email_sender.build_section_insights
+# - 파라미터: value: Any, default: Any = 3, min_value: Any = 1, max_value: Any = 5
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def safe_int(value, default=3, min_value=1, max_value=5):
     """
     중요도 점수 안전 변환
@@ -97,6 +125,13 @@ def safe_int(value, default=3, min_value=1, max_value=5):
     return number
 
 
+# [코드 이해 주석]
+# - 역할: 대시보드 숫자 안전 변환.
+# - 호출하는 곳: email_sender.build_news_section, email_sender.build_related_reports_html,
+# email_sender.build_section_dashboard, email_sender.build_section_insights
+# - 파라미터: value: Any, default: Any = 0
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def safe_count(value, default=0):
     """
     대시보드 숫자 안전 변환
@@ -107,6 +142,12 @@ def safe_count(value, default=0):
         return default
 
 
+# [코드 이해 주석]
+# - 역할: 입력값을 화면 표시나 후속 처리에 안전한 형태로 변환하는 보조 함수입니다.
+# - 호출하는 곳: email_sender.build_section_insights
+# - 파라미터: value: Any, default: Any = False
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def safe_bool(value, default=False):
     if value is None:
         return bool(default)
@@ -123,6 +164,12 @@ def safe_bool(value, default=False):
     return bool(default)
 
 
+# [코드 이해 주석]
+# - 역할: 날짜 문자열을 한국식 표현으로 변환한다.
+# - 호출하는 곳: email_sender.build_news_section
+# - 파라미터: date_string: Any
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def format_korean_datetime(date_string):
     """
     날짜 문자열을 한국식 표현으로 변환한다.
@@ -169,6 +216,12 @@ def format_korean_datetime(date_string):
         return safe_text(raw_value)
 
 
+# [코드 이해 주석]
+# - 역할: 오늘 날짜 문자열 생성.
+# - 호출하는 곳: email_sender.create_html_email, email_sender.send_email, email_sender.send_test_email
+# - 파라미터: 없음
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력 dict 또는 전역 상태를 확인합니다 -> 기본값을 보정합니다 -> 호출자가 바로 쓸 값을 반환합니다.
 def get_today_date_text():
     """
     오늘 날짜 문자열 생성
@@ -185,6 +238,13 @@ def get_today_date_text():
     return formatted_date, now_kst
 
 
+# [코드 이해 주석]
+# - 역할: 사용할 수신자 환경변수명 결정.
+# - 호출하는 곳: email_sender.send_email
+# - 파라미터: briefing_name: Any = None, subject_prefix: Any = None, section_results: Any = None, receiver_env_name: Any =
+# None
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def determine_receiver_env_name(
     briefing_name=None,
     subject_prefix=None,
@@ -205,6 +265,12 @@ def determine_receiver_env_name(
     return "EMAIL_RECEIVER"
 
 
+# [코드 이해 주석]
+# - 역할: 환경변수에서 수신자 목록 가져오기.
+# - 호출하는 곳: email_sender.send_email
+# - 파라미터: receiver_env_name: Any = None
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력 dict 또는 전역 상태를 확인합니다 -> 기본값을 보정합니다 -> 호출자가 바로 쓸 값을 반환합니다.
 def get_receiver_list(receiver_env_name=None):
     """
     환경변수에서 수신자 목록 가져오기
@@ -264,6 +330,12 @@ def get_receiver_list(receiver_env_name=None):
     return receivers
 
 
+# [코드 이해 주석]
+# - 역할: 이메일 발송 방식 변환.
+# - 호출하는 곳: email_sender.send_email
+# - 파라미터: value: Any, default: Any = 'individual'
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 빈 값과 자료형을 보정합니다 -> 비교용 불필요 요소를 제거합니다 -> 표준화된 값을 반환합니다.
 def normalize_email_send_mode(value, default="individual"):
     """
     이메일 발송 방식 변환.
@@ -285,6 +357,12 @@ def normalize_email_send_mode(value, default="individual"):
     return default
 
 
+# [코드 이해 주석]
+# - 역할: dict 또는 문자열 수신자 정보를 {name, email, display} 구조로 변환한다.
+# - 호출하는 곳: email_sender.send_email
+# - 파라미터: receiver_info: Any
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 빈 값과 자료형을 보정합니다 -> 비교용 불필요 요소를 제거합니다 -> 표준화된 값을 반환합니다.
 def normalize_receiver_info(receiver_info):
     """
     dict 또는 문자열 수신자 정보를 {name, email, display} 구조로 변환한다.
@@ -324,6 +402,12 @@ def normalize_receiver_info(receiver_info):
     }
 
 
+# [코드 이해 주석]
+# - 역할: 입력 데이터를 조합해 HTML, payload, 메시지, 결과 dict 같은 출력 구조를 만듭니다.
+# - 호출하는 곳: email_sender.send_email
+# - 파라미터: subject: Any, html_body: Any, to_header: Any
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 필요한 입력값을 안전하게 정리합니다 -> 문자열/dict/HTML 구조를 조립합니다 -> 완성된 결과를 반환합니다.
 def build_email_message(subject, html_body, to_header):
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
@@ -341,6 +425,12 @@ def build_email_message(subject, html_body, to_header):
     return msg
 
 
+# [코드 이해 주석]
+# - 역할: 비교와 저장에 일관되게 사용할 수 있도록 값을 표준 형태로 정규화하는 내부 보조 함수입니다.
+# - 호출하는 곳: email_sender.build_related_reports_html
+# - 파라미터: value: Any
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 빈 값과 자료형을 보정합니다 -> 비교용 불필요 요소를 제거합니다 -> 표준화된 값을 반환합니다.
 def _normalize_url_for_compare(value):
     text = str(value or "").strip().lower()
     if not text:
@@ -350,6 +440,12 @@ def _normalize_url_for_compare(value):
     return text.rstrip("/")
 
 
+# [코드 이해 주석]
+# - 역할: 관련보도 제목/링크 목록 HTML 생성.
+# - 호출하는 곳: email_sender.build_news_section
+# - 파라미터: news: Any, toggle_id: Any = None
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 필요한 입력값을 안전하게 정리합니다 -> 문자열/dict/HTML 구조를 조립합니다 -> 완성된 결과를 반환합니다.
 def build_related_reports_html(news, toggle_id=None):
     """
     관련보도 제목/링크 목록 HTML 생성.
@@ -475,6 +571,12 @@ def build_related_reports_html(news, toggle_id=None):
     """
 
 
+# [코드 이해 주석]
+# - 역할: 섹션 제목 아래, 핵심요약 3줄 위에 표시할 간단 대시보드.
+# - 호출하는 곳: email_sender.build_news_section
+# - 파라미터: section_result: Any
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 필요한 입력값을 안전하게 정리합니다 -> 문자열/dict/HTML 구조를 조립합니다 -> 완성된 결과를 반환합니다.
 def build_section_dashboard(section_result):
     """
     섹션 제목 아래, 핵심요약 3줄 위에 표시할 간단 대시보드.
@@ -573,6 +675,12 @@ def build_section_dashboard(section_result):
 
 
 
+# [코드 이해 주석]
+# - 역할: 메일 핵심 3줄 생성은 깊은 추론보다 짧은 종합이 중요하므로.
+# - 호출하는 곳: email_sender.build_section_insights
+# - 파라미터: model: str
+# - 리턴값: dict 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _email_insight_reasoning_effort_kwargs(model: str) -> dict:
     """
     메일 핵심 3줄 생성은 깊은 추론보다 짧은 종합이 중요하므로
@@ -588,6 +696,12 @@ def _email_insight_reasoning_effort_kwargs(model: str) -> dict:
     return {"reasoning_effort": effort}
 
 
+# [코드 이해 주석]
+# - 역할: OpenAI SDK/모델 호환성 방어용 호출 wrapper.
+# - 호출하는 곳: email_sender.build_section_insights
+# - 파라미터: **kwargs: Any
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _create_chat_completion_for_email_insight(**kwargs):
     """
     OpenAI SDK/모델 호환성 방어용 호출 wrapper.
@@ -596,6 +710,12 @@ def _create_chat_completion_for_email_insight(**kwargs):
     return create_openai_chat_completion(client, logger, **kwargs)
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: email_sender.build_section_insights
+# - 파라미터: response: Any
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _response_content(response) -> str:
     try:
         return str(response.choices[0].message.content or "").strip()
@@ -603,12 +723,24 @@ def _response_content(response) -> str:
         return ""
 
 
+# [코드 이해 주석]
+# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
+# - 호출하는 곳: email_sender.build_section_insights
+# - 파라미터: response: Any
+# - 리턴값: str 타입 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _response_finish_reason(response) -> str:
     try:
         return str(response.choices[0].finish_reason or "").strip()
     except Exception:
         return ""
 
+# [코드 이해 주석]
+# - 역할: 핵심 3줄 LLM 응답을 검증하고 정규화한다.
+# - 호출하는 곳: email_sender.build_section_insights
+# - 파라미터: insight_text: Any
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 빈 값과 자료형을 보정합니다 -> 비교용 불필요 요소를 제거합니다 -> 표준화된 값을 반환합니다.
 def normalize_insight_lines(insight_text):
     """
     핵심 3줄 LLM 응답을 검증하고 정규화한다.
@@ -638,6 +770,12 @@ def normalize_insight_lines(insight_text):
     return [f"{idx}. {text}" for idx, text in enumerate(cleaned, 1)]
 
 
+# [코드 이해 주석]
+# - 역할: 섹션별 핵심 3줄 생성.
+# - 호출하는 곳: email_sender.build_news_section
+# - 파라미터: section_title: Any, summaries: Any, scrape_stats: Any = None
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 필요한 입력값을 안전하게 정리합니다 -> 문자열/dict/HTML 구조를 조립합니다 -> 완성된 결과를 반환합니다.
 def build_section_insights(section_title, summaries, scrape_stats=None):
     """
     섹션별 핵심 3줄 생성
@@ -809,6 +947,12 @@ def build_section_insights(section_title, summaries, scrape_stats=None):
     """
 
 
+# [코드 이해 주석]
+# - 역할: 섹션별 포인트 색상 반환.
+# - 호출하는 곳: email_sender.build_news_section
+# - 파라미터: index: Any
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력 dict 또는 전역 상태를 확인합니다 -> 기본값을 보정합니다 -> 호출자가 바로 쓸 값을 반환합니다.
 def get_section_color(index):
     """
     섹션별 포인트 색상 반환
@@ -825,6 +969,12 @@ def get_section_color(index):
     return colors[index % len(colors)]
 
 
+# [코드 이해 주석]
+# - 역할: 뉴스 섹션 HTML 생성.
+# - 호출하는 곳: email_sender.create_html_email
+# - 파라미터: section_result: Any, section_index: Any
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 필요한 입력값을 안전하게 정리합니다 -> 문자열/dict/HTML 구조를 조립합니다 -> 완성된 결과를 반환합니다.
 def build_news_section(section_result, section_index):
     """
     뉴스 섹션 HTML 생성.
@@ -925,6 +1075,12 @@ def build_news_section(section_result, section_index):
     return html_body
 
 
+# [코드 이해 주석]
+# - 역할: section_results 구조 정규화.
+# - 호출하는 곳: email_sender.create_html_email, email_sender.send_email
+# - 파라미터: section_results: Any = None, summaries: Any = None
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 빈 값과 자료형을 보정합니다 -> 비교용 불필요 요소를 제거합니다 -> 표준화된 값을 반환합니다.
 def normalize_section_results(section_results=None, summaries=None):
     """
     section_results 구조 정규화
@@ -950,6 +1106,12 @@ def normalize_section_results(section_results=None, summaries=None):
     return []
 
 
+# [코드 이해 주석]
+# - 역할: HTML 이메일 생성.
+# - 호출하는 곳: email_sender.send_email
+# - 파라미터: briefing_name: Any = None, subject_prefix: Any = None, section_results: Any = None, summaries: Any = None
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def create_html_email(
     briefing_name=None,
     subject_prefix=None,
@@ -1054,6 +1216,13 @@ def create_html_email(
     return html_body
 
 
+# [코드 이해 주석]
+# - 역할: 이메일로 뉴스 요약 발송.
+# - 호출하는 곳: email_sender.send_test_email, main.main
+# - 파라미터: summaries: Any = None, subject: Any = None, briefing_name: Any = None, subject_prefix: Any = None,
+# section_results: Any = None, receiver_env_name: Any = None, send_mode: Any = 'individual'
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 수신자와 메시지를 준비합니다 -> SMTP로 전송합니다 -> 성공 여부와 로그를 남깁니다.
 def send_email(
     summaries=None,
     subject=None,
@@ -1245,6 +1414,12 @@ def send_email(
         }
 
 
+# [코드 이해 주석]
+# - 역할: 이메일 전송만 테스트한다.
+# - 호출하는 곳: 외부 모듈에서 import해 호출할 수 있는 공개 함수입니다. 정적 직접 호출은 없습니다.
+# - 파라미터: receiver_env_name: Any = 'EMAIL_RECEIVER'
+# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
+# - 프로세스 흐름: 수신자와 메시지를 준비합니다 -> SMTP로 전송합니다 -> 성공 여부와 로그를 남깁니다.
 def send_test_email(receiver_env_name="EMAIL_RECEIVER"):
     """
     이메일 전송만 테스트한다.
