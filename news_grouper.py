@@ -699,6 +699,12 @@ def group_priority_score(serialized_group: Dict[str, Any]) -> float:
 def representative_news_from_group(serialized_group: Dict[str, Any]) -> Dict[str, Any]:
     rep = dict(serialized_group.get("representative") or {})
     articles = serialized_group.get("articles") or []
+    related_articles = [
+        article
+        for article in articles[:12]
+        if str(article.get("title") or "").strip()
+        and str(article.get("url") or "").strip()
+    ]
     rep["group_id"] = serialized_group.get("group_id")
     rep["group_article_count"] = serialized_group.get("article_count", 1)
     rep["group_source_count"] = serialized_group.get("source_count", 1)
@@ -709,13 +715,15 @@ def representative_news_from_group(serialized_group: Dict[str, Any]) -> Dict[str
     rep["group_priority_score"] = serialized_group.get("priority_score", 0)
     rep["group_article_titles"] = [
         str(article.get("title") or "").strip()
-        for article in articles[:12]
-        if str(article.get("title") or "").strip()
+        for article in related_articles
     ]
     rep["group_article_urls"] = [
         str(article.get("url") or "").strip()
-        for article in articles[:12]
-        if str(article.get("url") or "").strip()
+        for article in related_articles
+    ]
+    rep["group_article_sources"] = [
+        str(article.get("source") or "").strip()
+        for article in related_articles
     ]
     rep["description"] = rep.get("description", "")
     rep["content"] = rep.get("description", "")

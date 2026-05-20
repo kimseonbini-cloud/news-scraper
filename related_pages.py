@@ -80,15 +80,19 @@ def get_pages_base_url(config: Dict[str, Any]) -> str:
 def collect_related_items(news: Dict[str, Any]) -> List[Dict[str, str]]:
     titles = news.get("group_article_titles") or []
     urls = news.get("group_article_urls") or []
+    sources = news.get("group_article_sources") or []
+    if not isinstance(sources, list):
+        sources = []
     main_url = _normalize_url_for_compare(news.get("url"))
 
     related_items: List[Dict[str, str]] = []
     seen_urls = set()
     seen_titles = set()
 
-    for title, url in zip(titles, urls):
+    for index, (title, url) in enumerate(zip(titles, urls)):
         title_text = str(title or "").strip()
         url_text = str(url or "").strip()
+        source_text = str(sources[index] or "").strip() if index < len(sources) else ""
         normalized_url = _normalize_url_for_compare(url_text)
         normalized_title = re.sub(r"\s+", " ", title_text).strip().lower()
 
@@ -99,11 +103,15 @@ def collect_related_items(news: Dict[str, Any]) -> List[Dict[str, str]]:
         if normalized_title and normalized_title in seen_titles:
             continue
 
+        if not source_text and main_url and normalized_url == main_url:
+            source_text = str(news.get("source") or "").strip()
+
         seen_urls.add(normalized_url)
         seen_titles.add(normalized_title)
         related_items.append({
             "title": title_text,
             "url": url_text,
+            "source": source_text,
             "is_main": "true" if main_url and normalized_url == main_url else "",
         })
 
@@ -181,8 +189,12 @@ def _build_related_page_html(
                 main_badge = ""
                 if item.get("is_main"):
                     main_badge = '<span class="badge">대표</span>'
+                source_label = ""
+                if item.get("source"):
+                    source_label = f'<span class="source">{_safe_text(item.get("source"))}</span>'
                 related_rows += f"""
                     <li>
+                        {source_label}
                         <a href="{_safe_url(item.get("url"))}" target="_blank" rel="noopener noreferrer">
                             {_safe_text(item.get("title"))}
                         </a>
@@ -192,13 +204,13 @@ def _build_related_page_html(
 
             news_html += f"""
                 <article id="{anchor}" class="news-card">
-                    <div class="meta">{_safe_text(section_title)} · 관련보도 {len(related_items)}건</div>
                     <h2>
                         <a href="{_safe_url(news.get("url"))}" target="_blank" rel="noopener noreferrer">
                             {_safe_text(news.get("title") or "제목 없음")}
                         </a>
                     </h2>
                     <p>{_safe_text(news.get("summary"))}</p>
+                    <div class="related-count">관련보도 {len(related_items)}건</div>
                     <ol>
                         {related_rows}
                     </ol>
@@ -272,8 +284,8 @@ def _build_related_page_html(
         body.related-filtered .news-card:not(.selected-related) {{
             display: none;
         }}
-        .meta {{
-            margin: 0 0 6px 0;
+        .related-count {{
+            margin: 10px 0 6px 0;
             color: #71717a;
             font-size: 12px;
             font-weight: 700;
@@ -310,6 +322,13 @@ def _build_related_page_html(
             margin-left: 6px;
             color: #71717a;
             font-size: 11px;
+            font-weight: 800;
+        }}
+        .source {{
+            display: inline-block;
+            margin-right: 7px;
+            color: #52525b;
+            font-size: 12px;
             font-weight: 800;
         }}
         .empty {{
@@ -402,7 +421,7 @@ def generate_related_page(
 
     kst = pytz.timezone("Asia/Seoul")
     now = datetime.now(kst)
-    generated_at_text = now.strftime("%Y년 %m월 %d일 %H:%M")
+    generated_at_text = now.strftime("%Y년 %m월 %d일")
     filename = now.strftime("%Y-%m-%d-%H%M%S.html")
 
     safe_config_slug = _safe_slug(config_slug)

@@ -1395,6 +1395,11 @@ def _estimate_importance_score_from_news(news: Dict[str, Any]) -> int:
 def _representative_news_from_group(group: Dict[str, Any]) -> Dict[str, Any]:
     rep = dict(group.get("representative") or {})
     articles = group.get("articles") or []
+    related_articles = [
+        article
+        for article in articles[:12]
+        if _safe_text(article.get("title")) and _safe_text(article.get("url"))
+    ]
 
     # 그룹화 결과의 대표 기사에는 published_at_kst만 있는 경우가 있다.
     # 이후 요약/메일 단계는 published_at을 우선 사용하므로 여기서 호환 필드를 보강한다.
@@ -1412,13 +1417,15 @@ def _representative_news_from_group(group: Dict[str, Any]) -> Dict[str, Any]:
     rep["group_priority_score"] = group.get("priority_score", 0)
     rep["group_article_titles"] = [
         _safe_text(article.get("title"))
-        for article in articles[:12]
-        if _safe_text(article.get("title"))
+        for article in related_articles
     ]
     rep["group_article_urls"] = [
         _safe_text(article.get("url"))
-        for article in articles[:12]
-        if _safe_text(article.get("url"))
+        for article in related_articles
+    ]
+    rep["group_article_sources"] = [
+        _safe_text(article.get("source"))
+        for article in related_articles
     ]
     rep["local_importance_score"] = _estimate_importance_score_from_group(group)
     if rep.get("importance_score") in (None, ""):
