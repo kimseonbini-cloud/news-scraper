@@ -902,10 +902,10 @@ def build_news_section(section_result, section_index):
                                 <div style="font-size:11px; line-height:1.5; margin:0 0 7px 0;">
                                     <span style="font-weight:800;">{source}</span>
                                     <span>　</span>
+                                    <span>{published_date}</span>
+                                    <span>　</span>
                                     <span style="font-weight:800; color:#ea580c;">중요도 {importance_score}</span>
                                     {related_reports_html}
-                                    <span>　</span>
-                                    <span>{published_date}</span>
                                 </div>
 
                                 <div style="font-size:13px; line-height:1.65; margin:0; padding:0; word-break:keep-all;">
