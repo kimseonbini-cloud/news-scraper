@@ -15,7 +15,9 @@
 - extract_press_name()에서 domain == key 또는 domain.endswith("." + key) 방식으로 사용
 """
 
-PRESS_MAP = {
+# naver_news_scraper.extract_press_name()이 URL 도메인을 언론사명으로 바꿀 때 직접 조회하는 기준표다.
+# key는 비교용 도메인이고, value는 메일/관련보도 페이지에 표시할 한글 언론사명이다.
+PRESS_MAP = {  # 언론사도메인매핑
     "00news.co.kr": "공공뉴스",
     "100ssd.co.kr": "백세시대",
     "1conomynews.co.kr": "1코노미뉴스",

@@ -1,9 +1,10 @@
 {
-  "updated_at": "2026-05-21T08:06:19.318943+09:00",
-  "total_count": 17,
+  "updated_at": "2026-05-21T17:33:44.325947+09:00",
+  "total_count": 19,
   "current_run_count": 1,
   "new_count": 0,
   "domains": [
+    "autotimes.co.kr",
     "busanmbc.co.kr",
     "cio.com",
     "danbinews.com",
@@ -19,6 +20,7 @@
     "stnsports.co.kr",
     "technoa.co.kr",
     "thebilliards.kr",
+    "thedrive.co.kr",
     "thegolftimes.co.kr",
     "welfarenews.net"
   ]
