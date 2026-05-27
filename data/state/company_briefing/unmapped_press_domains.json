@@ -1,6 +1,6 @@
 {
-  "updated_at": "2026-05-27T08:07:22.118043+09:00",
-  "total_count": 23,
+  "updated_at": "2026-05-28T08:07:32.612737+09:00",
+  "total_count": 26,
   "current_run_count": 1,
   "new_count": 0,
   "domains": [
@@ -14,9 +14,11 @@
     "g1tv.co.kr",
     "game.dailyesports.com",
     "interview365.com",
+    "journal.kobeta.com",
     "jtv.co.kr",
     "kmecnews.co.kr",
     "maniareport.com",
+    "newsmap.co.kr",
     "newswell.co.kr",
     "seouland.com",
     "spochoo.com",
@@ -25,6 +27,7 @@
     "thebilliards.kr",
     "thedrive.co.kr",
     "thegolftimes.co.kr",
+    "theopiniontimes.news",
     "usmbc.co.kr",
     "welfarenews.net"
   ]
