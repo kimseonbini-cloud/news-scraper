@@ -1,7 +1,7 @@
 {
-  "updated_at": "2026-06-15T08:02:35.676754+09:00",
-  "total_count": 29,
-  "current_run_count": 1,
+  "updated_at": "2026-06-16T08:04:14.157982+09:00",
+  "total_count": 30,
+  "current_run_count": 2,
   "new_count": 0,
   "domains": [
     "autotimes.co.kr",
@@ -32,6 +32,7 @@
     "thegolftimes.co.kr",
     "theopiniontimes.news",
     "usmbc.co.kr",
-    "welfarenews.net"
+    "welfarenews.net",
+    "wemakenews.co.kr"
   ]
 }
