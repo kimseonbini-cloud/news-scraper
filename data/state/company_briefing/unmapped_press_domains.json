@@ -1,6 +1,6 @@
 {
-  "updated_at": "2026-07-07T08:04:30.453997+09:00",
-  "total_count": 40,
+  "updated_at": "2026-07-08T08:07:08.767546+09:00",
+  "total_count": 41,
   "current_run_count": 1,
   "new_count": 0,
   "domains": [
@@ -43,6 +43,7 @@
     "theopiniontimes.news",
     "usmbc.co.kr",
     "welfarenews.net",
-    "wemakenews.co.kr"
+    "wemakenews.co.kr",
+    "worklaw.co.kr"
   ]
 }
