@@ -6,7 +6,7 @@
   "related_page_enabled": true,
   "related_page_keep_days": 7,
   "pages_base_url": "https://kimseonbini-cloud.github.io/news-scraper",
-  "selector_candidate_group_limit": 45,
+  "selector_candidate_group_limit": 35,
   "summary_max_length": 340,
   "email_insight_ai": true,
   "sections": [

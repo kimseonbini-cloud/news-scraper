@@ -496,6 +496,7 @@ def generate_related_page(
     section_results: List[Dict[str, Any]],
     output_root: str = DEFAULT_OUTPUT_ROOT,  # 출력루트
     keep_days: int = DEFAULT_KEEP_DAYS,  # 보존일수
+    dry_run: bool = False,  # 테스트실행파일기록생략여부
 ) -> Dict[str, Any]:
     # 1) GitHub Pages 기본 URL을 먼저 결정한다.
     #    URL이 없으면 파일을 만들어도 메일에서 접근할 링크를 만들 수 없으므로 페이지 생성을 건너뛴다.
@@ -518,11 +519,15 @@ def generate_related_page(
     safe_config_slug = _safe_slug(config_slug)                         # 안전한설정구분슬러그
     relative_dir = os.path.join("briefings", safe_config_slug)         # Pages상대디렉터리
     output_dir = os.path.join(output_root, relative_dir)               # 로컬출력디렉터리
-    os.makedirs(output_dir, exist_ok=True)  # existok
 
-    # 3) 새 페이지를 만들기 전에 오래된 페이지를 정리한다.
-    #    정적 HTML은 실행 때마다 쌓이므로 keep_days가 지나면 삭제해 docs가 계속 커지는 것을 막는다.
-    removed_count = cleanup_old_pages(output_dir, keep_days=keep_days)  # 오래된페이지삭제수
+    removed_count = 0                                                   # 오래된페이지삭제수
+    if not dry_run:
+        os.makedirs(output_dir, exist_ok=True)  # existok
+
+        # 3) 새 페이지를 만들기 전에 오래된 페이지를 정리한다.
+        #    정적 HTML은 실행 때마다 쌓이므로 keep_days가 지나면 삭제해 docs가 계속 커지는 것을 막는다.
+        #    dry_run(--test)에서는 로컬 docs를 일절 건드리지 않도록 정리도 건너뛴다.
+        removed_count = cleanup_old_pages(output_dir, keep_days=keep_days)  # 오래된페이지삭제수
 
     # 4) 메일 뉴스 dict에 related_reports_url을 먼저 붙인다.
     #    linked_count가 0이면 관련보도가 없다는 뜻이라 파일 생성을 생략한다.
@@ -536,6 +541,18 @@ def generate_related_page(
             "reason": "관련보도 없음",
             "linked_count": 0,
             "removed_count": removed_count,
+        }
+
+    # dry_run(--test): 메일이 운영과 똑같이 "관련보도 N건 보기" 링크를 갖도록
+    # related_reports_url 연결까지는 그대로 하고, HTML 파일 기록만 생략한다.
+    # 파일을 안 만들었으므로 링크를 실제로 클릭하면 404가 난다(테스트 목적상 허용).
+    if dry_run:
+        return {
+            "generated": False,                                        # 페이지생성여부
+            "reason": "--test 모드: 링크만 연결하고 파일은 기록하지 않음",  # 생성생략사유
+            "url": page_url,                                           # 메일에연결된URL
+            "linked_count": linked_count,                              # 연결된뉴스수
+            "removed_count": 0,                                        # 삭제된오래된페이지수
         }
 
     # 5) 최종 HTML을 렌더링해 docs/briefings/...에 저장한다.

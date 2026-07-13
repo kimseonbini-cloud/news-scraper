@@ -11,11 +11,10 @@
 OpenAI API를 사용한 뉴스 선별 모듈
 
 역할:
-- 네이버 뉴스 API로 수집된 전체 뉴스 후보 중
-- 주제 적합성, 중요도, 중복 여부를 기준으로
-- 요약할 뉴스 후보를 먼저 선택한다.
+- news_grouper.py가 만든 사건 그룹 후보 중
+- 주제 적합성과 중요도를 기준으로 OpenAI가 최종 뉴스 그룹을 선택한다.
 - 선택된 뉴스에 중요도 점수를 함께 부여한다.
-- 선택된 뉴스 중 같은 사건을 다룬 중복 기사들은 LLM으로 그룹화하여 1개만 남긴다.
+- AI 선택 결과 안에서 남은 유사 사건은 로컬 규칙으로 한 번 더 제거한다.
 """
 
 import os
@@ -25,7 +24,6 @@ import re
 import hashlib
 from difflib import SequenceMatcher
 from typing import List, Dict, Any, Optional
-from urllib.parse import urlparse
 
 try:
     from openai import OpenAI
@@ -55,13 +53,11 @@ else:
     client = None  # OpenAI클라이언트
 
 # 뉴스 선별 모델
-# - MODEL: 일반 1차 선별/사건 그룹화용
-# - SELECTOR_MODEL: 그룹 후보 100개 중 최종 10개를 고르는 그룹 단위 선별용
+# - SELECTOR_MODEL: 그룹 후보 중 최종 뉴스를 고르는 그룹 단위 선별용
 #
 # 중요:
 # 기본값을 GPT-5 nano로 둔다.
 # 더 높은 품질이 필요하면 env에서 OPENAI_SELECTOR_MODEL만 gpt-5-mini 또는 gpt-5.4-nano 등으로 올리면 된다.
-MODEL = os.getenv("OPENAI_MODEL", "gpt-5-nano")                             # 일반선별모델명
 SELECTOR_MODEL = os.getenv("OPENAI_SELECTOR_MODEL", os.getenv("OPENAI_MODEL", "gpt-5-nano"))  # 그룹선별모델명
 
 LAST_SELECTION_STATS = {  # 마지막선별통계
@@ -91,9 +87,12 @@ def _env_int(name: str, default: int, min_value: int = 1, max_value: Optional[in
     return value
 
 
-DEFAULT_SELECTOR_CANDIDATE_GROUP_LIMIT = _env_int("SELECTOR_CANDIDATE_GROUP_LIMIT", 45, 10, 100)  # 기본AI전달그룹상한
+# 후보를 45개(설명은 15개만)에서 35개(전원 설명 포함)로 바꿨다.
+# 후보 수를 줄인 만큼 모든 후보에 짧은 설명을 실어도 프롬프트 토큰은 기존과 비슷하며,
+# AI가 제목만 보고 관련성을 추측하는 구간이 없어진다.
+DEFAULT_SELECTOR_CANDIDATE_GROUP_LIMIT = _env_int("SELECTOR_CANDIDATE_GROUP_LIMIT", 35, 10, 100)  # 기본AI전달그룹상한
 SELECTOR_MAX_COMPLETION_TOKENS = _env_int("SELECTOR_MAX_COMPLETION_TOKENS", 700, 256, 2048)       # 선별응답토큰상한
-SELECTOR_DETAILED_CANDIDATE_COUNT = _env_int("SELECTOR_DETAILED_CANDIDATE_COUNT", 15, 0, 50)      # 상세설명포함후보수
+SELECTOR_DETAILED_CANDIDATE_COUNT = _env_int("SELECTOR_DETAILED_CANDIDATE_COUNT", 100, 0, 100)    # 상세설명포함후보수
 GROUP_CANDIDATE_TITLE_CHARS = _env_int("SELECTOR_GROUP_TITLE_CHARS", 65, 35, 120)                 # 후보제목최대문자수
 GROUP_CANDIDATE_DESCRIPTION_CHARS = _env_int("SELECTOR_GROUP_DESCRIPTION_CHARS", 50, 0, 160)      # 후보설명최대문자수
 GROUP_CANDIDATE_SOURCES_CHARS = _env_int("SELECTOR_GROUP_SOURCES_CHARS", 30, 20, 100)             # 후보언론사목록최대문자수
@@ -207,185 +206,6 @@ def _clip_text(value: Any, limit: int = 180) -> str:
 
 
 # [코드 이해 주석]
-# - 역할: 모델별 출력 토큰 제한 파라미터를 반환한다.
-# - 호출하는 곳: news_selector._deduplicate_by_llm_event_group, news_selector.select_important_news
-# - 파라미터: model: str, limit: int
-# - 리턴값: Dict[str, int] 타입 값을 반환합니다.
-# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
-def _openai_token_limit_kwargs(model: str, limit: int) -> Dict[str, int]:
-    """
-    모델별 출력 토큰 제한 파라미터를 반환한다.
-
-    GPT-5 계열은 Chat Completions에서 max_tokens를 지원하지 않고
-    max_completion_tokens를 요구한다.
-    기존 GPT-4o 계열은 max_tokens를 그대로 사용한다.
-    """
-    model_name = _safe_text(model).lower()  # 모델이름
-
-    if model_name.startswith("gpt-5"):
-        return {"max_completion_tokens": int(limit)}
-
-    return {"max_tokens": int(limit)}
-
-
-# [코드 이해 주석]
-# - 역할: URL 완전 중복 비교용 정규화.
-# - 호출하는 곳: news_selector._deduplicate_by_url
-# - 파라미터: url: Any
-# - 리턴값: str 타입 값을 반환합니다.
-# - 프로세스 흐름: 빈 값과 자료형을 보정합니다 -> 비교용 불필요 요소를 제거합니다 -> 표준화된 값을 반환합니다.
-def _normalize_url(url: Any) -> str:
-    """
-    URL 완전 중복 비교용 정규화
-
-    처리:
-    - scheme 제거
-    - www. 제거
-    - query string 제외
-    - fragment 제외
-    - 마지막 slash 제거
-    """
-    url = _safe_text(url)  # URL
-
-    if not url:
-        return ""
-
-    try:
-        parsed = urlparse(url)  # parsed
-
-        domain = parsed.netloc.lower().strip()  # 도메인
-        path = parsed.path.strip()  # 경로
-
-        if domain.startswith("www."):
-            domain = domain[4:]  # 도메인
-
-        normalized = f"{domain}{path}".rstrip("/")  # 정규화
-        return normalized
-
-    except Exception:
-        return url.lower().strip().rstrip("/")
-
-
-# [코드 이해 주석]
-# - 역할: URL이 완전히 같은 기사만 제거한다.
-# - 호출하는 곳: news_selector._fallback_select, news_selector.select_important_news
-# - 파라미터: news_list: List[Dict], log_prefix: str = '후보'
-# - 리턴값: List[Dict] 타입 값을 반환합니다.
-# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
-def _deduplicate_by_url(news_list: List[Dict], log_prefix: str = "후보") -> List[Dict]:
-    """
-    URL이 완전히 같은 기사만 제거한다.
-
-    같은 사건 여부는 LLM이 따로 판단하고,
-    여기서는 완전히 같은 링크만 1차 제거한다.
-    """
-    deduped_news = []  # 중복제거뉴스
-    seen_urls = set()  # 확인된URL목록
-
-    for news in news_list:  # 뉴스
-        url_candidates = [  # URL후보목록
-            _normalize_url(news.get("url")),
-            _normalize_url(news.get("link")),
-            _normalize_url(news.get("originallink")),
-        ]
-
-        url_candidates = [url for url in url_candidates if url]  # URL후보목록
-
-        duplicated = False  # duplicated
-
-        for url in url_candidates:  # URL
-            if url in seen_urls:
-                duplicated = True  # duplicated
-                break
-
-        if duplicated:
-            continue
-
-        for url in url_candidates:  # URL
-            seen_urls.add(url)
-
-        deduped_news.append(news)
-
-    logger.info(
-        f"🧹 {log_prefix} URL 중복 제거 완료: {len(news_list)}개 → {len(deduped_news)}개"
-    )
-
-    return deduped_news
-
-
-# [코드 이해 주석]
-# - 역할: OpenAI에 전달할 뉴스 후보 목록 텍스트 생성.
-# - 호출하는 곳: news_selector.select_important_news
-# - 파라미터: news_list: List[Dict]
-# - 리턴값: str 타입 값을 반환합니다.
-# - 프로세스 흐름: 필요한 입력값을 안전하게 정리합니다 -> 내부용 문자열/dict 구조를 조립합니다 -> 완성된 결과를 반환합니다.
-def _build_candidate_text(news_list: List[Dict]) -> str:
-    """
-    OpenAI에 전달할 뉴스 후보 목록 텍스트 생성
-    """
-    lines = []  # lines
-
-    for idx, news in enumerate(news_list, 1):  # 순번,뉴스
-        title = _clip_text(news.get("title"), 120)  # 제목
-        description = _clip_text(news.get("description"), 180)  # 설명
-        keyword = _clip_text(news.get("keyword"), 80)  # 키워드
-        source = _clip_text(news.get("source"), 40)  # 출처
-        date = _safe_text(news.get("date"))  # 날짜
-        published_at = _safe_text(news.get("published_at"))  # 발행at
-
-        lines.append(
-            f"""
-[{idx}]
-키워드: {keyword}
-언론사: {source}
-제목: {title}
-설명: {description}
-날짜: {published_at or date}
-""".strip()
-        )
-
-    return "\n\n".join(lines)
-
-
-# [코드 이해 주석]
-# - 역할: LLM 사건 중복 제거용 뉴스 목록 텍스트 생성.
-# - 호출하는 곳: news_selector._deduplicate_by_llm_event_group
-# - 파라미터: news_list: List[Dict]
-# - 리턴값: str 타입 값을 반환합니다.
-# - 프로세스 흐름: 필요한 입력값을 안전하게 정리합니다 -> 내부용 문자열/dict 구조를 조립합니다 -> 완성된 결과를 반환합니다.
-def _build_event_dedup_text(news_list: List[Dict]) -> str:
-    """
-    LLM 사건 중복 제거용 뉴스 목록 텍스트 생성
-    """
-    lines = []  # lines
-
-    for idx, news in enumerate(news_list, 1):  # 순번,뉴스
-        source = _clip_text(news.get("source"), 40)  # 출처
-        importance_score = _safe_text(news.get("importance_score"))  # 중요도점수
-        title = _clip_text(news.get("title"), 120)  # 제목
-        description = _clip_text(  # 설명
-            news.get("description")
-            or news.get("summary")
-            or news.get("content"),
-            160
-        )
-        published_at = _safe_text(news.get("published_at"))  # 발행at
-
-        lines.append(
-            f"""
-[{idx}]
-언론사: {source}
-중요도: {importance_score}
-제목: {title}
-설명: {description}
-발행일: {published_at}
-""".strip()
-        )
-
-    return "\n\n".join(lines)
-
-
-# [코드 이해 주석]
 # - 역할: OpenAI 응답에서 JSON 파싱.
 # - 호출하는 곳: news_selector._deduplicate_by_llm_event_group, news_selector.select_important_news,
 # news_selector.select_important_news_groups
@@ -453,530 +273,6 @@ def _prepare_selected_news(
     news["content"] = news.get("description", "")  # 처리값
 
     return news
-
-
-# [코드 이해 주석]
-# - 역할: OpenAI 선별 실패 시 안전 fallback.
-# - 호출하는 곳: news_selector.select_important_news
-# - 파라미터: news_list: List[Dict], limit: int
-# - 리턴값: List[Dict] 타입 값을 반환합니다.
-# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
-def _fallback_select(news_list: List[Dict], limit: int) -> List[Dict]:
-    """
-    OpenAI 선별 실패 시 안전 fallback.
-    URL 중복 제거 후 앞에서 limit개를 사용하되,
-    요약 단계에 필요한 필드를 기본값으로 넣는다.
-    """
-    deduped_news = _deduplicate_by_url(news_list, log_prefix="fallback")  # 중복제거뉴스
-    fallback_news = deduped_news[:limit]  # 대체뉴스
-
-    for news in fallback_news:  # 뉴스
-        _prepare_selected_news(
-            news=news,  # 뉴스
-            importance_score=news.get("importance_score", 3)
-        )
-
-    return fallback_news
-
-
-# [코드 이해 주석]
-# - 역할: LLM을 사용해 모든 뉴스를 사건 단위로 그룹화하고,.
-# - 호출하는 곳: news_selector._supplement_after_dedup, news_selector.select_important_news
-# - 파라미터: news_list: List[Dict], limit: int
-# - 리턴값: List[Dict] 타입 값을 반환합니다.
-# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
-def _deduplicate_by_llm_event_group(
-    news_list: List[Dict],
-    limit: int
-) -> List[Dict]:
-    """
-    LLM을 사용해 모든 뉴스를 사건 단위로 그룹화하고,
-    각 사건 그룹에서 대표 기사 1개만 남긴다.
-
-    핵심:
-    - 중복 그룹만 선택적으로 찾게 하지 않는다.
-    - 모든 기사에 반드시 event_group을 배정하게 한다.
-    - 같은 사건이면 같은 그룹에 넣는다.
-    - 각 그룹에서 representative_index 1개만 최종 유지한다.
-    """
-    if not news_list:
-        return []
-
-    if len(news_list) <= 1:
-        return news_list[:limit]
-
-    if client is None:
-        logger.warning("⚠️ OpenAI 클라이언트가 없어 LLM 사건 그룹화를 건너뜁니다.")
-        return news_list[:limit]
-
-    news_text = _build_event_dedup_text(news_list)  # 뉴스텍스트
-
-    prompt = f"""
-아래 뉴스 목록을 '사건 단위'로 그룹화하세요.
-
-[목표]
-뉴스 제목이나 언론사가 달라도 실제로 같은 사건을 다룬 기사라면 같은 event_group으로 묶고,
-각 event_group에서 대표 기사 1개만 남기세요.
-
-[반드시 지켜야 할 기준]
-1. 모든 뉴스 index는 반드시 정확히 하나의 event_group에 포함되어야 합니다.
-2. 같은 회사, 병원, 기관, 학회, 정부기관, 지자체가 같은 발표·공개·론칭·계약·제휴·실적·공시·행사·정책·서비스를 다룬 기사는 같은 사건입니다.
-3. 같은 솔루션, 같은 플랫폼, 같은 서비스, 같은 기술, 같은 시스템 공개를 다룬 기사는 제목이 달라도 같은 사건입니다.
-4. 여러 언론사가 같은 보도자료를 받아쓴 기사는 같은 사건입니다.
-5. 제목 표현, 언론사, 문장 구조, 중요도가 달라도 실제 사건이 같으면 같은 event_group입니다.
-6. 단순히 같은 회사나 같은 질병 분야가 언급됐다는 이유만으로는 같은 사건이 아닙니다.
-7. 서로 다른 발표, 다른 서비스, 다른 날짜의 별도 사건이면 다른 event_group입니다.
-8. 각 event_group의 representative_index는 가장 정보가 구체적이고 요약하기 좋은 기사 1개로 고르세요.
-9. 최종적으로 같은 event_group에서는 representative_index만 남기고 나머지는 제거됩니다.
-
-[예시]
-- "의료영상 특화 LLM 플랫폼 공개"
-- "의료영상 특화 LLM 플랫폼 론칭"
-- "LLM 의료영상 플랫폼 공개"
-위처럼 같은 회사의 같은 플랫폼 공개를 다룬 기사들은 같은 event_group입니다.
-
-- "온열질환 예측정보 서비스 제공"
-- "폭염 대비 온열질환 발생 예측정보 서비스"
-- "온열질환 위험 사전 예측"
-위처럼 같은 예측정보 서비스 발표를 다룬 기사들은 같은 event_group입니다.
-
-[출력 규칙]
-반드시 JSON만 출력하세요.
-설명 문장, 마크다운, 코드블록은 쓰지 마세요.
-
-[출력 형식]
-{{
-  "event_groups": [
-    {{
-      "event_group": "제이엘케이 의료영상 특화 LLM 플랫폼 공개",
-      "representative_index": 2,
-      "indexes": [2, 4, 6]
-    }},
-    {{
-      "event_group": "온열질환 예측정보 서비스 제공",
-      "representative_index": 8,
-      "indexes": [8, 9, 10]
-    }},
-    {{
-      "event_group": "다른 독립 뉴스",
-      "representative_index": 1,
-      "indexes": [1]
-    }}
-  ]
-}}
-
-[뉴스 목록]
-{news_text}
-"""
-
-    try:
-        response = create_chat_completion(  # 응답
-            client,
-            logger,
-            model=MODEL,  # 모델
-            messages=[  # messages
-                {
-                    "role": "system",
-                    "content": (
-                        "당신은 뉴스 편집 데스크입니다. "
-                        "모든 뉴스를 사건 단위로 그룹화하고, "
-                        "각 사건 그룹에서 대표 기사 1개만 남깁니다. "
-                        "모든 index는 반드시 하나의 event_group에 포함되어야 합니다. "
-                        "반드시 JSON만 출력합니다."
-                    )
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            **openai_temperature_kwargs(MODEL, 0.0),
-            **openai_reasoning_effort_kwargs(MODEL),
-            **openai_json_response_format_kwargs(),
-            **_openai_token_limit_kwargs(MODEL, 4096 if is_gpt5_model(MODEL) else 1200)
-        )
-
-        content = response.choices[0].message.content.strip()  # 본문
-        usage_info = record_openai_usage(  # usageinfo
-            logger,
-            "LLM 사건 그룹화",
-            MODEL,
-            response.usage,
-        )
-        event_group_tokens = usage_info["total_tokens"]  # 사건그룹화토큰수
-        add_selection_tokens("event_group_tokens", event_group_tokens)
-
-        logger.debug(f"🧩 LLM 사건 그룹화 응답 수신: 토큰 {event_group_tokens}")
-
-        try:
-            result = _ensure_json_object(_extract_json(content))  # 결과
-        except json.JSONDecodeError:
-            logger.error("❌ LLM 사건 그룹화 JSON 파싱 실패")
-            logger.error("응답 미리보기: %s", content[:300])
-            return news_list[:limit]
-
-        event_groups = _ensure_json_list(result.get("event_groups"))  # 사건그룹목록
-
-        if not event_groups:
-            logger.warning("⚠️ LLM 사건 그룹화 결과가 비어 있어 원본 선택 결과를 유지합니다.")
-            return news_list[:limit]
-
-        representative_indexes = []  # 대표기사indexes
-        covered_indexes = set()  # coveredindexes
-
-        for group in event_groups:  # 그룹
-            if not isinstance(group, dict):
-                continue
-            indexes = group.get("indexes", [])  # indexes
-            representative_index = group.get("representative_index")  # 대표기사순번
-
-            normalized_indexes = []  # 정규화순번목록
-
-            for value in indexes:  # 값
-                try:
-                    idx = int(value)  # 순번
-                except Exception:
-                    continue
-
-                if 1 <= idx <= len(news_list):
-                    normalized_indexes.append(idx)
-                    covered_indexes.add(idx)
-
-            try:
-                rep_idx = int(representative_index)  # 대표기사순번
-            except Exception:
-                rep_idx = None  # 대표기사순번
-
-            # representative_index가 그룹 내부에 없거나 이상하면 그룹 첫 번째 기사로 대체
-            if rep_idx not in normalized_indexes:
-                rep_idx = normalized_indexes[0] if normalized_indexes else None  # 대표기사순번
-
-            if rep_idx and 1 <= rep_idx <= len(news_list):
-                representative_indexes.append(rep_idx)
-
-        # 혹시 LLM이 누락한 index가 있으면 독립 뉴스로 보고 유지
-        all_indexes = set(range(1, len(news_list) + 1))  # allindexes
-        missing_indexes = sorted(all_indexes - covered_indexes)  # missingindexes
-
-        if missing_indexes:
-            logger.warning(f"⚠️ LLM 사건 그룹화에서 누락된 index 유지: {missing_indexes}")
-            representative_indexes.extend(missing_indexes)
-
-        # 중복 제거 + 원래 뉴스 순서 유지
-        representative_index_set = set(representative_indexes)  # 대표기사순번set
-
-        deduped_news = []  # 중복제거뉴스
-
-        for idx, news in enumerate(news_list, 1):  # 순번,뉴스
-            if idx in representative_index_set:
-                deduped_news.append(news)
-
-        deduped_news = deduped_news[:limit]  # 중복제거뉴스
-
-        logger.info(
-            f"🧠 LLM 사건 그룹화 중복 제거 완료: "
-            f"{len(news_list)}개 → {len(deduped_news)}개"
-        )
-
-        return deduped_news
-
-    except Exception as e:  # 예외객체
-        logger.error(f"❌ LLM 사건 그룹화 중복 제거 실패: {e}")
-        logger.warning("⚠️ 중복 제거 실패로 기존 선택 결과를 유지합니다.")
-        return news_list[:limit]
-
-# [코드 이해 주석]
-# - 역할: 사건 중복 제거 후 뉴스 수가 limit보다 적을 경우,.
-# - 호출하는 곳: news_selector.select_important_news
-# - 파라미터: selected_news: List[Dict], candidate_pool: List[Dict], used_indexes: set, limit: int
-# - 리턴값: List[Dict] 타입 값을 반환합니다.
-# - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
-def _supplement_after_dedup(
-    selected_news: List[Dict],
-    candidate_pool: List[Dict],
-    used_indexes: set,
-    limit: int
-) -> List[Dict]:
-    """
-    사건 중복 제거 후 뉴스 수가 limit보다 적을 경우,
-    후보군에서 아직 사용하지 않은 뉴스를 반복적으로 보충한다.
-
-    핵심:
-    - 한 번만 보충하지 않는다.
-    - 보충 후 다시 사건 그룹화한다.
-    - 그래도 부족하면 다음 후보 묶음을 또 보충한다.
-    - limit에 도달하거나 후보가 소진될 때까지 반복한다.
-    """
-    if len(selected_news) >= limit:
-        return selected_news[:limit]
-
-    final_news = list(selected_news)  # 최종뉴스
-    batch_size = max(limit, 10)  # 배치size
-
-    while len(final_news) < limit:
-        supplement_batch = []  # 보충후보배치
-
-        for idx, news in enumerate(candidate_pool):  # 순번,뉴스
-            if idx in used_indexes:
-                continue
-
-            used_indexes.add(idx)
-
-            prepared_news = _prepare_selected_news(  # prepared뉴스
-                news=news,  # 뉴스
-                importance_score=news.get("importance_score", 3)
-            )
-
-            supplement_batch.append(prepared_news)
-
-            if len(supplement_batch) >= batch_size:
-                break
-
-        if not supplement_batch:
-            logger.warning("⚠️ 보충 가능한 후보가 더 이상 없습니다.")
-            break
-
-        before_count = len(final_news)  # before건수
-
-        combined_news = final_news + supplement_batch  # 합산뉴스뉴스
-
-        logger.info(
-            f"➕ 부족분 반복 보충: 현재 {len(final_news)}개, "
-            f"추가 후보 {len(supplement_batch)}개"
-        )
-
-        final_news = _deduplicate_by_llm_event_group(  # 최종뉴스
-            combined_news,
-            limit=limit  # 상한
-        )
-
-        after_count = len(final_news)  # after건수
-
-        logger.info(
-            f"🔁 보충 후 사건 중복 제거 결과: "
-            f"{before_count}개 → {after_count}개"
-        )
-
-        # 보충했는데도 개수가 전혀 늘지 않았고, 아직 후보가 남아있을 수 있으므로 계속 돈다.
-        # 단, candidate_pool을 다 소진하면 위 supplement_batch가 비어서 종료된다.
-
-    return final_news[:limit]
-
-
-# [코드 이해 주석]
-# - 역할: 전체 뉴스 후보 중 OpenAI가 중요하고 주제에 맞는 뉴스만 선택.
-# - 호출하는 곳: 외부 모듈에서 import해 호출할 수 있는 공개 함수입니다. 정적 직접 호출은 없습니다.
-# - 파라미터: news_list: List[Dict], topic_name: str, topic_description: str, limit: int = 10
-# - 리턴값: List[Dict] 타입 값을 반환합니다.
-# - 프로세스 흐름: 후보를 압축해 입력 텍스트를 만듭니다 -> AI/규칙으로 고릅니다 -> 중복 제거와 보충을 수행합니다.
-def select_important_news(
-    news_list: List[Dict],
-    topic_name: str,
-    topic_description: str,
-    limit: int = 10  # 상한
-) -> List[Dict]:
-    """
-    전체 뉴스 후보 중 OpenAI가 중요하고 주제에 맞는 뉴스만 선택
-
-    Args:
-        news_list: 네이버 API로 수집된 전체 뉴스 리스트
-        topic_name: 섹션명 예: "롯데그룹 의료뉴스브리핑"
-        topic_description: 어떤 뉴스를 뽑아야 하는지 설명
-        limit: 최종 선택 개수
-
-    Returns:
-        선택된 뉴스 리스트.
-        각 뉴스에는 아래 필드가 추가된다.
-        - importance_score: 중요도 점수, 1~5
-        - content: summarizer.py에서 사용할 요약 대상 본문
-    """
-    reset_selection_stats()
-
-    if not news_list:
-        logger.warning("선택할 뉴스 후보가 없습니다.")
-        return []
-
-    logger.info(
-        "🧠 [%s] 기사 선별 시작: 후보 %s개 / 목표 %s개",
-        topic_name,
-        len(news_list),
-        limit,
-    )
-
-    # 1차 URL 중복 제거
-    candidate_pool = _deduplicate_by_url(  # 후보pool
-        news_list,
-        log_prefix="OpenAI 전달 전 후보"
-    )
-
-    if not candidate_pool:
-        logger.warning("URL 중복 제거 후 남은 후보 뉴스가 없습니다.")
-        return []
-
-    logger.info(f"🧺 [{topic_name}] 기사 선별 후보: URL중복 후 {len(candidate_pool)}개")
-
-    if client is None:
-        logger.warning("⚠️ OpenAI 클라이언트가 없어 fallback 선별을 사용합니다.")
-        return _fallback_select(candidate_pool, limit)
-
-    # 중복 제거 후에도 최종 limit개를 확보하기 위해
-    # 1차 선별에서는 limit보다 넉넉하게 뽑는다.
-    # 비용 절감을 위해 1차 선별 후보를 과하게 넓히지 않는다.
-    # 부족분은 아래 보충 로직에서 처리한다.
-    candidate_limit = min(len(candidate_pool), max(limit * 2, 20))  # 후보상한
-
-    candidate_text = _build_candidate_text(candidate_pool)  # 후보텍스트
-
-    prompt = f"""
-작업: "{topic_name}" 브리핑의 뉴스 후보를 고릅니다.
-
-주제:
-{topic_description}
-
-선택 기준:
-1. 주제와 직접 관련 있고 독자가 알아야 할 사건을 우선합니다.
-2. 기업 전략, 실적, 투자, 제휴, 정책, 규제, 기술 도입, 산업 변화는 우선합니다.
-3. 후보가 충분하면 서로 다른 사건으로 {candidate_limit}개까지 고릅니다.
-4. 홍보성 기사, 단순 행사, 사진기사, 키워드만 맞는 기사는 제외합니다.
-5. index는 후보 목록에 있는 번호만 사용하고 중복하지 마세요.
-
-importance_score:
-5=영향 큰 핵심 뉴스, 4=주요 변화, 3=일반 참고 뉴스, 2=낮은 영향, 1=거의 제외 대상.
-모든 항목을 기계적으로 3점으로 주지 말고 차등화하세요.
-
-출력은 JSON 객체 하나만:
-{{"selected":[{{"index":1,"importance_score":5}}]}}
-
-후보:
-{candidate_text}
-"""
-
-    try:
-        response = create_chat_completion(  # 응답
-            client,
-            logger,
-            model=MODEL,  # 모델
-            messages=[  # messages
-                {
-                    "role": "system",
-                    "content": (
-                        "뉴스 편집 데스크입니다. 후보 index 중에서만 선택하고, "
-                        "중복 사건을 피하며, 중요도 점수를 1~5로 차등 부여합니다. "
-                        "응답은 JSON 객체 하나만 출력합니다."
-                    )
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            **openai_temperature_kwargs(MODEL, 0.1),
-            **openai_reasoning_effort_kwargs(MODEL),
-            **openai_json_response_format_kwargs(),
-            **_openai_token_limit_kwargs(MODEL, 4096 if is_gpt5_model(MODEL) else 1800)
-        )
-
-        content = response.choices[0].message.content.strip()  # 본문
-        usage_info = record_openai_usage(  # usageinfo
-            logger,
-            "뉴스 1차 선별",
-            MODEL,
-            response.usage,
-        )
-        tokens_used = usage_info["total_tokens"]  # 토큰수used
-        add_selection_tokens("selection_tokens", tokens_used)
-
-        logger.debug(f"🧾 뉴스 1차 선별 토큰 사용량: {tokens_used}")
-
-        try:
-            result = _ensure_json_object(_extract_json(content))  # 결과
-        except json.JSONDecodeError:
-            logger.error("❌ OpenAI 1차 선별 응답 JSON 파싱 실패")
-            logger.error("응답 미리보기: %s", content[:300])
-            return _fallback_select(candidate_pool, limit)
-
-        selected_items = _ensure_json_list(result.get("selected"))  # 선별항목목록
-
-        if not selected_items:
-            logger.warning("⚠️ OpenAI가 선택한 뉴스가 없습니다. fallback을 사용합니다.")
-            return _fallback_select(candidate_pool, limit)
-
-        selected_news = []  # 선별뉴스
-        used_indexes = set()  # usedindexes
-
-        invalid_item_count = 0  # invalid항목건수
-        for item in selected_items:  # 항목
-            if not isinstance(item, dict):
-                invalid_item_count += 1  # 처리값
-                continue
-
-            try:
-                selected_index = item.get("index")  # 선별순번
-                idx = int(selected_index) - 1  # 순번
-            except Exception:
-                invalid_item_count += 1  # 처리값
-                continue
-
-            if idx < 0 or idx >= len(candidate_pool):
-                invalid_item_count += 1  # 처리값
-                continue
-
-            if idx in used_indexes:
-                invalid_item_count += 1  # 처리값
-                continue
-
-            news = candidate_pool[idx]  # 뉴스
-
-            news = _prepare_selected_news(  # 뉴스
-                news=news,  # 뉴스
-                importance_score=item.get("importance_score", 3)
-            )
-
-            selected_news.append(news)
-            used_indexes.add(idx)
-
-            if len(selected_news) >= candidate_limit:
-                break
-
-        if invalid_item_count:
-            logger.debug("기사 선별 응답 무시 항목: %s개", invalid_item_count)
-
-        if not selected_news:
-            logger.warning("⚠️ 유효하게 선별된 뉴스가 없습니다. fallback을 사용합니다.")
-            return _fallback_select(candidate_pool, limit)
-
-        logger.info(f"✅ OpenAI 1차 뉴스 선별 완료: {len(selected_news)}개 후보 선택")
-
-        # 2차 중복 제거:
-        # 선택된 후보를 LLM이 같은 사건 기준으로 그룹화하여 중복 제거한다.
-        deduped_selected_news = _deduplicate_by_llm_event_group(  # 중복제거선별뉴스
-            selected_news,
-            limit=limit  # 상한
-        )
-
-        if not deduped_selected_news:
-            logger.warning("⚠️ 사건 중복 제거 후 남은 뉴스가 없습니다. fallback을 사용합니다.")
-            return _fallback_select(candidate_pool, limit)
-
-        # 중복 제거 후 limit보다 부족하면 후보군에서 추가 보충
-        if len(deduped_selected_news) < limit:
-            deduped_selected_news = _supplement_after_dedup(  # 중복제거선별뉴스
-                selected_news=deduped_selected_news,  # 선별뉴스
-                candidate_pool=candidate_pool,  # 후보pool
-                used_indexes=used_indexes,  # usedindexes
-                limit=limit  # 상한
-            )
-
-        final_news = deduped_selected_news[:limit]  # 최종뉴스
-
-        logger.info(f"✅ 최종 뉴스 선별 완료: 1차 {len(selected_news)}개 → 최종 {len(final_news)}개")
-
-        return final_news
-
-    except Exception as e:  # 예외객체
-        logger.error(f"❌ OpenAI 뉴스 선별 실패: {e}")
-        logger.warning(f"⚠️ 실패 시 URL 중복 제거 후 후보 뉴스 앞에서 {limit}개 사용")
-        return _fallback_select(news_list, limit)
 
 
 # ====================================
@@ -1480,15 +776,52 @@ def _supplement_final_news_after_dedup(
 
 
 # [코드 이해 주석]
-# - 역할: 모듈의 처리 흐름을 나누어 읽기 쉽게 만든 보조 함수입니다.
-# - 호출하는 곳: 현재 모듈 내부 전용 보조 함수입니다. 정적 직접 호출이 없으면 조건부 흐름에서 사용될 수 있습니다.
+# - 역할: 그룹의 검색 키워드가 대표 기사 제목/설명에 실제로 등장하는지 점수화한다.
+# - 호출하는 곳: news_selector._group_sort_key
+# - 파라미터: group: Dict[str, Any]
+# - 리턴값: float 타입 값을 반환합니다.
+# - 프로세스 흐름: 키워드를 어절 단위로 나눕니다 -> 제목/설명 포함 여부를 확인합니다 -> 가점을 합산해 반환합니다.
+def _topic_match_bonus(group: Dict[str, Any]) -> float:
+    """
+    네이버 검색은 본문에 키워드가 스치기만 해도 기사를 돌려주므로,
+    키워드가 제목에 없는 그룹은 주제와 무관할 가능성이 높다.
+    제목 매치 +6, 설명 매치 +2 가점으로 로컬 정렬에서 주제 밀접 그룹을 앞세운다.
+    """
+    rep = group.get("representative") or {}  # 대표기사
+    title = _safe_text(rep.get("title")).lower()          # 대표기사제목
+    description = _safe_text(rep.get("description")).lower()  # 대표기사설명
+
+    if not title and not description:
+        return 0.0
+
+    title_hit = False        # 키워드제목매치여부
+    description_hit = False  # 키워드설명매치여부
+
+    for keyword in group.get("keywords") or []:  # 검색키워드
+        # "정보통신기술 ICT"처럼 복합 키워드는 어절 단위로 나눠 하나라도 맞으면 매치로 본다.
+        for word in _safe_text(keyword).lower().split():  # 키워드어절
+            if len(word) < 2:
+                continue
+            if word in title:
+                title_hit = True  # 키워드제목매치여부
+            elif word in description:
+                description_hit = True  # 키워드설명매치여부
+        if title_hit:
+            break
+
+    return (6.0 if title_hit else 0.0) + (2.0 if description_hit else 0.0)
+
+
+# [코드 이해 주석]
+# - 역할: 그룹 로컬 우선순위 정렬 키를 만든다. 주제 키워드 매치 가점을 포함한다.
+# - 호출하는 곳: news_selector._shortlist_groups_for_ai, news_selector._fallback_select_groups
 # - 파라미터: group: Dict[str, Any]
 # - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
 # - 프로세스 흐름: 입력값을 확인합니다 -> 핵심 처리 로직을 수행합니다 -> 결과를 반환하거나 필요한 부수 효과를 남깁니다.
 def _group_sort_key(group: Dict[str, Any]):
     rep = group.get("representative") or {}  # rep
     return (
-        float(group.get("priority_score") or 0),
+        float(group.get("priority_score") or 0) + _topic_match_bonus(group),
         int(group.get("source_count") or 0),
         int(group.get("article_count") or 0),
         _safe_text(rep.get("published_at_kst") or rep.get("published_at")),
@@ -1811,7 +1144,9 @@ def select_important_news_groups(
     topic_name: str,
     topic_description: str,
     limit: int = 10,  # 상한
-    candidate_group_limit: Optional[int] = None  # 후보그룹상한
+    candidate_group_limit: Optional[int] = None,  # 후보그룹상한
+    min_importance_score: int = 3,  # 최소중요도점수
+    fill_to_limit: bool = False  # 부족분강제보충여부
 ) -> List[Dict]:
     """
     Python 규칙 기반으로 묶인 사건 그룹 중 OpenAI가 중요한 그룹만 선택한다.
@@ -1820,6 +1155,12 @@ def select_important_news_groups(
     - 입력은 기사 전체가 아니라 사건 그룹 대표 정보다.
     - 같은 사건 중복 제거는 이미 Python 그룹화 단계에서 수행한다.
     - 출력은 group_id 기준으로 받는다.
+
+    관련성 정책:
+    - min_importance_score 미만으로 평가된 그룹은 메일에 싣지 않는다.
+    - fill_to_limit=False(기본)면 AI가 limit보다 적게 골라도 그대로 존중한다.
+      AI가 안 뽑은 그룹을 로컬 점수 순으로 다시 채우면 관련성 낮은 뉴스가
+      메일에 섞이는 주원인이 되므로, 강제 보충은 명시적으로 켠 경우에만 한다.
     """
     reset_selection_stats()
 
@@ -1882,18 +1223,17 @@ def select_important_news_groups(
 - title/desc: 대표 기사 제목/짧은 설명
 
 선택 기준:
-1. 주제와 직접 관련 있고 독자가 알아야 할 사건을 우선합니다.
-2. src, n, score가 높거나 정책/규제/실적/투자/계약/시장 변화가 있으면 우선합니다.
-3. 후보가 충분하면 서로 다른 사건으로 {selection_limit}개를 채웁니다. 관련성이 낮거나 홍보/사진/단순 행사뿐이면 덜 뽑아도 됩니다.
-4. photo_like_representative, low_representative_score, overgroup_risk_token_time_span 플래그는 원칙적으로 제외합니다.
+1. 위 주제와 직접 관련 있는 사건만 선택합니다. 키워드만 스치듯 언급되고 사건 자체는 주제와 무관하면 선택하지 마세요.
+2. 주제와 직접 관련이 확실한 사건 중 정책/규제/실적/투자/계약/시장 변화, src·n·score가 높은 사건을 우선합니다.
+3. 최대 {selection_limit}개까지 서로 다른 사건으로 고르되, 확신이 없는 후보로 개수를 채우지 마세요. 적합한 사건이 적으면 적게 고르는 것이 정답입니다.
+4. 홍보성 기사, 단순 행사/수상/기념, photo_like_representative, low_representative_score, overgroup_risk_token_time_span 플래그는 제외합니다.
 5. 같은 group_id를 두 번 쓰지 말고, 후보에 없는 group_id를 만들지 마세요.
 
 importance_score:
 - 5: 주제 핵심이며 영향이 큰 정책/규제/실적/투자/대형계약/시장 변화
 - 4: 주요 기업/기관의 전략, 서비스, 기술, 제휴, 수급 변화
-- 3: 주제 관련 일반 뉴스
-- 2: 관련성은 있으나 영향/구체성이 낮음
-- 1: 거의 제외 대상이지만 참고용으로만 선택
+- 3: 주제와 직접 관련 있는 일반 뉴스
+주제와의 관련성이 3점 기준에 못 미치는 후보는 selected에 아예 넣지 마세요.
 모든 항목을 기계적으로 3점으로 주지 말고 후보 신호에 따라 차등화하세요.
 
 출력은 JSON 객체 하나만:
@@ -1957,6 +1297,7 @@ importance_score:
         used_group_ids = set()                                         # 중복선택방지그룹ID
 
         invalid_item_count = 0                                         # 무시한AI응답항목수
+        low_importance_count = 0                                       # 중요도미달제외건수
         for item in selected_items:  # 항목
             if not isinstance(item, dict):
                 invalid_item_count += 1  # 처리값
@@ -1972,10 +1313,17 @@ importance_score:
                 invalid_item_count += 1  # 처리값
                 continue
 
+            importance_score = _safe_int(item.get("importance_score", 3))  # AI부여중요도점수
+            # 프롬프트가 3점 미만은 선택하지 말라고 지시하지만,
+            # 모델이 그래도 낮은 점수를 붙여 보내면 여기서 한 번 더 걸러 관련성 낮은 뉴스가 메일에 실리지 않게 한다.
+            if importance_score < int(min_importance_score or 0):
+                low_importance_count += 1  # 처리값
+                continue
+
             news = _representative_news_from_group(group)               # 대표기사뉴스dict
             _prepare_selected_news(
                 news=news,  # 뉴스
-                importance_score=item.get("importance_score", 3)
+                importance_score=importance_score
             )
             selected_news.append(news)
             used_group_ids.add(group_id)
@@ -1985,8 +1333,19 @@ importance_score:
 
         if invalid_item_count:
             logger.debug("그룹 선별 응답 무시 항목: %s개", invalid_item_count)
+        if low_importance_count:
+            logger.info(
+                "🧹 중요도 %s점 미만 그룹 제외: %s개",
+                min_importance_score,
+                low_importance_count,
+            )
 
         if not selected_news:
+            # AI가 응답은 했지만 전부 중요도 미달로 걸러진 경우는 "이번 시간대에 실을 뉴스가 없다"는 판단이므로
+            # fallback으로 관련성 낮은 뉴스를 다시 채우지 않고 빈 결과를 존중한다.
+            if low_importance_count:
+                logger.info("🧹 모든 AI 선택 그룹이 중요도 미달로 제외되어 이번 섹션은 빈 결과를 반환합니다.")
+                return []
             logger.warning("⚠️ 유효하게 선택된 그룹이 없습니다. fallback을 사용합니다.")
             return _fallback_select_groups(group_list, fallback_news_list, limit)
 
@@ -1995,9 +1354,11 @@ importance_score:
         before_final_dedup_count = len(selected_news)                   # 최종중복제거전선별수
         selected_news = _deduplicate_final_selected_news(selected_news)  # 선별뉴스
 
-        # 8) 중복 제거 후 limit보다 적으면, 준비된 그룹과 fallback 후보에서 보충한다.
-        #    보충 후보도 같은 최종 중복 규칙을 통과해야 하므로 메일 슬롯을 채우면서 중복 재유입을 막는다.
-        if len(selected_news) < limit:
+        # 8) fill_to_limit=True일 때만, 준비된 그룹과 fallback 후보에서 부족분을 보충한다.
+        #    기본(False)에서는 AI가 "이 정도만 관련 있다"고 판단한 결과를 그대로 존중한다.
+        #    과거에는 항상 limit까지 채웠는데, 이때 AI가 뽑지 않은 그룹이 로컬 점수 순으로
+        #    다시 들어와 관련성 낮은 뉴스가 메일에 섞이는 주원인이었다.
+        if fill_to_limit and len(selected_news) < limit:
             supplement_candidates = []                                  # 부족분보충후보뉴스목록
 
             for group in prepared_groups:  # 그룹

@@ -426,38 +426,25 @@ def build_email_message(subject, html_body, to_header):
 
 
 # [코드 이해 주석]
-# - 역할: 비교와 저장에 일관되게 사용할 수 있도록 값을 표준 형태로 정규화하는 내부 보조 함수입니다.
-# - 호출하는 곳: email_sender.build_related_reports_html
-# - 파라미터: value: Any
-# - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
-# - 프로세스 흐름: 빈 값과 자료형을 보정합니다 -> 비교용 불필요 요소를 제거합니다 -> 표준화된 값을 반환합니다.
-def _normalize_url_for_compare(value):
-    text = str(value or "").strip().lower()  # 텍스트
-    if not text:
-        return ""
-    text = re.sub(r"^https?://", "", text)  # 텍스트
-    text = re.sub(r"^www\.", "", text)  # 텍스트
-    return text.rstrip("/")
-
-
-# [코드 이해 주석]
-# - 역할: 관련보도 제목/링크 목록 HTML 생성.
+# - 역할: 관련보도 상세 페이지 링크 HTML 생성.
 # - 호출하는 곳: email_sender.build_news_section
 # - 파라미터: news: Any, toggle_id: Any = None
 # - 리턴값: 명시 타입은 없지만 처리 결과 값을 반환합니다.
 # - 프로세스 흐름: 필요한 입력값을 안전하게 정리합니다 -> 문자열/dict/HTML 구조를 조립합니다 -> 완성된 결과를 반환합니다.
 def build_related_reports_html(news, toggle_id=None):
     """
-    관련보도 제목/링크 목록 HTML 생성.
+    관련보도 링크 HTML 생성.
 
-    메일 내부 토글은 클라이언트별 지원이 불안정하므로, 생성된
-    GitHub Pages 상세 페이지 링크를 우선 사용한다. 상세 페이지 URL이
-    없을 때만 상위 3건을 fallback으로 표시한다.
+    관련보도 목록은 GitHub Pages 상세 페이지가 전담하고,
+    메일 안에는 상세 페이지 링크 한 줄만 노출한다.
+    상세 페이지 URL이 없으면(--test 실행, related_page_enabled=false 등)
+    아무것도 표시하지 않는다. 예전에는 URL이 없을 때 상위 3건을 메일 본문에
+    직접 나열하는 fallback이 있었지만, 메일이 길어져 제거했다.
     """
     related_url = str(news.get("related_reports_url") or "").strip()  # relatedURL
     related_count_from_page = safe_count(news.get("related_reports_count"), 0)  # 관련보도페이지기준건수
-    # 1) 관련보도 상세 페이지 URL이 있으면 메일 안에는 링크만 노출한다.
-    #    메일 클라이언트마다 접기/펼치기 HTML 지원이 달라, 긴 관련 기사 목록은 GitHub Pages 상세 페이지로 보낸다.
+    # 관련보도 상세 페이지 URL이 있을 때만 메일에 링크 한 줄을 노출한다.
+    # 메일 클라이언트마다 접기/펼치기 HTML 지원이 달라, 긴 관련 기사 목록은 GitHub Pages 상세 페이지로 보낸다.
     if related_url and related_url != "#":
         related_count_text = related_count_from_page or safe_count(news.get("group_article_count"), 0)  # 관련보도표시건수
         if related_count_text <= 0:
@@ -474,111 +461,7 @@ def build_related_reports_html(news, toggle_id=None):
                                     </a>
         """
 
-    # 2) 상세 페이지 URL이 없는 경우에만 메일 내부 fallback 목록을 만든다.
-    #    Pages 설정이 없거나 관련 페이지 생성이 꺼져도, 상위 3건 정도는 메일에서 바로 확인할 수 있게 하기 위함이다.
-    titles = news.get("group_article_titles") or []  # titles
-    urls = news.get("group_article_urls") or []  # URL목록
-    main_url = _normalize_url_for_compare(news.get("url"))  # mainURL
-
-    related_items = []  # 관련보도항목목록
-    seen_urls = set()  # 확인된URL목록
-    seen_titles = set()  # 확인된titles
-
-    # 3) group_article_titles와 group_article_urls는 같은 인덱스가 같은 기사라는 전제로 묶는다.
-    #    URL/제목 중복을 같이 제거해 메일 내부 fallback 목록이 같은 기사로 반복되지 않게 한다.
-    for title, url in zip(titles, urls):  # 제목,URL
-        title_text = str(title or "").strip()  # 제목텍스트
-        url_text = str(url or "").strip()  # URL텍스트
-        normalized_url = _normalize_url_for_compare(url_text)  # 정규화URL
-        normalized_title = re.sub(r"\s+", " ", title_text).strip().lower()  # 정규화제목
-
-        if not title_text or not url_text or url_text == "#":
-            continue
-        if normalized_url and normalized_url in seen_urls:
-            continue
-        if normalized_title and normalized_title in seen_titles:
-            continue
-
-        seen_urls.add(normalized_url)
-        seen_titles.add(normalized_title)
-        related_items.append({
-            "title": title_text,
-            "url": url_text,
-            "is_main": bool(main_url and normalized_url == main_url),
-        })
-
-    if not related_items:
-        return ""
-
-    # 4) 메일 내부에는 처음 3건만 보여주고 나머지는 "외 N건"으로 줄인다.
-    #    메일 카드가 너무 길어지면 본문 요약보다 관련보도 목록이 더 눈에 띄기 때문이다.
-    related_count = len(related_items)  # 관련보도건수
-    visible_items = related_items[:3]  # 표시관련보도목록
-    hidden_count = max(related_count - len(visible_items), 0)  # 숨김관련보도건수
-    item_html = ""  # 항목HTML
-
-    for index, item in enumerate(visible_items, 1):  # 순번,항목
-        main_label = ""  # mainlabel
-        if item.get("is_main"):
-            main_label = (  # mainlabel
-                """
-                                                    <span style="font-size:10px; color:#737373; font-weight:700;">
-                                                        대표
-                                                    </span>
-            """
-            )
-
-        item_html += f"""
-                                        <tr>
-                                            <td valign="top" width="22"
-                                                style="padding:4px 0 4px 0; font-size:11px; line-height:1.45; color:#71717a;">
-                                                {index}.
-                                            </td>
-                                            <td style="padding:4px 0 4px 0; font-size:12px; line-height:1.45;">
-                                                <a href="{safe_url(item.get("url"))}" target="_blank"
-                                                   style="font-weight:700; text-decoration:none; color:#1d4ed8;">
-                                                    {safe_text(item.get("title"))}
-                                                </a>
-                                                {main_label}
-                                            </td>
-                                        </tr>
-        """
-
-    hidden_notice_html = ""  # hiddennoticeHTML
-    if hidden_count:
-        hidden_notice_html = f"""
-                                        <tr>
-                                            <td colspan="2"
-                                                style="padding:5px 0 2px 22px; font-size:11px; line-height:1.45; color:#71717a;">
-                                                외 {hidden_count}건 더 있음
-                                            </td>
-                                        </tr>
-        """
-
-    return f"""
-                                <div style="margin:8px 0 0 0;">
-                                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
-                                           style="border-collapse:collapse; margin:0;
-                                                  background:#f8fafc; border:1px solid #e5e7eb;">
-                                        <tr>
-                                            <td style="padding:7px 9px 4px 9px;
-                                                       font-size:11px; line-height:1.5;
-                                                       font-weight:800; color:#2563eb;">
-                                                관련보도 {related_count}건
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td style="padding:0 9px 7px 9px;">
-                                                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
-                                                       style="border-collapse:collapse;">
-                                                    {item_html}
-                                                    {hidden_notice_html}
-                                                </table>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </div>
-    """
+    return ""
 
 
 # [코드 이해 주석]
