@@ -1,10 +1,11 @@
 {
-  "updated_at": "2026-07-15T08:04:45.636564+09:00",
-  "total_count": 2,
+  "updated_at": "2026-07-16T08:06:43.646805+09:00",
+  "total_count": 3,
   "current_run_count": 1,
-  "new_count": 1,
+  "new_count": 0,
   "domains": [
     "fourfourtwo.co.kr",
-    "knpnews.com"
+    "knpnews.com",
+    "the-today.com"
   ]
 }
