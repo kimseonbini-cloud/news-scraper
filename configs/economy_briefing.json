@@ -50,5 +50,18 @@
         ""
       ]
     }
+    ,
+    {
+      "section_name": "일랜시아 뉴스 브리핑",
+      "keywords": [
+        "일랜시아"
+      ],
+      "topic_description": "일랜시아 관련된 게임 뉴스만 조회한다.",
+      "grouping_exclude_low_quality": true,
+      "grouping_max_groups": 100,
+      "exclude_keywords": [
+        ""
+      ]
+    }
   ]
 }
