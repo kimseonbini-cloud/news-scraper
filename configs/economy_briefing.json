@@ -1,6 +1,6 @@
 {
-  "briefing_name": "경제 뉴스 브리핑",
-  "subject_prefix": "경제·부동산·증권 뉴스 브리핑",
+  "briefing_name": "우리집 전철 뉴스 브리핑",
+  "subject_prefix": "우리집 전철 뉴스 브리핑",
   "receiver_env": "EMAIL_RECEIVER_ECONOMY",
   "email_send_mode": "individual",
   "related_page_enabled": true,
@@ -14,7 +14,8 @@
       "section_name": "수도권서남부광역철도 뉴스 브리핑",
       "keywords": [
         "수도권서남부광역철도",
-        "신구로선"
+        "신구로선",
+        "제2경인선"
       ],
       "topic_description": "철도 사업관련된  뉴스만 조회한다. 단순 아파트단지 홍보, 지역 홍보, 지역 행사, 상업 매물용 뉴스는 제외한다.",
       "grouping_exclude_low_quality": true,
