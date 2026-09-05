@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex,nofollow">
+    <title>2026년 09월 05일 - 우리집 전철 뉴스 브리핑</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 24px;
+            background: #f4f4f5;
+            color: #18181b;
+            font-family: "Malgun Gothic", "Apple SD Gothic Neo", Arial, sans-serif;
+        }
+        main {
+            max-width: 920px;
+            margin: 0 auto;
+        }
+        header {
+            margin: 0 0 22px 0;
+            padding: 0 0 16px 0;
+            border-bottom: 2px solid #18181b;
+        }
+        header h1 {
+            margin: 0 0 8px 0;
+            font-size: 24px;
+            line-height: 1.35;
+        }
+        header p {
+            margin: 0;
+            color: #52525b;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        section {
+            margin: 0 0 28px 0;
+        }
+        section > h1 {
+            margin: 0 0 12px 0;
+            font-size: 18px;
+            line-height: 1.35;
+            color: #1d4ed8;
+        }
+        .news-card {
+            margin: 0 0 14px 0;
+            padding: 14px 16px;
+            background: #ffffff;
+            border: 1px solid #d4d4d8;
+            border-radius: 6px;
+        }
+        body.related-filtered section:not(.selected-section),
+        body.related-filtered .news-card:not(.selected-related) {
+            display: none;
+        }
+        .related-count {
+            margin: 10px 0 6px 0;
+            color: #71717a;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        h2 {
+            margin: 0 0 8px 0;
+            font-size: 16px;
+            line-height: 1.45;
+        }
+        p {
+            margin: 0 0 10px 0;
+            font-size: 13px;
+            line-height: 1.65;
+        }
+        ol {
+            margin: 0;
+            padding-left: 22px;
+        }
+        li {
+            margin: 0 0 7px 0;
+            font-size: 13px;
+            line-height: 1.55;
+        }
+        a {
+            color: #1d4ed8;
+            font-weight: 700;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .badge {
+            display: inline-block;
+            margin-left: 6px;
+            color: #71717a;
+            font-size: 11px;
+            font-weight: 800;
+        }
+        .source {
+            display: inline-block;
+            margin-right: 7px;
+            color: #52525b;
+            font-size: 12px;
+            font-weight: 800;
+        }
+        .empty {
+            padding: 14px 16px;
+            background: #ffffff;
+            border: 1px solid #d4d4d8;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <header>
+            <h1>2026년 09월 05일 - 우리집 전철 뉴스 브리핑</h1>
+            <p>메일에서 선택한 뉴스의 관련보도 목록입니다. 이 페이지는 자동 생성되며 일정 기간 후 삭제됩니다.</p>
+        </header>
+        
+                <section>
+                    <h1>수도권서남부광역철도 뉴스 브리핑</h1>
+                    
+                <article id="news-1-1" class="news-card">
+                    <h2>
+                        <a href="https://www.incheonilbo.com/news/articleView.html?idxno=1331299" target="_blank" rel="noopener noreferrer">
+                            [기획] &quot;집보다 길부터 마련하라&quot;…이우천 군포시의회 의장이 내던진 &#x27;...
+                        </a>
+                    </h2>
+                    <p>이우천 군포시의회 의장이 내던진 제안은 수도권 서남부의 동서축을 연결하는 광역교통 구상의 핵심으로, 단순한 철도 노선 추가를 넘어 교통망 사각지대를 해소하는 것을 목표로 한다. 해당 노선이 실현되면 3기 신도시 및 인접 공공택지의 신규 교통 수요와 연결성에 영향을 미칠 수 있다는 배경이 제시된다.</p>
+                    <div class="related-count">관련보도 1건</div>
+                    <ol>
+                        
+                    <li>
+                        <span class="source">인천일보</span>
+                        <a href="https://www.incheonilbo.com/news/articleView.html?idxno=1331299" target="_blank" rel="noopener noreferrer">
+                            [기획] &quot;집보다 길부터 마련하라&quot;…이우천 군포시의회 의장이 내던진 &#x27;...
+                        </a>
+                        <span class="badge">대표</span>
+                    </li>
+                
+                    </ol>
+                </article>
+            
+                </section>
+            
+    </main>
+    <script>
+        (function () {
+            function getHashId() {
+                var raw = window.location.hash ? window.location.hash.slice(1) : "";
+                try {
+                    return decodeURIComponent(raw);
+                } catch (error) {
+                    return raw;
+                }
+            }
+
+            function filterSelectedNews() {
+                var id = getHashId();
+                var cards = document.querySelectorAll(".news-card");
+                var sections = document.querySelectorAll("section");
+
+                document.body.classList.remove("related-filtered");
+                cards.forEach(function (card) {
+                    card.classList.remove("selected-related");
+                });
+                sections.forEach(function (section) {
+                    section.classList.remove("selected-section");
+                });
+
+                if (!id) {
+                    return;
+                }
+
+                var selected = document.getElementById(id);
+                if (!selected || !selected.classList.contains("news-card")) {
+                    return;
+                }
+
+                document.body.classList.add("related-filtered");
+                selected.classList.add("selected-related");
+
+                var section = selected.closest("section");
+                if (section) {
+                    section.classList.add("selected-section");
+                }
+
+                window.scrollTo(0, 0);
+            }
+
+            window.addEventListener("DOMContentLoaded", filterSelectedNews);
+            window.addEventListener("hashchange", filterSelectedNews);
+        })();
+    </script>
+</body>
+</html>
