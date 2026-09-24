@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex,nofollow">
+    <title>2026년 09월 24일 - 우리집 전철 뉴스 브리핑</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 24px;
+            background: #f4f4f5;
+            color: #18181b;
+            font-family: "Malgun Gothic", "Apple SD Gothic Neo", Arial, sans-serif;
+        }
+        main {
+            max-width: 920px;
+            margin: 0 auto;
+        }
+        header {
+            margin: 0 0 22px 0;
+            padding: 0 0 16px 0;
+            border-bottom: 2px solid #18181b;
+        }
+        header h1 {
+            margin: 0 0 8px 0;
+            font-size: 24px;
+            line-height: 1.35;
+        }
+        header p {
+            margin: 0;
+            color: #52525b;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        section {
+            margin: 0 0 28px 0;
+        }
+        section > h1 {
+            margin: 0 0 12px 0;
+            font-size: 18px;
+            line-height: 1.35;
+            color: #1d4ed8;
+        }
+        .news-card {
+            margin: 0 0 14px 0;
+            padding: 14px 16px;
+            background: #ffffff;
+            border: 1px solid #d4d4d8;
+            border-radius: 6px;
+        }
+        body.related-filtered section:not(.selected-section),
+        body.related-filtered .news-card:not(.selected-related) {
+            display: none;
+        }
+        .related-count {
+            margin: 10px 0 6px 0;
+            color: #71717a;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        h2 {
+            margin: 0 0 8px 0;
+            font-size: 16px;
+            line-height: 1.45;
+        }
+        p {
+            margin: 0 0 10px 0;
+            font-size: 13px;
+            line-height: 1.65;
+        }
+        ol {
+            margin: 0;
+            padding-left: 22px;
+        }
+        li {
+            margin: 0 0 7px 0;
+            font-size: 13px;
+            line-height: 1.55;
+        }
+        a {
+            color: #1d4ed8;
+            font-weight: 700;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .badge {
+            display: inline-block;
+            margin-left: 6px;
+            color: #71717a;
+            font-size: 11px;
+            font-weight: 800;
+        }
+        .source {
+            display: inline-block;
+            margin-right: 7px;
+            color: #52525b;
+            font-size: 12px;
+            font-weight: 800;
+        }
+        .empty {
+            padding: 14px 16px;
+            background: #ffffff;
+            border: 1px solid #d4d4d8;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <header>
+            <h1>2026년 09월 24일 - 우리집 전철 뉴스 브리핑</h1>
+            <p>메일에서 선택한 뉴스의 관련보도 목록입니다. 이 페이지는 자동 생성되며 일정 기간 후 삭제됩니다.</p>
+        </header>
+        
+                <section>
+                    <h1>일랜시아 뉴스 브리핑</h1>
+                    
+                <article id="news-4-1" class="news-card">
+                    <h2>
+                        <a href="https://www.fetv.co.kr/news/articleView.html?idxno=310726" target="_blank" rel="noopener noreferrer">
+                            [단독] 넥슨, 조직명에 붙은 &#x27;Re_&#x27; 해석 분분…체질개선 신호였나
+                        </a>
+                    </h2>
+                    <p>넥슨은 지난해 말 IP 오픈라이선스 프로젝트 &#x27;REPLAY(리플레이)&#x27;를 시작해 &#x27;어둠의전설&#x27;, &#x27;일랜시아&#x27;, &#x27;아스가르드&#x27; 등 5개 IP를 외부 창작자에게 개방했다. 지난달 서비스가 종료된 크레이지아케이드는 이와 관련해 언급되며, 조직명에 붙은 &#x27;Re_&#x27;의 해석에 대해 분분한 반응이 나오고 있다.</p>
+                    <div class="related-count">관련보도 1건</div>
+                    <ol>
+                        
+                    <li>
+                        <span class="source">FETV</span>
+                        <a href="https://www.fetv.co.kr/news/articleView.html?idxno=310726" target="_blank" rel="noopener noreferrer">
+                            [단독] 넥슨, 조직명에 붙은 &#x27;Re_&#x27; 해석 분분…체질개선 신호였나
+                        </a>
+                        <span class="badge">대표</span>
+                    </li>
+                
+                    </ol>
+                </article>
+            
+                </section>
+            
+    </main>
+    <script>
+        (function () {
+            function getHashId() {
+                var raw = window.location.hash ? window.location.hash.slice(1) : "";
+                try {
+                    return decodeURIComponent(raw);
+                } catch (error) {
+                    return raw;
+                }
+            }
+
+            function filterSelectedNews() {
+                var id = getHashId();
+                var cards = document.querySelectorAll(".news-card");
+                var sections = document.querySelectorAll("section");
+
+                document.body.classList.remove("related-filtered");
+                cards.forEach(function (card) {
+                    card.classList.remove("selected-related");
+                });
+                sections.forEach(function (section) {
+                    section.classList.remove("selected-section");
+                });
+
+                if (!id) {
+                    return;
+                }
+
+                var selected = document.getElementById(id);
+                if (!selected || !selected.classList.contains("news-card")) {
+                    return;
+                }
+
+                document.body.classList.add("related-filtered");
+                selected.classList.add("selected-related");
+
+                var section = selected.closest("section");
+                if (section) {
+                    section.classList.add("selected-section");
+                }
+
+                window.scrollTo(0, 0);
+            }
+
+            window.addEventListener("DOMContentLoaded", filterSelectedNews);
+            window.addEventListener("hashchange", filterSelectedNews);
+        })();
+    </script>
+</body>
+</html>
